@@ -152,7 +152,7 @@ tall_species_lentic <- function(species_inventory_detail) {
   }, df = species_inventory_detail)
   # Combine output and filter out any NA or blank species values
   output <- dplyr::bind_rows(tall_list) %>%
-    filter(!(Species %in% c("", NA)))
+    dplyr::filter(!(Species %in% c("", NA)))
 
   return(output)
 }
