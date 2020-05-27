@@ -104,7 +104,7 @@ gather_lpi_lentic <- function(dsn) {
   )
 
   ## Output the list
-  print(lpi_tall)
+  return(lpi_tall)
 }
 
 #' @export gather_species_inventory_lentic
