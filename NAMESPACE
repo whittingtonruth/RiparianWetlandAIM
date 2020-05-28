@@ -3,5 +3,7 @@
 export(gather_height_lentic)
 export(gather_lpi_lentic)
 export(gather_species_inventory_lentic)
+export(header_build_lentic)
+export(species_list_check_lentic)
 export(tall_species_lentic)
 importFrom(magrittr,"%>%")
