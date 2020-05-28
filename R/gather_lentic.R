@@ -136,6 +136,9 @@ gather_species_inventory_lentic <- function(dsn) {
   return(species_inventory_tall)
 }
 
+# This function is called within gather_species_inventory_lentic to gather the Species Inventory detail data
+# and reformat it for use in later functions. It's main purpose seems to be to separate concatenated species fields
+# which may not be an issue for lentic. This could likely be put directly into the gather_species_inventory function.
 #' @export tall_species_lentic
 #' @rdname gather_lentic
 tall_species_lentic <- function(species_inventory_detail) {
@@ -229,7 +232,6 @@ gather_height_lentic <- function(dsn){
   # Output the woody/herbaceous level data
   return(lpi_height)
 }
-
 
 
 
