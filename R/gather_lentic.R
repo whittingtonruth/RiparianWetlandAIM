@@ -96,7 +96,7 @@ gather_lpi_lentic <- function(dsn) {
   ) %>%
     dplyr::left_join(
       x = dplyr::select(
-        lpi_header,"LineKey":"LineLengthCM", "globalid"
+        lpi_header, "PlotID", "PlotKey", "LineKey":"LineLengthCM", "globalid"
       ),
       y = .,
       by = c("globalid" = "parentglobalid")
@@ -131,6 +131,7 @@ gather_species_inventory_lentic <- function(dsn) {
                                              y = species_detail_tall,
                                              by = c("globalid" = "parentglobalid")
   ) %>%
+    dplyr::select(., -globalid) %>%
     subset(!is.na(Species))
 
   return(species_inventory_tall)
@@ -183,11 +184,11 @@ gather_height_lentic <- function(dsn){
   levels <- rlang::quos(globalid)
 
   # We only want to carry a subset of the lpi_header fields forward
-  lpi_header <- dplyr::select(lpi_header, !!!levels, LineKey:LineLengthCM)
+  lpi_header <- dplyr::select(lpi_header, !!!levels, PlotID, PlotKey, LineKey:LineLengthCM)
 
   lpi_height_tall_woody <- dplyr::select(
     .data = lpi_detail,
-    !!!levels,
+    parentglobalid,
     PointLoc,
     PointNbr,
     RecKey,
@@ -202,7 +203,7 @@ gather_height_lentic <- function(dsn){
 
   lpi_height_tall_herb <- dplyr::select(
     .data = lpi_detail,
-    !!!levels,
+    parentglobalid,
     PointLoc,
     PointNbr,
     RecKey,
@@ -219,7 +220,7 @@ gather_height_lentic <- function(dsn){
     lpi_height_tall_woody,
     lpi_height_tall_herb
   ) %>% dplyr::full_join(
-    x = ., y = lpi_header) %>%
+    x = lpi_header, y = ., by = c("globalid" = "parentglobalid")) %>%
     subset(., !is.na(Height))
 
   # Add NA to fields with no species (i.e. the species that were "None")
@@ -228,6 +229,9 @@ gather_height_lentic <- function(dsn){
   # Remove orphaned records and duplicates, if they exist
   lpi_height <- unique(lpi_height)
   lpi_height <- lpi_height[!is.na(lpi_height$globalid)]
+
+  # Remove the globalid from the form
+  lpi_height <- dplyr::select(lpi_height, -globalid)
 
   # Output the woody/herbaceous level data
   return(lpi_height)
