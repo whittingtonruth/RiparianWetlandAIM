@@ -1,6 +1,6 @@
-#' Gathering functions
+#' Species gathering functions
 #'
-#' @description This group of functions allow you to transform Survey123 data uploaded to AGOL from wide format to long format.
+#' @description This group of functions allow you to transform Survey123 data uploaded to AGOL from wide format to long format. It contains three functions for transforming Species Richness, LPI, and Woody Species detail tables.
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.
 #' @importFrom magrittr %>%
 #' @name gather_lentic
@@ -9,98 +9,68 @@
 
 #' @export gather_lpi_lentic
 #' @rdname gather_lentic
-gather_lpi_lentic <- function(dsn) {
+## Function to transform LPI data into tall format.
+gather_lpi_lentic <- function(dsn){
+  #read in LPI header and detail tables
+  lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
+                                             layer = "lpiDetail",
+                                             stringsAsFactors = F))
 
-  # Read LPI information from AGOL fgdb
-  lpi_detail <- suppressWarnings(sf::st_read(
-    dsn = dsn,
-    layer = "LPIDetail",
-    stringsAsFactors = FALSE
-  ))
-  lpi_header <- suppressWarnings(sf::st_read(
-    dsn = dsn,
-    layer = "LPI",
-    stringsAsFactors = FALSE
-  ))
+  lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
+                                             layer = "LPI",
+                                             stringsAsFactors = F))
 
-  # Make a tall data frame with the hit codes by layer and the checkbox designation
+  #Make a tall table of the hit and all point identifying information
   lpi_hits_tall <- lpi_detail %>%
     dplyr::mutate_if(is.factor, as.character) %>%
-    dplyr::select(
-      "RecKey",
-      "PointNbr",
-      "PointLoc",
-      "TopCanopy",
-      "SoilSurface", dplyr::matches("^Lower")
-    ) %>%
+    dplyr::select(RecKey,
+                  PointNbr,
+                  PointLoc,
+                  TopCanopy, dplyr::matches("^Lower"), SoilSurface) %>%
 
-    tidyr::gather(
-      key = "layer",
-      value = "code",
-      "TopCanopy", "SoilSurface", dplyr::matches("^Lower")
-    )
+    tidyr::pivot_longer(
+      cols = -c(RecKey, PointNbr, PointLoc),
+      names_to = "layer",
+      values_to = "code") %>%
 
-    # Remove all records where no hit was recorded (e.g., "None", "NA")
-  lpi_hits_tall <- dplyr::filter(
-    .data = lpi_hits_tall,
-    !is.na(code),
-    code != "",
-    code != "None",
-    !is.na(RecKey)
-  )
+    #remove all rows with NA values
+    dplyr::filter(
+      !is.na(code))
 
-  ## Make a tall data frame of the checkbox status by layer
+  #Make a tall table of checkbox data and remove all NAs
   lpi_chkbox_tall <- lpi_detail %>%
-    dplyr::mutate_if(is.factor, as.character) %>%
-    dplyr::select(
-      "RecKey",
-      "PointNbr",
-      "PointLoc",
-      dplyr::matches("^Chkbox")
-    ) %>%
+    dplyr::select(RecKey,
+                  PointNbr,
+                  PointLoc,
+                  dplyr::matches("^Chkbox")) %>%
+    tidyr::pivot_longer(
+      cols = -c(RecKey, PointNbr, PointLoc),
+      names_to = "layer",
+      values_to = "Chkbox")
 
-    tidyr::gather(
-      key = "layer",
-      value = "chkbox",
-      dplyr::matches("^Chkbox")
-    )
+  #Remove Woody, Woody2, and Herbaceous from chkbox data
+  lpi_chkbox_tall <- lpi_chkbox_tall%>%
+    dplyr::filter(
+      !(layer %in% c("ChkboxWoody",
+                     "ChkboxWoody2",
+                     "ChkboxHerbaceous")))
 
-  # Remove woody and herbaceous checkboxes
-  lpi_chkbox_tall <- lpi_chkbox_tall[!(lpi_chkbox_tall$layer %in%
-                                         c("ChkboxWoody",
-                                           "ChkboxWoody2",
-                                           "ChkboxHerbaceous"
-                                         )), ]
-
-  ## Make the names in the layer variable match
+  #Rename the checkbox layer names so they match
   lpi_chkbox_tall$layer <- gsub(lpi_chkbox_tall$layer,
                                 pattern = "^Chkbox",
-                                replacement = ""
-                                )
+                                replacement = "")
 
   lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Top"] <- "TopCanopy"
   lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Basal"] <- "SoilSurface"
 
-  # Print update because this can take a while
-  message("Merging LPI Header and LPI Detail tables")
-
-  # Merge checkbox and hit data as well as the header data
   lpi_tall <- suppressWarnings(dplyr::left_join(
-    x = lpi_hits_tall,
-    y = lpi_chkbox_tall,
-    all.x = TRUE,
-    by = c("RecKey", "PointLoc", "PointNbr", "layer")
-  ) %>%
-    dplyr::left_join(
-      x = dplyr::select(
-        lpi_header, "PlotID", "PlotKey", "LineKey":"LineLengthCM"
-      ),
-      y = .,
-      by = c("LineKey" = "RecKey")
-    )
-  )
+    lpi_hits_tall,
+    lpi_chkbox_tall)) %>%
 
-  ## Output the list
+    suppressWarnings(dplyr::left_join(x = dplyr::select(lpi_header, "LineKey":"LineLengthCM"),
+                                      y = .,
+                                      by = c("LineKey" = "RecKey")))
+
   return(lpi_tall)
 }
 
