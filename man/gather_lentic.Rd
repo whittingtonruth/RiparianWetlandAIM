@@ -5,13 +5,19 @@
 \alias{gather_lpi_lentic}
 \alias{gather_species_inventory_lentic}
 \alias{gather_height_lentic}
-\title{Gathering functions}
+\alias{gather_annualuse}
+\alias{gather_woodyspecies}
+\title{Species gathering functions}
 \usage{
 gather_lpi_lentic(dsn)
 
 gather_species_inventory_lentic(dsn)
 
 gather_height_lentic(dsn)
+
+gather_annualuse(dsn)
+
+gather_woodyspecies(dsn)
 }
 \arguments{
 \item{dsn}{Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.}
@@ -20,5 +26,5 @@ gather_height_lentic(dsn)
 Data frame containing the data from a lentic AIM form
 }
 \description{
-This group of functions allow you to transform Survey123 data uploaded to AGOL from wide format to long format.
+This group of functions allow you to transform Survey123 data uploaded to AGOL from wide format to long format. It contains three functions for transforming Species Richness, LPI, and Woody Species detail tables.
 }
