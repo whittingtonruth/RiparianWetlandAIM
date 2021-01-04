@@ -65,11 +65,11 @@ gather_lpi_lentic <- function(dsn){
 
   lpi_tall <- suppressWarnings(dplyr::left_join(
     lpi_hits_tall,
-    lpi_chkbox_tall)) %>%
+    lpi_chkbox_tall) %>%
 
-    suppressWarnings(dplyr::left_join(x = dplyr::select(lpi_header, "LineKey":"LineLengthCM"),
+    dplyr::left_join(x = dplyr::select(lpi_header, "LineKey":"LineLengthCM"),
                                       y = .,
-                                      by = c("LineKey" = "RecKey")))
+                                      by = c("LineKey"= "RecKey")))
 
   return(lpi_tall)
 }
