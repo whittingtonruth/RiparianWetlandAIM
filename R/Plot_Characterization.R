@@ -11,7 +11,7 @@ header_build_lentic <- function(dsn, ...) {
 
   # tblPlots provides the link between species tables
   # (LPI, Height, Species Richness) and tblStateSpecies
-  header <- sf::st_read(dsn = dsn, layer = "PlotChar",
+  header <- sf::st_read(dsn = dsn, layer = "PlotCharacterization",
                           stringsAsFactors = FALSE) %>%
     as.data.frame() %>%
 
