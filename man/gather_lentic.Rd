@@ -4,15 +4,12 @@
 \alias{gather_lentic}
 \alias{gather_lpi_lentic}
 \alias{gather_species_inventory_lentic}
-\alias{tall_species_lentic}
 \alias{gather_height_lentic}
 \title{Gathering functions}
 \usage{
 gather_lpi_lentic(dsn)
 
 gather_species_inventory_lentic(dsn)
-
-tall_species_lentic(species_inventory_detail)
 
 gather_height_lentic(dsn)
 }
