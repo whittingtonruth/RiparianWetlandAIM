@@ -10,6 +10,8 @@ species_list_check_lentic(dsn_tall = dsn_tall, species_list_file, ...)
 \item{dsn_tall}{A file path to tall tables produced from gathering functions}
 
 \item{species_list_file}{The file path to the species list. If contained within the dsn, then specify the layer name within the dsn.}
+
+\item{...}{Filters can be added which should be based on the header column names.}
 }
 \description{
 Functions which build from LPI, Height, and Species Inventory tall tables to perform species checks.
