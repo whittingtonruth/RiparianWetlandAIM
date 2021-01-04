@@ -1,11 +1,12 @@
 #' Header for lentic projects
 #' @description Headers build from the plot characterization form to match to each entry from all tall tables.
 #' @param dsn File path to the file geodatabase where all raw data from AGOL is stored.
+#' @param ... filter expression in grepl format.
 
 #' @export header_build_lentic
 #' @rdname Plot_Characterization
 header_build_lentic <- function(dsn, ...) {
-  # Set up filter expression (e.g., filter on DBKey, SpeciesState, etc)
+  # Set up filter expression (e.g., filter on PlotKey, SpeciesState, etc)
   filter_exprs <- rlang::quos(...)
 
   # tblPlots provides the link between species tables
@@ -22,9 +23,6 @@ header_build_lentic <- function(dsn, ...) {
                     SiteName, SamplingApproach,Latitude_NAD83 =Northing, Longitude_NAD83 = Easting, State = StateCode,
                     DateEstablished = CreationDate
                   ) #%>%
-
-    # If there are any Sites with no PrimaryKeys, delete them -->not necessary as of 5/28/20
-    #subset(!is.na(PrimaryKey))
 
     # Return the header file
     return(header)

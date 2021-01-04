@@ -8,6 +8,8 @@ header_build_lentic(dsn, ...)
 }
 \arguments{
 \item{dsn}{File path to the file geodatabase where all raw data from AGOL is stored.}
+
+\item{...}{filter expression in grepl format.}
 }
 \description{
 Headers build from the plot characterization form to match to each entry from all tall tables.
