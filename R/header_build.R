@@ -23,9 +23,16 @@ header_build_lentic <- function(dsn, ...) {
     dplyr::filter(!!!filter_exprs) %>%
 
     # Select the field names we need in the final feature class
-    dplyr::select(PlotID, PlotKey, Latitude_NAD83 =Latitude, Longitude_NAD83 = Longitude, State = AdminState,
-                  DistrictOffice = Region, FieldOffice = Office, SamplingApproach, DateEstablished = EstablishedDate
-    ) %>%
+    dplyr::select(PlotID,
+                  PlotKey,
+                  SiteName = Name,
+                  LatWGS,
+                  LongWGS,
+                  FieldOffice = Office,
+                  DistrictOffice = Region,
+                  State = AdminState,
+                  SamplingApproach
+    )
 
   # Return the header file
   return(header)
