@@ -16,13 +16,6 @@
 #'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'
 
-#temporary objects to store for function testing
-dsn <- "C:/Users/whitt/Documents/CNHP/2020 data/FGDBcopies/COmaps_2021-01-04.gdb"
-lpi_tall <- gather_lpi_lentic(dsn = dsn)
-hit <- "first"
-grouping_variables <- (rlang::quos(GrowthHabitSub, Duration))
-grouping_variables <- (rlang::quos(code))
-
 #'@export pct_cover_lentic
 #'@rdname pct_cover_lentic
 pct_cover_lentic <- function(lpi_tall,
