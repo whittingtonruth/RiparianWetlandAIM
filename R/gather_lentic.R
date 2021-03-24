@@ -16,9 +16,11 @@ gather_lpi_lentic <- function(dsn){
                                              layer = "lpiDetail",
                                              stringsAsFactors = F))
 
+
   lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
                                              layer = "LPI",
-                                             stringsAsFactors = F))
+                                             stringsAsFactors = F)) %>%
+    sf::st_drop_geometry()
 
   #Make a tall table of the hit and all point identifying information
   lpi_hits_tall <- lpi_detail %>%
