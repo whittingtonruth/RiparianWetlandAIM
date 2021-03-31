@@ -12,11 +12,9 @@ header_build_lentic(dsn, ...)
 \item{...}{Query in grepl format that subsets plots.}
 
 \item{header}{Dataframe. Plot header containing plot metadata}
-
-\item{source}{String. Specifies data source, \code{"AIM", "LMF"}}
 }
 \value{
-A \code{tbl} of indicators of either tall or wide format.
+A \code{tbl} of header information on each evaluated plot.
 }
 \description{
 Build AIM Indicators Tables and Feature Classes
