@@ -16,6 +16,12 @@
 #'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'
 
+grouping_variables <- rlang::quos(code)
+tall = FALSE
+hit = "first"
+by_line = FALSE
+
+
 #'@export pct_cover_lentic
 #'@rdname pct_cover_lentic
 pct_cover_lentic <- function(lpi_tall,
@@ -39,29 +45,26 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Specify how to group calculations
   if (by_line) {
-    level <- rlang::quos(PlotKey, LineKey)
+    level <- rlang::quo(LineKey)
   } else {
-    level <- rlang::quos(PlotKey)
+    level <- rlang::quo(PlotKey)
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
   lpi_tall <- lpi_tall %>%
     dplyr::mutate_at(dplyr::vars(!!!grouping_variables), toupper)
 
-  #Store the list of non-species codes:
-  nonspecies <- c("N", "M","W","TH","HL","DL","WL","NL","AL","SA","VL","DS","GR","CB","ST","EL","OM","S","BY","BR")
-
   #First calculate the denominator. For absolute cover, this will be the number of pin drops.
   #Relative cover uses vascular plant hits as the denominator. Relative cover can only be calculated
   #for plant species, so this will require an extra step to filter out all non-plant hits.
   point_totals <- if(hit %in% c("any", "first", "basal")){
     lpi_tall%>%dplyr::distinct(LineKey, PointNbr, .keep_all = T)%>%
-      dplyr::group_by(!!!level) %>%
+      dplyr::group_by(!!level) %>%
       dplyr::summarize(total = dplyr::n())
   } else if(hit == "all"){
-    lpi_tall%>%dplyr::filter(layer!="basal", !code%in%nonspecies)%>%
+    lpi_tall%>%dplyr::filter(layer!="basal", !code%in%nonplantcodes$code)%>%
       dplyr::distinct(LineKey, PointNbr, code, .keep_all = T)%>%
-      dplyr::group_by(!!!level) %>%
+      dplyr::group_by(!!level) %>%
       dplyr::summarize(total = dplyr::n())
   }
 
@@ -77,41 +80,49 @@ pct_cover_lentic <- function(lpi_tall,
     #2. Filter to only unique combinations of linekey, pointnbr, and grouping variable so that count will be presence/absence per pindrop -->only for absolute cover
     #3. Group by defined level and grouping variables.
     #4. Count by group and summarize in table
-    #5. Combine all grouping variable combinations into one field, indicators
+    #5. Combine all grouping variable combinations into one field, metrics
     #6. Join to totals found in point_totals
     #7. Calculate percent.
     #8. Remove unnecessary columns
   summary <- lpi_tall %>%
     dplyr::filter(!!layerfilter, complete.cases(!!!grouping_variables))%>%
     dplyr::distinct(LineKey, PointNbr, !!!grouping_variables, .keep_all = T) %>%
-    dplyr::group_by(!!!level, !!!grouping_variables) %>%
+    dplyr::group_by(!!level, !!!grouping_variables) %>%
     dplyr::summarize(uniquehits = dplyr::n()) %>%
-    tidyr::unite(indicator, !!!grouping_variables, sep = ".")%>%
+    tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
     dplyr::left_join(., point_totals) %>%
     dplyr::mutate(percent = uniquehits / total * 100)%>%
     dplyr::select(-c(uniquehits, total))
 
-  #remove all indicators with no value for one grouping_variable
+  #remove all metrics with no value for one grouping_variable
   summary <- summary %>% subset(!grepl(
-    x = indicator,
+    x = metric,
     pattern = "^[.]|[.]$|\\.\\.|\\.NA|NA\\.|\\.NA\\."
   ))
 
-  #Add columns for empty indicators in all sites and mutate indicator names to include Absolute or relative.
-  summary <- suppressWarnings(
-    expand.grid(PlotKey = unique(lpi_tall$PlotKey),
-                indicator = unique(summary$indicator), stringsAsFactors = F) %>%
+
+  #Based on whether grouping was at the plot- or transect-level, expand.grid is used to
+    #add columns for empty metrics across all level cases, whether level be plotkey or linekey.
+  allsitemetrics <- if(rlang::quo_get_expr(level)=="PlotKey"){
+      expand.grid(PlotKey= unique(lpi_tall%>%dplyr::pull(.,!!level)),
+                  metric = unique(summary$metric), stringsAsFactors = F)
+    } else{
+      expand.grid(LineKey= unique(lpi_tall%>%dplyr::pull(.,!!level)),
+                metric = unique(summary$metric), stringsAsFactors = F)}
+
+  #Now join summary to full metric table.
+  summary <- suppressWarnings(allsitemetrics%>%
       dplyr::left_join(., summary) %>%
       dplyr::mutate_all(dplyr::funs(replace(., is.na(.), 0)))%>%
-      dplyr::mutate(indicator=
+      dplyr::mutate(metric=
                       {ifelse(rep(hit == "all", nrow(.)),
-                              paste("Relative.", indicator, sep = ""),
-                              paste("Absolute.", indicator, sep = ""))}) %>%
+                              paste("Relative.", metric, sep = ""),
+                              paste("Absolute.", metric, sep = ""))}) %>%
       dplyr::arrange(PlotKey))
 
   #translate to wide format if desired.
   if(!tall){summary <- summary%>%
-    tidyr::pivot_wider(names_from = indicator, values_from = percent)
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
   }
   return(summary)
 }
