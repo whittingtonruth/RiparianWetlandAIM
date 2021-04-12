@@ -16,9 +16,9 @@
 #'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'
 
-grouping_variables <- rlang::quos(code)
+grouping_variables <- rlang::quos(NativeStatus)
 tall = FALSE
-hit = "first"
+hit = "all"
 by_line = FALSE
 
 
@@ -45,9 +45,9 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Specify how to group calculations
   if (by_line) {
-    level <- rlang::quo(LineKey)
+    level <- rlang::quos(PlotKey, LineKey)
   } else {
-    level <- rlang::quo(PlotKey)
+    level <- rlang::quos(PlotKey)
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
@@ -59,25 +59,28 @@ pct_cover_lentic <- function(lpi_tall,
   #for plant species, so this will require an extra step to filter out all non-plant hits.
   point_totals <- if(hit %in% c("any", "first", "basal")){
     lpi_tall%>%dplyr::distinct(LineKey, PointNbr, .keep_all = T)%>%
-      dplyr::group_by(!!level) %>%
+      dplyr::group_by(!!!level) %>%
       dplyr::summarize(total = dplyr::n())
   } else if(hit == "all"){
     lpi_tall%>%dplyr::filter(layer!="basal", !code%in%nonplantcodes$code)%>%
       dplyr::distinct(LineKey, PointNbr, code, .keep_all = T)%>%
-      dplyr::group_by(!!level) %>%
+      dplyr::group_by(!!!level) %>%
       dplyr::summarize(total = dplyr::n())
   }
 
-  #Set layer filter based on hit. If hit is "any" or "all" no filter should be applied, so a universal filter is used. .
+  #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied, so a universal filter is used.
   layerfilter <- if(hit=="first"){
     rlang::expr(layer == "TopCanopy")
   } else if(hit=="basal"){
     rlang::expr(layer == "SoilSurface")
+  } else if(hit=="all"){
+    rlang::expr(layer!="SoilSurface")
   } else{rlang::expr(layer!="NotALayer")}
 
   #Steps to cover calculation are as follows:
-    #1. Flter to hits in target layer(s) with necessary classification information
-    #2. Filter to only unique combinations of linekey, pointnbr, and grouping variable so that count will be presence/absence per pindrop -->only for absolute cover
+    #1. Filter to hits in target layer(s) with necessary classification information
+    #2. Filter to only unique combinations of linekey, pointnbr, and grouping variable so that count will be
+        #presence/absence per pindrop. This is done conditionally so that it will only happen with absolute cover calculations.
     #3. Group by defined level and grouping variables.
     #4. Count by group and summarize in table
     #5. Combine all grouping variable combinations into one field, metrics
@@ -86,8 +89,8 @@ pct_cover_lentic <- function(lpi_tall,
     #8. Remove unnecessary columns
   summary <- lpi_tall %>%
     dplyr::filter(!!layerfilter, complete.cases(!!!grouping_variables))%>%
-    dplyr::distinct(LineKey, PointNbr, !!!grouping_variables, .keep_all = T) %>%
-    dplyr::group_by(!!level, !!!grouping_variables) %>%
+    {if(hit !="all") dplyr::distinct(.,LineKey, PointNbr, !!!grouping_variables, .keep_all = T) else .} %>%
+    dplyr::group_by(!!!level, !!!grouping_variables) %>%
     dplyr::summarize(uniquehits = dplyr::n()) %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
     dplyr::left_join(., point_totals) %>%
@@ -103,12 +106,14 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Based on whether grouping was at the plot- or transect-level, expand.grid is used to
     #add columns for empty metrics across all level cases, whether level be plotkey or linekey.
-  allsitemetrics <- if(rlang::quo_get_expr(level)=="PlotKey"){
-      expand.grid(PlotKey= unique(lpi_tall%>%dplyr::pull(.,!!level)),
+  allsitemetrics <- if(length(level) == 1){
+      expand.grid(PlotKey= unique(lpi_tall%>%dplyr::pull(.,!!level[[1]])),
                   metric = unique(summary$metric), stringsAsFactors = F)
     } else{
-      expand.grid(LineKey= unique(lpi_tall%>%dplyr::pull(.,!!level)),
-                metric = unique(summary$metric), stringsAsFactors = F)}
+      expand.grid(LineKey= unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
+                metric = unique(summary$metric), stringsAsFactors = F) %>%
+        dplyr::mutate(PlotKey = gsub('.{2}$', '', LineKey)) %>%
+        dplyr::relocate(PlotKey)}
 
   #Now join summary to full metric table.
   summary <- suppressWarnings(allsitemetrics%>%
@@ -126,10 +131,3 @@ pct_cover_lentic <- function(lpi_tall,
   }
   return(summary)
 }
-
-
-
-
-
-
-

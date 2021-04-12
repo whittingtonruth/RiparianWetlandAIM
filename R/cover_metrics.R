@@ -23,22 +23,59 @@ lentic_covermetrics <- function(lpi_tall, masterspecieslist){
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
   nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
 
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  GrowthHabitSub,
+                  Duration,
+                  NativeStatus,
+                  ends_with("_WetStatus"),
+                  ends_with("_C.Value"),
+                  ends_with("_Nox")
+                  )
+
   #cover calculation for foliar cover
   PercentFoliarCover <- pct_cover_lentic(lpi_tall,
                                          tall = TRUE,
                                          hit = "first",
                                          by_line = FALSE,
                                          code)%>%
-    dplyr::filter(!stringr::str_detect(indicator, nonplantcodesfilter))%>%
+    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(AbsoluteFoliarCover = sum(percent))
+    dplyr::summarize(PercentFoliarCover = sum(percent))
 
   PercentBasalCover <- pct_cover_lentic(lpi_tall,
                                         tall = TRUE,
                                         hit = "basal",
-                                        by_line = TRUE,
+                                        by_line = FALSE,
                                         code)%>%
-    dplyr::filter(!stringr::str_detect(indicator, nonplantcodesfilter))%>%
+    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(AbsoluteFoliarCover = sum(percent))
+    dplyr::summarize(PercentBasalCover = sum(percent))
+
+  TotalAbsoluteCover <- pct_cover_lentic(lpi_tall,
+                                          tall = TRUE,
+                                          hit = "any",
+                                          by_line = FALSE,
+                                          code)%>%
+    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::group_by(PlotKey)%>%
+    dplyr::summarize(AbsoluteVascularCover = sum(percent))
+
+  lpispeciesjoin <- left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+
+  RelativeNativeCover <- pct_cover_lentic(lpispeciesjoin,
+                                         tall = TRUE,
+                                         hit = "all",
+                                         by_line = FALSE,
+                                         NativeStatus)%>%
+    dplyr::filter(grepl("\\.NATIVE$", metric))
+
+  AbsoluteNoxiousWeedCover <- pct_cover_lentic(lpispeciesjoin,
+                                          tall = TRUE,
+                                          hit = "any",
+                                          by_line = FALSE,
+                                          Noxious)%>%
+    dplyr::filter(grepl("\\.NATIVE$", metric))
+
 }
