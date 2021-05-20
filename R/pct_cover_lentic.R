@@ -16,11 +16,6 @@
 #'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'
 
-grouping_variables <- rlang::quos(NativeStatus)
-tall = FALSE
-hit = "all"
-by_line = FALSE
-
 
 #'@export pct_cover_lentic
 #'@rdname pct_cover_lentic
