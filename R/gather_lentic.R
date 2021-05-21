@@ -1,6 +1,8 @@
 #' Species gathering functions
 #'
-#' @description This group of functions allow you to transform Survey123 data uploaded to AGOL from wide format to long format. It contains three functions for transforming Species Richness, LPI, and Woody Species detail tables.
+#' @description This group of functions allow you to transform Survey123 data uploaded to
+#' AGOL from wide format to long format. It contains six functions for transforming Species Richness,
+#' Unknown Plants, LPI, Heights from LPI, and Woody Species detail tables.
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.
 #' @importFrom magrittr %>%
 #' @name gather_lentic
@@ -134,6 +136,45 @@ gather_species_inventory_lentic <- function(dsn) {
     subset(!is.na(Species))
 
   return(species_inventory_tall)
+}
+
+#' @export gather_unknowns_lentic
+#' @rdname gather_lentic
+gather_unknowns_lentic <- function(dsn) {
+
+  # Read in the files from the geodatabase
+  UnknownPlants_detail <- suppressWarnings(sf::st_read(
+    dsn = dsn,
+    layer = "UnknownCodes",
+    stringsAsFactors = FALSE
+  ))
+  UnknownPlants_header <- suppressWarnings(sf::st_read(
+    dsn = dsn,
+    layer = "UnknownPlants",
+    stringsAsFactors = FALSE
+  )%>%
+    sf::st_drop_geometry())
+
+  # Make the species detail table tall
+  unknown_detail_tall <- UnknownPlants_detail %>%
+    dplyr::filter(IdentificationStatus == "Not Identified") %>%
+    dplyr::select(
+      "UnknownCodeKey",
+      "GrowthHabit",
+      "Duration",
+      "ScientificName"
+    )%>%
+    dplyr::mutate("PlotKey" = paste(sapply(strsplit(UnknownCodeKey, "_"), '[', 1), sapply(strsplit(UnknownCodeKey, "_"), '[', 2), sep = "_"))
+
+  # Join the detail table to the header and remove any NAs
+  UnknownPlants_tall <- dplyr::left_join(
+    x = dplyr::select(UnknownPlants_header,
+                      "PlotID":"VisitDate"),
+    y = unknown_detail_tall)
+
+  UnknownPlants_tall$Duration[UnknownPlants_tall$Duration=="Unknown"] <- ""
+
+  return(UnknownPlants_tall)
 }
 
 #' @export gather_height_lentic
