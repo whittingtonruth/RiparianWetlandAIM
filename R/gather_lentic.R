@@ -65,13 +65,36 @@ gather_lpi_lentic <- function(dsn){
   lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Top"] <- "TopCanopy"
   lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Basal"] <- "SoilSurface"
 
-  lpi_tall <- suppressWarnings(dplyr::left_join(
-    lpi_hits_tall,
-    lpi_chkbox_tall) %>%
+  #Make a tall table of unknown code key data and remove all NAs
+  lpi_unknowncode_tall <- lpi_detail %>%
+    dplyr::select(RecKey,
+                  PointNbr,
+                  PointLoc,
+                  dplyr::matches("^UnknownCode.*Key$|^UnknownCode.*Key2$")) %>%
+    tidyr::pivot_longer(
+      cols = -c(RecKey, PointNbr, PointLoc),
+      names_to = "layer",
+      values_to = "UnknownCodeKey")%>%
+    dplyr::filter(
+      !layer %in% c("UnknownCodeWoodyKey",
+                    "UnknownCodeWoodyKey2",
+                    "UnknownCodeHerbaceousKey",
+                    "UnknownCodeStubbleKey"))
 
-    dplyr::left_join(x = dplyr::select(lpi_header, "PlotID", "PlotKey", "LineKey":"LineLengthCM"),
-                                      y = .,
-                                      by = c("LineKey"= "RecKey")))
+  #replace layer names so they match
+  lpi_unknowncode_tall$layer <- gsub(lpi_unknowncode_tall$layer,
+                               pattern = "^UnknownCode|Key$",
+                               replacement = "")
+
+  lpi_unknowncode_tall$layer[lpi_unknowncode_tall$layer == "Top"] <- "TopCanopy"
+  lpi_unknowncode_tall$layer[lpi_unknowncode_tall$layer == "Basal"] <- "SoilSurface"
+
+  #join all three tables
+  lpi_tall <- suppressWarnings(dplyr::left_join(lpi_hits_tall,
+                                                lpi_chkbox_tall) %>%
+                                 dplyr::left_join(., lpi_unknowncode_tall)%>%
+                                 dplyr::left_join(x = dplyr::select(lpi_header, "PlotID", "PlotKey", "LineKey":"LineLengthCM"),
+                                                  by = c("LineKey"= "RecKey")))
 
   return(lpi_tall)
 }
