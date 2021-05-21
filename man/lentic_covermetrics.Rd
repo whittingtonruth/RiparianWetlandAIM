@@ -12,7 +12,7 @@
 \alias{pct_DurationCover}
 \alias{pct_NonPlantGroundCover}
 \alias{Combine2019Indicators}
-\title{Functions used to calculate the percent cover by different grouping variables.}
+\title{Calculate percent cover from LPI}
 \usage{
 pct_FoliarCover(lpi_tall)
 
@@ -47,7 +47,7 @@ pct_DurationCover(
   covertype = "relative"
 )
 
-pct_NonPlantGroundCover(lpi_tall)
+pct_NonPlantGroundCover(lpi_tall, hit = "any")
 
 Combine2019Indicators(header, lpi_tall, masterspecieslist, unknownplantslist)
 }
@@ -64,6 +64,11 @@ drops made up by a particular species or group.}
 
 \item{header}{source of header data frame.}
 }
+\value{
+
+}
 \description{
-Functions used to calculate the percent cover by different grouping variables.
+Cover metrics return a \code{data.frame} of percent cover of specified categories calculated from
+gathered LPI data across plots. These defined functions execute the most common cover categories calculated
+from LPI.
 }

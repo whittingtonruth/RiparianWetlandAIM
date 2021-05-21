@@ -1,4 +1,8 @@
-#'Functions used to calculate the percent cover by different grouping variables.
+#'Calculate percent cover from LPI
+#'
+#'Cover metrics return a \code{data.frame} of percent cover of specified categories calculated from
+#'gathered LPI data across plots. These defined functions execute the most common cover categories calculated
+#'from LPI.
 #'
 #'@param header source of header data frame.
 #'@param lpi_tall source of lpi_tall data frame.
@@ -8,6 +12,7 @@
 #'Relative cover is only used for calculations on vascular plant species and specifies the percent of
 #'overall hits made up of a particular species or group. Absolute cover is the percent of the pin
 #'drops made up by a particular species or group.
+#'@return
 
 
 
@@ -342,7 +347,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by PlotKey
-  GrowthHabitCover <- pct_cover_lentic(lpispeciesjoin,
+  DurationCover <- pct_cover_lentic(lpispeciesjoin,
                                        tall = TRUE,
                                        hit = switch(covertype,
                                                     "relative" = "all",
@@ -353,30 +358,40 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
     dplyr::group_by(PlotKey)%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
-  return(GrowthHabitCover)
+  return(DurationCover)
 }
 
 #'@export pct_NonPlantGroundCover
 #'@rdname lentic_covermetrics
-pct_NonPlantGroundCover <- function(lpi_tall){
+pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
+
+  if(!(hit %in% c("any", "basal"))){
+    stop("hit for non-plant cover must be 'any' or 'basal'.")
+  }
+
+  fieldname <- ifelse(hit == "any", "Total", "Surface")
 
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
-  nonplantcodesfilter <- paste(paste("^", c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "S"), "$", sep = ""), collapse = "|")
+  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S"),
+                                 covercategory= c("Litter", "Litter", "Litter", "Litter", "Litter", "Litter", "Moss", "Water", "Organic Material", "Soil"))
 
-  lpi_tall%>%
-    dplyr::mutate(NonPlantCodes = ifelse(grepl(paste(paste("^", c("TH", "HL", "DL", "WL", "NL", "EL"), "$", sep = ""), collapse = "|"), code), "Litter", ""))
+  #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
+  lpi_tall <- lpi_tall%>%
+    dplyr::left_join(., nonplantcategory)
 
-  #cover calculation for foliar cover
-  PercentGoundCover <- pct_cover_lentic(lpi_tall,
+  #cover calculation for non-plant cover
+  NonPlantCover <- pct_cover_lentic(lpi_tall,
                                          tall = TRUE,
-                                         hit = "any",
+                                         hit = switch(hit,
+                                                      "any" = "any",
+                                                      "basal" = "basal"),
                                          by_line = FALSE,
-                                         code)%>%
-    dplyr::filter(stringr::str_detect(metric, littercodesfilter))%>%
+                                         covercategory)%>%
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(PercentLitterCover = sum(percent))
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
-  return(PercentFoliarCover)
+  return(NonPlantCover)
 }
 
 
@@ -398,11 +413,11 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownpl
 
   RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
 
-  RelativeGrowthHabit <- pct_GrowthFormCover(lpi_tall, masterspecieslist, unknownplantlist, covertype = "relative")
+  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknownplantlist, covertype = "relative")
 
   RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknownplantlist, covertype = "relative")
 
-  #AbsoluteNonPlantCover
+  NonPlantCover <- pct_NonPlantGroundCover(lpi_tall, hit = "any")
 
   LPI_Cover_Indicators <- Foliar %>% dplyr::left_join(., Basal)%>%
     dplyr::left_join(., TotalAbsolute)%>%
@@ -411,7 +426,8 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownpl
     dplyr::left_join(., RelativeHydro)%>%
     dplyr::left_join(., RelativeHydroFAC)%>%
     dplyr::left_join(., RelativeGrowthHabit)%>%
-    dplyr::left_join(., RelativeDuration)
+    dplyr::left_join(., RelativeDuration)%>%
+    dplyr::left_join(., NonPlantCover)
 
   return(LPI_Cover_Indicators)
 }
