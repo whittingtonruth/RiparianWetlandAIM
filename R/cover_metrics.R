@@ -365,15 +365,18 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
 #'@rdname lentic_covermetrics
 pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 
-  if(!(hit %in% c("any", "basal"))){
-    stop("hit for non-plant cover must be 'any' or 'basal'.")
+  if(!(hit %in% c("any", "first", "basal"))){
+    stop("hit for non-plant cover must be 'any', 'first', or 'basal'.")
   }
 
-  fieldname <- ifelse(hit == "any", "Total", "Surface")
+  fieldname <- switch(hit,
+                      "any" = "Total",
+                      "first" = "BetweenPlant",
+                      "basal" = "Surface")
 
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
-  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S"),
-                                 covercategory= c("Litter", "Litter", "Litter", "Litter", "Litter", "Litter", "Moss", "Water", "Organic Material", "Soil"))
+  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
+                                 covercategory= c("Litter", "Litter", "Litter", "Litter", "Litter", "Litter", "Moss", "Water", "Organic Material", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
@@ -384,6 +387,7 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
                                          tall = TRUE,
                                          hit = switch(hit,
                                                       "any" = "any",
+                                                      "first" = "first",
                                                       "basal" = "basal"),
                                          by_line = FALSE,
                                          covercategory)%>%

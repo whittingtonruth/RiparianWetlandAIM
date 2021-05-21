@@ -63,14 +63,48 @@ pct_cover_lentic <- function(lpi_tall,
       dplyr::summarize(total = dplyr::n())
   }
 
-  #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied, so a universal filter is used.
-  layerfilter <- if(hit=="first"){
-    rlang::expr(layer == "TopCanopy")
-  } else if(hit=="basal"){
+  #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied,
+  #so a universal filter is used. If hit is "first", the filter is more complicated, requiring us to select whichever code was hit first, independent of
+  #layer. This is completed below.
+  layerfilter <- if(hit=="basal"){
     rlang::expr(layer == "SoilSurface")
   } else if(hit=="all"){
     rlang::expr(layer!="SoilSurface")
   } else{rlang::expr(layer!="NotALayer")}
+
+  #If pct cover is being calculated for the first hit, LPI should be filtered to the first hit of each pin drop, independent of
+  #the layer it is in. This involves first making layer into a factored variable, sorting LPI data, then filtering all data
+  #to just the first occurrence per pindrop.
+  if (hit == "first"){
+    firsthits <- lpi_tall%>%
+      dplyr::mutate(layer = as.character(layer))%>%
+      dplyr::mutate(layer = factor(layer, levels = c("TopCanopy",
+                                                     "Lower1",
+                                                     "Lower2",
+                                                     "Lower3",
+                                                     "Lower4",
+                                                     "Lower5",
+                                                     "Lower6",
+                                                     "Lower7",
+                                                     "SoilSurface"))
+                    ) %>% dplyr::arrange(layer)%>%
+      dplyr::filter(!(code %in% c("", NA, "None", "N")))%>%
+      dplyr::group_by(PlotKey, LineKey, PointNbr)%>%
+      dplyr::summarize(code = dplyr::first(code))
+
+    lpi_tall <- merge(
+      x = dplyr::distinct(dplyr::select(lpi_tall,
+                                        "PlotKey",
+                                        "LineKey",
+                                        "PointNbr",
+                                        "layer",
+                                        "code",
+                                        !!!grouping_variables)),
+      y = firsthits,
+      all.y = TRUE
+      )%>%
+      dplyr::ungroup()
+  }
 
   #Steps to cover calculation are as follows:
     #1. Filter to hits in target layer(s) with necessary classification information
