@@ -288,16 +288,22 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, unknowncodelist, c
                   Scientific.Name,
                   Species,
                   GrowthHabitSub,
-                  Duration,
-                  NativeStatus,
-                  ends_with("_WetStatus"),
-                  ends_with("_C.Value"),
-                  ends_with("_Nox")
+                  Duration
     )
 
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
     #These plant hits would be included in the denominator of the calculation if left in.
-  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodelist)){
+      lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                         dplyr::rename(unknowncodelist, DurationUnknown = Duration),
+                                         by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
+        dplyr::mutate(GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))}
+
+  #Then filter out any blank values where GrowthHabitSub == "". This is only necessary for relative cover calculations
+  lpispeciesjoin <- lpispeciesjoin%>%
     {if(covertype == "relative") dplyr::filter(., GrowthHabitSub !=""|is.na(GrowthHabitSub)) else .}
 
   #Run pct_cover_lentic, then rename metrics to title case.
@@ -332,16 +338,22 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
                   Scientific.Name,
                   Species,
                   GrowthHabitSub,
-                  Duration,
-                  NativeStatus,
-                  ends_with("_WetStatus"),
-                  ends_with("_C.Value"),
-                  ends_with("_Nox")
+                  Duration
     )
 
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
   #These plant hits would be included in the denominator of the calculation if left in.
-  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodelist)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodelist, DurationUnknown = Duration),
+                                       by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
+      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))}
+
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations.
+  lpispeciesjoin <- lpispeciesjoin%>%
     {if(covertype == "relative") dplyr::filter(., Duration !=""|is.na(Duration)) else .}
 
   #Run pct_cover_lentic, then rename metrics to title case.
