@@ -413,7 +413,7 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 
 #'@export Combine2019Indicators
 #'@rdname lentic_covermetrics
-Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownplantslist){
+Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
 
   Foliar <- pct_FoliarCover(lpi_tall)
 
@@ -429,9 +429,9 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownpl
 
   RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
 
-  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknownplantlist, covertype = "relative")
+  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
 
-  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknownplantlist, covertype = "relative")
+  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
 
   NonPlantCover <- pct_NonPlantGroundCover(lpi_tall, hit = "any")
 

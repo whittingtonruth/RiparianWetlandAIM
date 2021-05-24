@@ -49,7 +49,7 @@ pct_DurationCover(
 
 pct_NonPlantGroundCover(lpi_tall, hit = "any")
 
-Combine2019Indicators(header, lpi_tall, masterspecieslist, unknownplantslist)
+Combine2019Indicators(header, lpi_tall, masterspecieslist, unknowncodelist)
 }
 \arguments{
 \item{lpi_tall}{source of lpi_tall data frame.}
