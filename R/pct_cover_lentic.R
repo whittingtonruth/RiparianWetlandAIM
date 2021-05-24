@@ -49,20 +49,6 @@ pct_cover_lentic <- function(lpi_tall,
   lpi_tall <- lpi_tall %>%
     dplyr::mutate_at(dplyr::vars(!!!grouping_variables), toupper)
 
-  #First calculate the denominator. For absolute cover, this will be the number of pin drops.
-  #Relative cover uses vascular plant hits as the denominator. Relative cover can only be calculated
-  #for plant species, so this will require an extra step to filter out all non-plant hits.
-  point_totals <- if(hit %in% c("any", "first", "basal")){
-    lpi_tall%>%dplyr::distinct(LineKey, PointNbr, .keep_all = T)%>%
-      dplyr::group_by(!!!level) %>%
-      dplyr::summarize(total = dplyr::n())
-  } else if(hit == "all"){
-    lpi_tall%>%dplyr::filter(layer!="basal", !code%in%nonplantcodes$code)%>%
-      dplyr::distinct(LineKey, PointNbr, code, .keep_all = T)%>%
-      dplyr::group_by(!!!level) %>%
-      dplyr::summarize(total = dplyr::n())
-  }
-
   #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied,
   #so a universal filter is used. If hit is "first", the filter is more complicated, requiring us to select whichever code was hit first, independent of
   #layer. This is completed below.
@@ -71,6 +57,22 @@ pct_cover_lentic <- function(lpi_tall,
   } else if(hit=="all"){
     rlang::expr(layer!="SoilSurface")
   } else{rlang::expr(layer!="NotALayer")}
+
+  #Next calculate the denominator. For absolute cover, this will be the number of pin drops.
+  #Relative cover uses vascular plant hits as the denominator. Relative cover can only be calculated
+  #for plant species, so this will require an extra step to filter out all non-plant hits.
+  point_totals <- if(hit %in% c("any", "first", "basal")){
+    lpi_tall%>%dplyr::distinct(LineKey, PointNbr, .keep_all = T)%>%
+      dplyr::group_by(!!!level) %>%
+      dplyr::summarize(total = dplyr::n())
+  } else if(hit == "all"){
+    lpi_tall%>%dplyr::filter(!!layerfilter & complete.cases(!!!grouping_variables) & !code%in%nonplantcodes$code)%>%
+      dplyr::distinct(LineKey, PointNbr, code, .keep_all = T)%>%
+      dplyr::group_by(!!!level) %>%
+      dplyr::summarize(total = dplyr::n())
+  }
+
+
 
   #If pct cover is being calculated for the first hit, LPI should be filtered to the first hit of each pin drop, independent of
   #the layer it is in. This involves first making layer into a factored variable, sorting LPI data, then filtering all data
@@ -118,7 +120,8 @@ pct_cover_lentic <- function(lpi_tall,
     #8. Remove unnecessary columns
   summary <- lpi_tall %>%
     dplyr::filter(!!layerfilter, complete.cases(!!!grouping_variables))%>%
-    {if(hit !="all") dplyr::distinct(.,LineKey, PointNbr, !!!grouping_variables, .keep_all = T) else .} %>%
+    {if(hit !="all") dplyr::distinct(.,LineKey, PointNbr, !!!grouping_variables, .keep_all = T)
+      else dplyr::distinct(.,LineKey, PointNbr, code, .keep_all = T)} %>%
     dplyr::group_by(!!!level, !!!grouping_variables) %>%
     dplyr::summarize(uniquehits = dplyr::n()) %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
