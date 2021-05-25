@@ -190,7 +190,8 @@ gather_height_lentic <- function(dsn){
     dsn = dsn,
     layer = "LPI",
     stringsAsFactors = FALSE
-  ))
+  ))%>%
+    sf::st_drop_geometry()
 
   # We only want to carry a subset of the lpi_header fields forward
   lpi_header <- dplyr::select(lpi_header,
@@ -203,12 +204,12 @@ gather_height_lentic <- function(dsn){
     RecKey,
     PointLoc,
     PointNbr,
-    dplyr::matches("Woody$")
+    dplyr::matches("Woody$|WoodyKey$")
   ) %>% dplyr::mutate(type = "woody", GrowthHabit_measured = "Woody")
   # Strip out the extra name stuff so woody and herbacious variable names match
   names(lpi_height_tall_woody) <- stringr::str_replace_all(
     string = names(lpi_height_tall_woody),
-    pattern = "Woody$",
+    pattern = "Woody",
     replacement = ""
   )
 
@@ -217,12 +218,12 @@ gather_height_lentic <- function(dsn){
     PointLoc,
     PointNbr,
     RecKey,
-    dplyr::matches("Woody2$")
+    dplyr::matches("Woody2$|WoodyKey2$")
   ) %>% dplyr::mutate(type = "woody2", GrowthHabit_measured = "Woody")
   # Strip out the extra name stuff so woody and herbacious variable names match
   names(lpi_height_tall_woody2) <- stringr::str_replace_all(
     string = names(lpi_height_tall_woody2),
-    pattern = "Woody2$",
+    pattern = "Woody2$|2$|Woody",
     replacement = ""
   )
 
@@ -231,11 +232,11 @@ gather_height_lentic <- function(dsn){
     PointLoc,
     PointNbr,
     RecKey,
-    dplyr::matches("Herbaceous$")
+    dplyr::matches("Herbaceous$|HerbaceousKey$")
   ) %>% dplyr::mutate(type = "NonWoody", GrowthHabit_measured = "NonWoody")
   names(lpi_height_tall_herb) <- stringr::str_replace_all(
     string = names(lpi_height_tall_herb),
-    pattern = "Herbaceous$",
+    pattern = "Herbaceous",
     replacement = ""
   )
 
@@ -246,7 +247,8 @@ gather_height_lentic <- function(dsn){
     lpi_height_tall_herb
   ) %>% dplyr::full_join(
     x = lpi_header, y = ., by = c("LineKey" = "RecKey")) %>%
-    subset(., !is.na(Height))
+    subset(., !is.na(Height))%>%
+    dplyr::select(-c(CollectionNumber, UnknownCode))
 
   # Output the woody/herbaceous level data
   return(lpi_height)
