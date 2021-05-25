@@ -433,7 +433,15 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
 
   RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
 
-  NonPlantCover <- pct_NonPlantGroundCover(lpi_tall, hit = "any")
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotKey,
+                                                                                            TotalLitterCover,
+                                                                                            TotalMossCover,
+                                                                                            TotalRockCover,
+                                                                                            TotalWaterCover),
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
+                                                                                              BetweenPlantSoilCover,
+                                                                                              `BetweenPlantOrganic MaterialCover`)
+  )
 
   LPI_Cover_Indicators <- Foliar %>% dplyr::left_join(., Basal)%>%
     dplyr::left_join(., TotalAbsolute)%>%
