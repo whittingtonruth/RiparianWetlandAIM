@@ -8,13 +8,15 @@
 #'@param lpi_tall source of lpi_tall data frame.
 #'@param masterspecieslist Character string. Full file path (including extension) to the file
 #'containing the species list.
+#'@param unknowncodelist optional dataframe. Unknown species list matching unknown codes to their duration and
+#'Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a
+#'species or genus with those fields specified. If argument is unused, all unknown species without duration or
+#'Growth Habit specified will be filtered out before being passed on to pct_cover_lentic.
 #'@param covertype Character string. "relative" or "absolute". Specifies the kind of cover calculation.
 #'Relative cover is only used for calculations on vascular plant species and specifies the percent of
 #'overall hits made up of a particular species or group. Absolute cover is the percent of the pin
 #'drops made up by a particular species or group.
-#'@return
-
-
+#'@return Dataframe of specified percent cover of different categories by plot.
 
 #'@export pct_FoliarCover
 #'@rdname lentic_covermetrics
