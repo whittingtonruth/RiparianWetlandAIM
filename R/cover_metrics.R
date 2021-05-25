@@ -445,7 +445,12 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
                                                                                               `BetweenPlantOrganic MaterialCover`)
   )
 
-  LPI_Cover_Indicators <- Foliar %>% dplyr::left_join(., Basal)%>%
+  LPI_Cover_Indicators <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
+                                                                              PlotKey,
+                                                                              SiteName,
+                                                                              AdminState),
+                                                       .)%>%
+    dplyr::left_join(., Basal)%>%
     dplyr::left_join(., TotalAbsolute)%>%
     dplyr::left_join(., RelativeNative)%>%
     dplyr::left_join(., AbsoluteNoxious)%>%
