@@ -204,8 +204,8 @@ gather_height_lentic <- function(dsn){
     RecKey,
     PointLoc,
     PointNbr,
-    dplyr::matches("Woody$|WoodyKey$")
-  ) %>% dplyr::mutate(type = "woody", GrowthHabit_measured = "Woody")
+    dplyr::matches("Woody$|WoodyKey$|^WoodyHeightClass$")
+  ) %>% dplyr::mutate(type = "Woody", GrowthHabit_measured = "Woody")
   # Strip out the extra name stuff so woody and herbacious variable names match
   names(lpi_height_tall_woody) <- stringr::str_replace_all(
     string = names(lpi_height_tall_woody),
@@ -218,8 +218,8 @@ gather_height_lentic <- function(dsn){
     PointLoc,
     PointNbr,
     RecKey,
-    dplyr::matches("Woody2$|WoodyKey2$")
-  ) %>% dplyr::mutate(type = "woody2", GrowthHabit_measured = "Woody")
+    dplyr::matches("Woody2$|WoodyKey2$|^WoodyHeightClass2$")
+  ) %>% dplyr::mutate(type = "Woody2", GrowthHabit_measured = "Woody")
   # Strip out the extra name stuff so woody and herbacious variable names match
   names(lpi_height_tall_woody2) <- stringr::str_replace_all(
     string = names(lpi_height_tall_woody2),
@@ -233,22 +233,43 @@ gather_height_lentic <- function(dsn){
     PointNbr,
     RecKey,
     dplyr::matches("Herbaceous$|HerbaceousKey$")
-  ) %>% dplyr::mutate(type = "NonWoody", GrowthHabit_measured = "NonWoody")
+  ) %>% dplyr::mutate(type = "Herbaceous", GrowthHabit_measured = "Herbaceous")
   names(lpi_height_tall_herb) <- stringr::str_replace_all(
     string = names(lpi_height_tall_herb),
     pattern = "Herbaceous",
     replacement = ""
   )
 
-  #Merge all three together
-  lpi_height <- rbind(
+  lpi_depth_litter <- lpi_detail %>%
+    dplyr::select(PointLoc,
+                  PointNbr,
+                  RecKey,
+                  LitterOrThatchDepth)%>%
+    dplyr::mutate(type = "Litter",
+                  GrowthHabit_measured = "Litter")%>%
+    dplyr::rename(Height = LitterOrThatchDepth)
+
+  lpi_depth_water <- lpi_detail %>%
+    dplyr::select(PointLoc,
+                  PointNbr,
+                  RecKey,
+                  WaterDepth)%>%
+    dplyr::mutate(type = "Water",
+                  GrowthHabit_measured = "Water")%>%
+    dplyr::rename(Height = WaterDepth)
+
+  #Merge all three plant height tables together
+  lpi_height <- dplyr::bind_rows(
     lpi_height_tall_woody,
     lpi_height_tall_woody2,
-    lpi_height_tall_herb
+    lpi_height_tall_herb,
+    lpi_depth_litter,
+    lpi_depth_water
   ) %>% dplyr::full_join(
     x = lpi_header, y = ., by = c("LineKey" = "RecKey")) %>%
-    subset(., !is.na(Height))%>%
-    dplyr::select(-c(CollectionNumber, UnknownCode))
+    dplyr::select(-c(CollectionNumber, UnknownCode))%>%
+    subset(., !is.na(Height))
+
 
   # Output the woody/herbaceous level data
   return(lpi_height)
