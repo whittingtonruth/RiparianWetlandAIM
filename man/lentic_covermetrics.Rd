@@ -63,9 +63,14 @@ overall hits made up of a particular species or group. Absolute cover is the per
 drops made up by a particular species or group.}
 
 \item{header}{source of header data frame.}
+
+\item{unknowncodelist}{optional dataframe. Unknown species list matching unknown codes to their duration and
+Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a
+species or genus with those fields specified. If argument is unused, all unknown species without duration or
+Growth Habit specified will be filtered out before being passed on to pct_cover_lentic.}
 }
 \value{
-
+Dataframe of specified percent cover of different categories by plot.
 }
 \description{
 Cover metrics return a \code{data.frame} of percent cover of specified categories calculated from
