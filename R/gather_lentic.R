@@ -123,7 +123,7 @@ gather_species_inventory_lentic <- function(dsn) {
     dplyr::select(
       "RecKey",
       "Species",
-      "UnknownCode",
+      "UnknownCodeKey",
       "abundance")
 
   # Join the detail table to the header and remove any NAs
