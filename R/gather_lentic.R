@@ -115,7 +115,8 @@ gather_species_inventory_lentic <- function(dsn) {
     dsn = dsn,
     layer = "SpeciesInventory",
     stringsAsFactors = FALSE
-    ))
+    ))%>%
+    sf::st_drop_geometry()
 
   # Make the species detail table tall
   species_detail_tall <- species_inventory_detail %>%
