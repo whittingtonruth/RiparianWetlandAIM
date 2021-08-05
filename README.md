@@ -1,2 +1,2 @@
-# lenticAIM
-Developing a package that adds to Terradactyl terrestrial AIM package, adjusting and adding functions for data collection specific to Lentic/Riparian systems.
+# WetlandRiparianAIM
+An analogous package to Terradactyl terrestrial AIM package, which adjusts and adds functions for data collection specific to Wetland-Riparian systems.
