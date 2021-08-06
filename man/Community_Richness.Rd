@@ -20,6 +20,9 @@ necessary grouping variable information.}
 \item{listtype}{character string. Indicates the source of the SpeciesList provided. Can either be
 \code{"speciesinventory"} or \code{"lpi"}. Defaults to speciesinventory.}
 
+\item{header}{data.frame. Table providing plot-based information on AdminState and Region used in
+Community Metric calculations.}
+
 \item{method}{character string. The method used for the produced summary table. Can
 be \code{"percent"}, \code{"mean"}, or {"count"}.}
 }

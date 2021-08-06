@@ -1,6 +1,7 @@
 #'Functions for summarizing community makeup for specific grouping variables.
 #'
-#'@param header
+#'@param header data.frame. Table providing plot-based information on AdminState and Region used in
+#'Community Metric calculations.
 #'@param SpeciesList List of species by PlotKey that will be summarized. Can be either spp_inventory
 #'produced by \code{gather_spp_inventory_lentic} or \code{gather_lpi_lentic}.
 #'@param masterspecieslist Dataframe containing all possible species codes with
@@ -10,12 +11,15 @@
 #'@param method character string. The method used for the produced summary table. Can
 #'be \code{"percent"}, \code{"mean"}, or {"count"}.
 
-
+#'@export Community_Richness
 Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
+
+  #assign a field name based on source of data.
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "Richness", sep = "")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -24,6 +28,7 @@ Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speci
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  #join provided species list to master list and filter out duplicates.
   SpeciesList <- SpeciesList%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(PlotKey)%>%
@@ -32,7 +37,7 @@ Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speci
                     !(duplicated(Species) & !(Species.y %in% c(NA, ""))))
 
   totals <- Community_Composition(SpeciesList, method = "count")%>%
-    dplyr::rename(CommunityRichness = count)
+    dplyr::rename(!!fieldname := count)
 
   return(totals)
 }
@@ -44,6 +49,9 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
+  #assign fieldname based on source of the species list data.
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "MeanC.Value", sep = "")
+
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
     SpeciesList <- SpeciesList %>%
@@ -51,6 +59,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  #Join header, specieslist, and master species list together and filter out unknowns. Add C.Value column to add state-specific C-Values
   SpeciesList <- dplyr::left_join(header, SpeciesList)%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(PlotKey)%>%
@@ -59,6 +68,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
     dplyr::select(PlotKey, AdminState, Species, ends_with("_C.Value"))%>%
     tibble::add_column(., C.Value = NA)
 
+  #Populate C-Value data based on AdminState from header.
   for (i in 1:nrow(SpeciesList)){
     C.Valuelist <- paste(SpeciesList$AdminState[i], "_C.Value", sep = "")
     StateC.Value <- SpeciesList[[i,C.Valuelist]]
@@ -66,7 +76,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
   }
 
   totals <- Community_Composition(SpeciesList, method = "mean", tall = T,C.Value)%>%
-    dplyr::rename(CommunityMeanC.Value = Average)
+    dplyr::rename(!!fieldname := average)
 
   return(totals)
 }
@@ -82,7 +92,8 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
     stop("Method must be 'percent' or 'count'.")
   }
 
-  fieldname <- ifelse(method == "percent", "CommunityNativePct", "CommunityNativeCount")
+  #Create fieldname based on source of data and kind of calculation.
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), "Native", sep = "")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -91,6 +102,7 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  #Join specieslist to master species list and filter to relevant entries.
   SpeciesList <- SpeciesList%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(PlotKey)%>%
@@ -99,6 +111,7 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
     dplyr::filter(NativeStatus != "" & !is.na(NativeStatus))%>%
     dplyr::select(PlotKey, Species, NativeStatus)
 
+  #Calculate community metrics and rename columns.
   totals <- Community_Composition(SpeciesList, method = method, tall = T, NativeStatus)%>%
     dplyr::filter(grepl("\\.NATIVE$", metric))%>%
     dplyr::group_by(PlotKey)%>%
@@ -116,6 +129,9 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
+  #create fieldnames based on source of species data.
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "CountNoxious", sep = "")
+
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
     SpeciesList <- SpeciesList %>%
@@ -123,6 +139,7 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  #join header, specieslist and master species list together, then filter out duplicates and unnecessary columns.
   SpeciesList <- dplyr::left_join(header, SpeciesList)%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(PlotKey)%>%
@@ -131,16 +148,18 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
     dplyr::select(PlotKey, AdminState, Species, ends_with("_NOX"))%>%
     tibble::add_column(., Noxious = NA)
 
+  #Populate noxious column data based on AdminState found in Header.
   for (i in 1:nrow(SpeciesList)){
     noxiouslist <- paste(SpeciesList$AdminState[i], "_NOX", sep = "")
     statenoxious <- SpeciesList[[i,noxiouslist]]
     SpeciesList$Noxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
   }
 
+  #Calculate community metrics and rename columns.
   totals <- Community_Composition(SpeciesList, method = "count", tall = T, Noxious)%>%
     dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(CommunityNoxiousCount = count)
+    dplyr::summarize(!!fieldname := count)
 
   return(totals)
 }
@@ -156,7 +175,8 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- ifelse(method == "percent", "CommunityHydrophytePct", "CommunityHydrophyteCount")
+  #Create fieldname based on source of species list and method used to calculate metrics
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), "Hydrophyte", sep = "")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -215,7 +235,8 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- ifelse(method == "percent", "CommunityHydroFACPct", "CommunityHydroFACCount")
+  #Create fieldname based on source of species list and method used to calculate metrics
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), "HydroFAC", sep = "")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -274,7 +295,7 @@ Community_GrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "sp
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- ifelse(method == "percent", "CommunityPct", "CommunityCount")
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), sep = "")
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -312,7 +333,7 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- ifelse(method == "percent", "CommunityPct", "CommunityCount")
+  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), sep = "")
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -337,4 +358,53 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
                                                                   expr(count))})
 
   return(totals)
+}
+
+#'@export Community_Metrics
+Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist){
+
+  #Calculate all metrics using species inventory
+  SppInvRich <- Community_Richness(spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvC.Val <- Community_C.Value(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvNative <- Community_Native(spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvNox <- Community_NoxiousCount(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvHydro <- Community_Hydrophytes(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvHydroFAC <- Community_HydroFAC(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvGrowthForm <- Community_GrowthHabit(spp_inventory, masterspecieslist, listtype = "speciesinventory")
+  SppInvDuration <- Community_Duration(spp_inventory, masterspecieslist, listtype = "speciesinventory")
+
+  #Calculate all metrics using LPI
+  LPIRich <- Community_Richness(lpi_tall, masterspecieslist, listtype = "lpi")
+  LPIC.Val <- Community_C.Value(header, lpi_tall, masterspecieslist, listtype = "lpi")
+  LPINative <- Community_Native(lpi_tall, masterspecieslist, listtype = "lpi")
+  LPINox <- Community_NoxiousCount(header, lpi_tall, masterspecieslist, listtype = "lpi")
+  LPIHydro <- Community_Hydrophytes(header, lpi_tall, masterspecieslist, listtype = "lpi")
+  LPIHydroFAC <- Community_HydroFAC(header, lpi_tall, masterspecieslist, listtype = "lpi")
+  LPIGrowthForm <- Community_GrowthHabit(lpi_tall, masterspecieslist, listtype = "lpi")
+  LPIDuration <- Community_Duration(lpi_tall, masterspecieslist, listtype = "lpi")
+
+  #Join all metrics into one table with PlotID, Name and AdminState.
+  AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
+                                                                 PlotKey,
+                                                                 SiteName,
+                                                                 AdminState),
+                                          SppInvRich)%>%
+    dplyr::left_join(., SppInvC.Val) %>%
+    dplyr::left_join(., SppInvNative)%>%
+    dplyr::left_join(., SppInvNox)%>%
+    dplyr::left_join(., SppInvHydro)%>%
+    dplyr::left_join(., SppInvHydroFAC)%>%
+    dplyr::left_join(., SppInvGrowthForm)%>%
+    dplyr::left_join(., SppInvDuration)%>%
+
+    dplyr::left_join(., LPIRich)%>%
+    dplyr::left_join(., LPIC.Val)%>%
+    dplyr::left_join(., LPINative)%>%
+    dplyr::left_join(., LPINox)%>%
+    dplyr::left_join(., LPIHydro)%>%
+    dplyr::left_join(., LPIHydroFAC)%>%
+    dplyr::left_join(., LPIGrowthForm)%>%
+    dplyr::left_join(., LPIDuration)
+
+  return(AllCommunityMetrics)
 }
