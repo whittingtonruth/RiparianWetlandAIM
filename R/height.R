@@ -25,9 +25,9 @@ summarize_height <- function(height_tall,
 
   #define the level at which you are summarizing data.
   if (by_line) {
-    level <- rlang::quos(PlotKey, LineKey)
+    level <- rlang::quos(PlotID, PlotKey, LineKey)
   } else {
-    level <- rlang::quos(PlotKey)
+    level <- rlang::quos(PlotID, PlotKey)
   }
 
   #Filter out zeroes if they should be omitted.
