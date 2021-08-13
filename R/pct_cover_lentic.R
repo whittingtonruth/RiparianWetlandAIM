@@ -142,7 +142,7 @@ pct_cover_lentic <- function(lpi_tall,
       expand.grid(PlotKey= unique(lpi_tall%>%dplyr::pull(.,!!level[[1]])),
                   metric = unique(summary$metric), stringsAsFactors = F)
     } else{
-      expand.grid(LineKey= unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
+      expand.grid(LineKey = unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
                 metric = unique(summary$metric), stringsAsFactors = F) %>%
         dplyr::mutate(PlotKey = gsub('.{2}$', '', LineKey)) %>%
         dplyr::relocate(PlotKey)}
@@ -163,3 +163,4 @@ pct_cover_lentic <- function(lpi_tall,
   }
   return(summary)
 }
+

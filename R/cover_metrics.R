@@ -462,3 +462,58 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
 
   return(LPI_Cover_Indicators)
 }
+
+#'@export pct_AbsoluteSpeciesCover
+pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
+
+  #Create nonplantcodesfilter
+  nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
+
+  #select necessary columns in species list
+  masterspecieslist <- masterspecieslist %>%
+    dplyr::select(Symbol, Scientific.Name,Common.Name, Species)
+
+  #Remove all unknowncodekeys for species that were identified to species. Use this
+  #datatable to calculate cover for unknowns.
+  UnknownSpeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    dplyr::mutate(UnknownCodeKey = ifelse(Species!="", NA, UnknownCodeKey))
+
+  UnknownCodeCover <- pct_cover_lentic(UnknownSpeciesjoin,
+                                       tall = TRUE,
+                                       hit = "any",
+                                       by_line = FALSE,
+                                       code, UnknownCodeKey)%>%
+    dplyr::filter(percent > 0)%>%
+    dplyr::group_by(PlotKey)%>%
+    tidyr::separate(metric, into = c("Absolute", "Code", "UnknownCodeKey"), sep = "\\.")%>%
+    dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))
+
+  #Calculate cover for species identified to species, then filter cover to just those species.
+  CodeCover <- pct_cover_lentic(lpi_tall,
+                                tall = TRUE,
+                                hit = "any",
+                                by_line = FALSE,
+                                code)%>%
+    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::group_by(PlotKey)%>%
+    dplyr::mutate(Code = stringr::str_replace(metric, "Absolute.", ""))%>%
+    dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))%>%
+    dplyr::filter(Species !=""&percent>0)
+
+  #join two cover lists together
+  #needs to be done in two steps to keep plants with different unknown codes but the
+  #same family/genus codes as other plants.
+  Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%group_by(PlotKey)%>%
+    dplyr::mutate(PlotID = stringr::str_sub(PlotKey, start = 6))%>%
+    dplyr::select(PlotID,
+                  PlotKey,
+                  Code,
+                  UnknownCodeKey,
+                  Scientific.Name,
+                  Common.Name,
+                  percent)%>%
+    dplyr::arrange(PlotKey, desc(percent))
+
+  return(Cover_Species)
+
+}
