@@ -229,4 +229,12 @@ gdbconversion <- function(dsn, RawDataFolder){
 
   write.csv(knownerror, paste(RawDataFolder, "KnownErrors.csv", sep = "/"), row.names = F)
 
+  photos <- suppressWarnings(sf::st_read(
+    dsn = dsn,
+    layer = "Photos",
+    stringsAsFactors = FALSE
+  ))%>%
+    sf::st_drop_geometry()
+
+  write.csv(photos, paste(RawDataFolder, "Photos.csv", sep = "/"), row.names = F)
 }
