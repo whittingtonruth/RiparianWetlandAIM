@@ -224,7 +224,7 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
   return(totals)
 }
 
-#'@export CommunityFAC
+#'@export Community_HydroFAC
 Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){

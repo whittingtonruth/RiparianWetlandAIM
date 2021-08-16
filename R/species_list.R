@@ -9,9 +9,9 @@
 #' # Get a list of all species occurring on a plot across methods (LPI, height, species inventory)
 #' # This method also adds cover and height by species. Be aware that sample sizes may be insufficient to make an accurate estimate
 
-#' @export species_QC_lentic
-#' @rdname species_QC_lentic
-species_QC_lentic <- function(header, spp_inventory, lpi_tall, height_tall, woody_species){
+#' @export species_QC
+#' @rdname species_list
+species_QC <- function(header, spp_inventory, lpi_tall, height_tall, woody_species){
 
   #Create a species list of all unique plot-species combinations
   specieslist <- paste(spp_inventory$PlotKey, spp_inventory$Species, sep = "_")
@@ -57,9 +57,9 @@ species_QC_lentic <- function(header, spp_inventory, lpi_tall, height_tall, wood
 }
 
 
-#' @export species_list_lentic
-#' @rdname species_list_lentic
-species_list_lentic <- function(header, spp_inventory_tall, masterspecies){
+#' @export species_list
+#' @rdname species_list
+species_list <- function(header, spp_inventory_tall, masterspecies){
 
   masterlist <- masterspecies%>%
     dplyr::select(Symbol,
