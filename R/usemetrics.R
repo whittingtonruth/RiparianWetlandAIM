@@ -3,6 +3,7 @@
 #'@param header source of header data frame.
 #'@param annualuse_tall tall data frame of annual use data.
 #'@param woody_tall tall data frame of woody use data.
+#'@param hummocks tall data frame of hummock data.
 #'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
 #'Defaults to FALSE.
 #'@returns Data.frame of the summarized woody and annual use data by plot.
@@ -79,5 +80,29 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
   UseMetrics <- annualusemetrics%>%
     dplyr::left_join(., woodymetrics)%>%
     dplyr::left_join(., dominantripwood)
+
+  return(UseMetrics)
 }
 
+#' @export hummocks_metrics
+#' @rdname use_metrics
+hummocks_metrics <- function(hummocks, by_line = F){
+
+  if (by_line) {
+    level <- rlang::quos(PlotID, PlotKey, LineKey)
+  } else {
+    level <- rlang::quos(PlotID, PlotKey)
+  }
+
+  hummocksmetrics <- hummocks%>%
+    group_by(!!!level)%>%
+    summarize(CountHummocks = sum(ifelse(HummocksPresent=="Yes", 1, 0)),
+              AverageHummockHeight = mean(Height, na.rm = T),
+              AverageHummockWidth = mean(Width, na.rm = T),
+              AverageHummockTrough = (7500 - sum(Width,na.rm = T))/ CountHummocks,
+              AverageHummockSlope = mean(SlopeClass, na.rm = T),
+              AverageHummockVegCover = mean(VegCover, na.rm = T),
+              PercentHummocks = sum(Width,na.rm = T)/7500*100)
+
+  return(hummocksmetrics)
+}

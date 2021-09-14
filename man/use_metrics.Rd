@@ -2,9 +2,12 @@
 % Please edit documentation in R/usemetrics.R
 \name{use_metrics}
 \alias{use_metrics}
+\alias{hummocks_metrics}
 \title{Calculate use metrics from stubble height and woody data.}
 \usage{
 use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_line = F)
+
+hummocks_metrics(hummocks, by_line = F)
 }
 \arguments{
 \item{header}{source of header data frame.}
@@ -15,6 +18,8 @@ use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_line = F)
 
 \item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
 Defaults to FALSE.}
+
+\item{hummocks}{tall data frame of hummock data.}
 }
 \value{
 Data.frame of the summarized woody and annual use data by plot.
