@@ -8,6 +8,7 @@
 \alias{gather_height_lentic}
 \alias{gather_annualuse}
 \alias{gather_woodyspecies}
+\alias{gather_hummocks}
 \title{Species gathering functions}
 \usage{
 gather_lpi_lentic(dsn)
@@ -21,6 +22,8 @@ gather_height_lentic(dsn)
 gather_annualuse(dsn)
 
 gather_woodyspecies(dsn)
+
+gather_hummocks(dsn)
 }
 \arguments{
 \item{dsn}{Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.}

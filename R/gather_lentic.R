@@ -353,3 +353,30 @@ gather_woodyspecies <- function(dsn){
 
   return(woody_tall)
 }
+
+#' @export gather_hummocks
+#' @rdname gather_lentic
+gather_hummocks <- function(dsn){
+
+  hummocks_header <- suppressWarnings(
+    sf::st_read(dsn = dsn,
+              layer = "Hummocks",
+              stringsAsFactors = F)%>%
+      sf::st_drop_geometry())%>%
+    dplyr::select(PlotID:Observer,
+                  HummocksPresent,
+                  globalid)
+
+  hummocks_detail <- suppressWarnings(
+    sf::st_read(dsn = dsn,
+                layer = "HummockDetail",
+                stringsAsFactors = F))%>%
+    dplyr::select(RecKey:parentglobalid)
+
+  hummocks <- dplyr::left_join(hummocks_header,
+                               hummocks_detail,
+                               by = c("globalid" = "parentglobalid"))
+
+  return(hummocks)
+}
+
