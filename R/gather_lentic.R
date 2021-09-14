@@ -317,31 +317,38 @@ gather_annualuse <- function(dsn){
 #' @export gather_woodyspecies
 #' @rdname gather_lentic
 gather_woodyspecies <- function(dsn){
-  woody_header <- suppressWarnings(sf::st_read(
-    dsn = dsn,
-    layer = "WoodySpecies",
-    stringsAsFactors = F
-  ))
-  woody_detail <- suppressWarnings(sf::st_read(
-    dsn = dsn,
-    layer = "WoodySpeciesRepeat",
-    stringsAsFactors = F
-  ))
 
-  woody_header <- woody_header %>%
-    dplyr::select(PlotID:Recorder,
-                 Direction)
+  woody_header <- suppressWarnings(
+    sf::st_read(dsn = dsn,
+                layer = "WoodySpecies",
+                stringsAsFactors = F))%>%
+    dplyr::select(PlotID:Recorder, Direction)
 
-  woody_detail <- woody_detail %>%
-    dplyr::select(RecKey,
+  woody_points <- suppressWarnings(sf::st_read(
+    dsn = dsn,
+    layer = "PointsRepeat",
+    stringsAsFactors = F
+  ))%>%
+    dplyr::select(globalid,
+                  PointNbr,
+                  PointLoc)
+
+  woody_detail <- suppressWarnings(
+    sf::st_read(dsn = dsn,
+                layer = "WoodySpeciesRepeat",
+                stringsAsFactors = F))%>%
+    dplyr::select(parentglobalid,
+                  RecKey,
                   RiparianWoodySpecies,
                   RiparianWoodySpeciesLiveDead,
-                  Rhizomatous:UseClass
-  )
+                  Rhizomatous:UseClass)
 
-  woody_tall <- dplyr::left_join(x = woody_header,
-                                 y = woody_detail,
-                                 by = c("LineKey" = "RecKey")
+  woody_tall <- woody_points%>%
+    dplyr::left_join(., woody_detail, by = c("globalid" = "parentglobalid"))%>%
+    dplyr::select(-globalid)%>%
+    dplyr::left_join(x = woody_header,
+                     .,
+                     by = c("LineKey" = "RecKey")
   )
 
   return(woody_tall)
