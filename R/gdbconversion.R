@@ -102,7 +102,10 @@ gdbconversion <- function(dsn, RawDataFolder){
     dsn = dsn,
     layer = "Stressors",
     stringsAsFactors = FALSE
-  ))
+  ))%>%
+    dplyr::left_join(disturb%>%select(globalid, PlotID, PlotKey),
+                     .,
+                     by = c("globalid" = "parentglobalid"))
 
   write.csv(stressors, paste(RawDataFolder, "StressorsDetail.csv", sep = "/"), row.names = F)
 
