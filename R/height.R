@@ -14,10 +14,11 @@
 
 #'@export summarize_height
 summarize_height <- function(height_tall,
-                        method = "mean",
-                        tall = FALSE,
-                        by_line = FALSE,
-                        omit_zero = TRUE){
+                             woody_tall,
+                             method = "mean",
+                             tall = FALSE,
+                             by_line = FALSE,
+                             omit_zero = TRUE){
 
   if(!(method %in% c("mean", "max"))){
     stop("Method must be either 'mean' or 'max'.")

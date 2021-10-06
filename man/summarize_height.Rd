@@ -6,6 +6,7 @@
 \usage{
 summarize_height(
   height_tall,
+  woody_tall,
   method = "mean",
   tall = FALSE,
   by_line = FALSE,
