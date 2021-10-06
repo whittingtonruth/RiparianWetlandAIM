@@ -379,4 +379,3 @@ gather_hummocks <- function(dsn){
 
   return(hummocks)
 }
-
