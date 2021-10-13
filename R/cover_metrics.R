@@ -449,7 +449,10 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
   LPI_Cover_Indicators <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                               PlotKey,
                                                                               SiteName,
-                                                                              AdminState),
+                                                                              AdminState,
+                                                                              VisitDate,
+                                                                              LatWGS,
+                                                                              LongWGS),
                                                        .)%>%
     dplyr::left_join(., Basal)%>%
     dplyr::left_join(., TotalAbsolute)%>%

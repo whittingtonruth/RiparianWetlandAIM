@@ -387,7 +387,10 @@ Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist
   AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
                                                                  PlotKey,
                                                                  SiteName,
-                                                                 AdminState),
+                                                                 AdminState,
+                                                                 VisitDate,
+                                                                 LatWGS,
+                                                                 LongWGS),
                                           SppInvRich)%>%
     dplyr::left_join(., SppInvC.Val) %>%
     dplyr::left_join(., SppInvNative)%>%
