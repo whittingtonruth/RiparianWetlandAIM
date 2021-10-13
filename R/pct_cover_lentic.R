@@ -72,8 +72,6 @@ pct_cover_lentic <- function(lpi_tall,
       dplyr::summarize(total = dplyr::n())
   }
 
-
-
   #If pct cover is being calculated for the first hit, LPI should be filtered to the first hit of each pin drop, independent of
   #the layer it is in. This involves first making layer into a factored variable, sorting LPI data, then filtering all data
   #to just the first occurrence per pindrop.
@@ -126,7 +124,7 @@ pct_cover_lentic <- function(lpi_tall,
     dplyr::summarize(uniquehits = dplyr::n()) %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
     dplyr::left_join(., point_totals) %>%
-    dplyr::mutate(percent = uniquehits / total * 100)%>%
+    dplyr::mutate(percent = round(uniquehits / total * 100, digits = 2))%>%
     dplyr::select(-c(uniquehits, total))
 
   #remove all metrics with no value for one grouping_variable

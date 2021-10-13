@@ -34,7 +34,7 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
   if(method == "mean"){
     totals <- SpeciesList%>%
       dplyr::group_by(PlotKey)%>%
-      dplyr::summarize("average" = mean(!!!grouping_variables, na.rm = T))
+      dplyr::summarize("average" = round(mean(!!!grouping_variables, na.rm = T), digits = 2))
   }
 
   if(method == "percent"){
@@ -46,7 +46,7 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
       dplyr::group_by(PlotKey, !!!grouping_variables)%>%
       dplyr::summarize(count = n())%>%
       dplyr::left_join(., speciescount)%>%
-      dplyr::mutate(percent = count / TotalSpecies * 100)%>%
+      dplyr::mutate(percent = round(count / TotalSpecies * 100, digits = 2))%>%
       dplyr::select(-c(count, TotalSpecies))
   }
 

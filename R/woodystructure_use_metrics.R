@@ -38,9 +38,9 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
 
   annualusemetrics <- annualuse_tall%>%
     dplyr::group_by(!!!level)%>%
-    dplyr::summarize(AverageSoilAlteration = mean(as.numeric(SoilAlteration), na.rm = T),
-                     AverageStubbleHeight = mean(StubbleHeight, na.rm = T),
-                     PercentGrazed = sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100)%>%
+    dplyr::summarize(AvgSoilAlteration = round(mean(as.numeric(SoilAlteration), na.rm = T), digits = 2),
+                     AvgStubbleHeight = round(mean(StubbleHeight, na.rm = T), digits = 2),
+                     PctGrazed = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2))%>%
     dplyr::left_join(., dominantspecies)
 
   #select relevant columns from species list.
@@ -69,8 +69,8 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
     dplyr::rowwise()%>%
     dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
     dplyr::group_by(!!!level)%>%
-    dplyr::summarize(PctWoodyNotAvailable = sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100,
-              AvgWoodyUseClass = mean(suppressWarnings(as.numeric(UseClass)), na.rm = T))
+    dplyr::summarize(PctWoodyNotAvailable = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
+                     AvgWoodyUseClass = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2))
 
   #Woody together
   UseMetrics <- annualusemetrics%>%
@@ -111,10 +111,10 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(TotalAgeClassRhiz = ifelse(Rhizomatous=="Yes", 1, sum(SeedlingTally, YoungTally, MatureTally, na.rm = T)),
                        TotalAgeClass = sum(SeedlingTally, YoungTally, MatureTally, na.rm = T))%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(PctRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100,
-                       PctSeedlings = sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100,
-                       PctYoung = sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100,
-                       PctMature = sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100,
+      dplyr::summarize(PctRhizomatous = round(sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100, digits = 2),
+                       PctSeedlings = round(sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
+                       PctYoung = round(sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
+                       PctMature = round(sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
                        CountRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0)),
                        CountSeedlings = sum(SeedlingTally, na.rm = T),
                        CountYoung = sum(YoungTally, na.rm = T),
@@ -129,10 +129,10 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(TotalAgeClassRhiz = ifelse(Rhizomatous=="Yes", 1, sum(SeedlingTally, YoungTally, MatureTally, na.rm = T)),
                   TotalAgeClass = sum(SeedlingTally, YoungTally, MatureTally, na.rm = T))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies)%>%
-      dplyr::summarize(PctRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100,
-                       PctSeedlings = sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100,
-                       PctYoung = sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100,
-                       PctMature = sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100,
+      dplyr::summarize(PctRhizomatous = round(sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100, digits = 2),
+                       PctSeedlings = round(sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
+                       PctYoung = round(sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
+                       PctMature = round(sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
                        CountRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0)),
                        CountSeedlings = sum(SeedlingTally, na.rm = T),
                        CountYoung = sum(YoungTally, na.rm = T),
@@ -156,12 +156,12 @@ hummocks_metrics <- function(hummocks, by_line = F){
   hummocksmetrics <- hummocks%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(CountHummocks = sum(ifelse(HummocksPresent=="Yes", 1, 0)),
-              AverageHummockHeight = ifelse(CountHummocks > 0, mean(Height, na.rm = T), NA),
-              AverageHummockWidth = ifelse(CountHummocks > 0, mean(Width, na.rm = T), NA),
-              AverageTroughWidth = ifelse(CountHummocks > 0, (7500 - sum(Width,na.rm = T))/ CountHummocks, NA),
-              AverageHummockSlope = ifelse(CountHummocks > 0, mean(SlopeClass, na.rm = T), NA),
-              AverageHummockVegCover = ifelse(CountHummocks > 0, mean(VegCover, na.rm = T), NA),
-              PercentHummocks = sum(Width,na.rm = T)/7500*100)
+              PctHummocks = round(sum(Width,na.rm = T)/7500*100, digits = 2),
+              AvgHummockHeight = ifelse(CountHummocks > 0, round(mean(Height, na.rm = T), digits = 2), NA),
+              AvgHummockWidth = ifelse(CountHummocks > 0, round(mean(Width, na.rm = T), digits = 2), NA),
+              AvgTroughWidth = ifelse(CountHummocks > 0, round((7500 - sum(Width,na.rm = T))/ CountHummocks, digits = 2), NA),
+              AvgHummockSlope = ifelse(CountHummocks > 0, round(mean(SlopeClass, na.rm = T), digits = 2), NA),
+              AvgHummockVegCover = ifelse(CountHummocks > 0, round(mean(VegCover, na.rm = T), digits = 2), NA))
 
   return(hummocksmetrics)
 }

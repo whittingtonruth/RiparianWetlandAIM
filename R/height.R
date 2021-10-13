@@ -41,14 +41,14 @@ summarize_height <- function(height_tall,
 
     height_summary <- height_tall%>%
       dplyr::group_by(!!!level, type)%>%
-      dplyr::summarize(AvgHeight = mean(Height, na.omit = T))%>%
+      dplyr::summarize(AvgHeight = round(mean(Height, na.omit = T), digits = 2))%>%
       dplyr::mutate(type = ifelse(type %in% c("Woody", "Woody2", "Herbaceous"), paste("Avg", type, "Height", sep = ""),
                                   paste("Avg", type, "Depth", sep = "")))
 
     height_class <- height_tall%>%
       dplyr::filter(!is.na(HeightClass))%>%
       dplyr::group_by(!!!level, type)%>%
-      dplyr::summarize(AvgHeight = mean(as.numeric(HeightClass), na.omit = T))%>%
+      dplyr::summarize(AvgHeight = round(mean(as.numeric(HeightClass), na.omit = T), digits = 2))%>%
       dplyr::mutate(type = paste("Avg", type, "HeightClass", sep = ""))
 
     allheights <- rbind(height_summary, height_class)

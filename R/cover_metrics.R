@@ -385,12 +385,12 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 
   fieldname <- switch(hit,
                       "any" = "Total",
-                      "first" = "BetweenPlant",
+                      "first" = "Bare",
                       "basal" = "Surface")
 
-  #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
+  #Add cover category to non-plant calls.
   nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
-                                 covercategory= c("Litter", "Litter", "Litter", "Litter", "Litter", "Litter", "Moss", "Water", "Organic Material", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
+                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
@@ -405,7 +405,8 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
                                                       "basal" = "basal"),
                                          by_line = FALSE,
                                          covercategory)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = ""))), "Cover", sep = ""))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch","Organicmaterial" = "OrganicMaterial")))%>%
     dplyr::group_by(PlotKey)%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
@@ -436,13 +437,13 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
   RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
 
   NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotKey,
-                                                                                            TotalLitterCover,
+                                                                                            TotalLitterThatchCover,
                                                                                             TotalMossCover,
                                                                                             TotalRockCover,
                                                                                             TotalWaterCover),
                              pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
-                                                                                              BetweenPlantSoilCover,
-                                                                                              `BetweenPlantOrganic MaterialCover`)
+                                                                                              BareSoilCover,
+                                                                                              `BareOrganicMaterialCover`)
   )
 
   LPI_Cover_Indicators <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,

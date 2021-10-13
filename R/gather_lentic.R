@@ -246,8 +246,8 @@ gather_height_lentic <- function(dsn){
                   PointNbr,
                   RecKey,
                   LitterOrThatchDepth)%>%
-    dplyr::mutate(type = "Litter",
-                  GrowthHabit_measured = "Litter")%>%
+    dplyr::mutate(type = "LitterThatch",
+                  GrowthHabit_measured = "LitterThatch")%>%
     dplyr::rename(Height = LitterOrThatchDepth)
 
   lpi_depth_water <- lpi_detail %>%
