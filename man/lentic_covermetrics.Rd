@@ -11,7 +11,7 @@
 \alias{pct_GrowthHabitCover}
 \alias{pct_DurationCover}
 \alias{pct_NonPlantGroundCover}
-\alias{Combine2019Indicators}
+\alias{CombineCoverIndicators}
 \title{Calculate percent cover from LPI}
 \usage{
 pct_FoliarCover(lpi_tall)
@@ -49,7 +49,7 @@ pct_DurationCover(
 
 pct_NonPlantGroundCover(lpi_tall, hit = "any")
 
-Combine2019Indicators(header, lpi_tall, masterspecieslist, unknowncodelist)
+CombineCoverIndicators(header, lpi_tall, masterspecieslist, unknowncodelist)
 }
 \arguments{
 \item{lpi_tall}{source of lpi_tall data frame.}

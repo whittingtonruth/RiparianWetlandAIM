@@ -144,7 +144,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
 
   #join lpi_tall to species list then add column for checking whether the species is considered Noxious.
   #Filter the list for relative cover to only include plants identified to species.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall)%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
     mutate(Noxious = "")%>%
     {if(covertype == "relative") dplyr::filter(.,Species !=""|is.na(Species)) else .}
@@ -202,7 +202,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
   #combine OBL and FACW species into one category.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall)%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
     mutate(Hydro = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
     mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydro", Hydro))%>%
@@ -255,7 +255,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
   #combine OBL and FACW species into one category.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall)%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
     mutate(HydroFAC = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
     mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
@@ -394,7 +394,7 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
-    dplyr::left_join(., nonplantcategory)
+    dplyr::left_join(., nonplantcategory, by = "code")
 
   #cover calculation for non-plant cover
   NonPlantCover <- pct_cover_lentic(lpi_tall,
@@ -414,9 +414,9 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 }
 
 
-#'@export Combine2019Indicators
+#'@export CombineCoverIndicators
 #'@rdname lentic_covermetrics
-Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
+CombineCoverIndicators <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
 
   Foliar <- pct_FoliarCover(lpi_tall)
 
@@ -443,7 +443,8 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
                                                                                             TotalWaterCover),
                              pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
                                                                                               BareSoilCover,
-                                                                                              `BareOrganicMaterialCover`)
+                                                                                              `BareOrganicMaterialCover`),
+                             by = "PlotKey"
   )
 
   LPI_Cover_Indicators <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
@@ -453,16 +454,17 @@ Combine2019Indicators <- function(header, lpi_tall, masterspecieslist, unknownco
                                                                               VisitDate,
                                                                               LatWGS,
                                                                               LongWGS),
-                                                       .)%>%
-    dplyr::left_join(., Basal)%>%
-    dplyr::left_join(., TotalAbsolute)%>%
-    dplyr::left_join(., RelativeNative)%>%
-    dplyr::left_join(., AbsoluteNoxious)%>%
-    dplyr::left_join(., RelativeHydro)%>%
-    dplyr::left_join(., RelativeHydroFAC)%>%
-    dplyr::left_join(., RelativeGrowthHabit)%>%
-    dplyr::left_join(., RelativeDuration)%>%
-    dplyr::left_join(., NonPlantCover)
+                                                       .,
+                                                       by = "PlotKey")%>%
+    dplyr::left_join(., Basal, by = "PlotKey")%>%
+    dplyr::left_join(., TotalAbsolute, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeNative, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteNoxious, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeHydro, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeHydroFAC, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeGrowthHabit, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeDuration, by = "PlotKey")%>%
+    dplyr::left_join(., NonPlantCover, by = "PlotKey")
 
   return(LPI_Cover_Indicators)
 }
@@ -516,7 +518,8 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                   Scientific.Name,
                   Common.Name,
                   percent)%>%
-    dplyr::arrange(PlotKey, desc(percent))
+    dplyr::arrange(PlotKey, desc(percent))%>%
+    dplyr::rename(PercentCover = percent)
 
   return(Cover_Species)
 

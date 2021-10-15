@@ -41,8 +41,10 @@ pct_cover_lentic <- function(lpi_tall,
   #Specify how to group calculations
   if (by_line) {
     level <- rlang::quos(PlotKey, LineKey)
+    level_colnames <- c("PlotKey", "LineKey")
   } else {
     level <- rlang::quos(PlotKey)
+    level_colnames <- c("PlotKey")
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
@@ -123,7 +125,7 @@ pct_cover_lentic <- function(lpi_tall,
     dplyr::group_by(!!!level, !!!grouping_variables) %>%
     dplyr::summarize(uniquehits = dplyr::n()) %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
-    dplyr::left_join(., point_totals) %>%
+    dplyr::left_join(., point_totals, by = level_colnames) %>%
     dplyr::mutate(percent = round(uniquehits / total * 100, digits = 2))%>%
     dplyr::select(-c(uniquehits, total))
 
@@ -147,7 +149,7 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Now join summary to full metric table.
   summary <- suppressWarnings(allsitemetrics%>%
-      dplyr::left_join(., summary) %>%
+      dplyr::left_join(., summary, by = c("metric", level_colnames)) %>%
       dplyr::mutate_all(dplyr::funs(replace(., is.na(.), 0)))%>%
       dplyr::mutate(metric=
                       {ifelse(rep(hit == "all", nrow(.)),
