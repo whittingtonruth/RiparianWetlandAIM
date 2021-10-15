@@ -10,7 +10,8 @@ summarize_height(
   method = "mean",
   tall = FALSE,
   by_line = FALSE,
-  omit_zero = TRUE
+  omit_zero = TRUE,
+  by_species = FALSE
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ Defaults to FALSE.}
 
 \item{omit_zero}{Logical. Indicates whether zeros should be included in average height and depth calculations.
 Defaults to TRUE.}
+
+\item{by_species}{Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.}
 }
 \value{
 Data.frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.

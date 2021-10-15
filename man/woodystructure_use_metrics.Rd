@@ -6,7 +6,14 @@
 \alias{hummocks_metrics}
 \title{Calculate use metrics from stubble height and woody data.}
 \usage{
-use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_line = F)
+use_metrics(
+  header,
+  annualuse_tall,
+  woody_tall,
+  masterspecieslist,
+  by_line = F,
+  by_species = F
+)
 
 ageclass_metrics(
   header,

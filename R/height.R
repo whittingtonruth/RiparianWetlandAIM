@@ -9,6 +9,7 @@
 #'Defaults to FALSE.
 #'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations.
 #'Defaults to TRUE.
+#'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.
 #'@returns Data.frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
 
 
@@ -18,7 +19,8 @@ summarize_height <- function(height_tall,
                              method = "mean",
                              tall = FALSE,
                              by_line = FALSE,
-                             omit_zero = TRUE){
+                             omit_zero = TRUE,
+                             by_species = FALSE){
 
   if(!(method %in% c("mean", "max"))){
     stop("Method must be either 'mean' or 'max'.")
@@ -31,6 +33,13 @@ summarize_height <- function(height_tall,
     level <- rlang::quos(PlotID, PlotKey)
   }
 
+  #group by species if desired. Otherwise group by type.
+  if (by_species) {
+    category <- rlang::quos(GrowthHabit_measured,Species)
+  } else {
+    category <- rlang::quos(type)
+  }
+
   #Filter out zeroes if they should be omitted.
   if (omit_zero == TRUE){
     height_tall <- height_tall%>%
@@ -40,16 +49,19 @@ summarize_height <- function(height_tall,
   if(method == "mean"){
 
     height_summary <- height_tall%>%
-      dplyr::group_by(!!!level, type)%>%
+      dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(AvgHeight = round(mean(Height, na.omit = T), digits = 2))%>%
-      dplyr::mutate(type = ifelse(type %in% c("Woody", "Woody2", "Herbaceous"), paste("Avg", type, "Height", sep = ""),
-                                  paste("Avg", type, "Depth", sep = "")))
+      {if(by_species == F)
+        dplyr::mutate(., type = ifelse(type %in% c("Woody", "Woody2", "Herbaceous"), paste("Avg", type, "Height", sep = ""), paste("Avg", type, "Depth", sep = "")))
+        else dplyr::mutate(., GrowthHabit_measured = paste("Avg", GrowthHabit_measured, "Height", sep = ""))}
 
     height_class <- height_tall%>%
       dplyr::filter(!is.na(HeightClass))%>%
-      dplyr::group_by(!!!level, type)%>%
+      dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(AvgHeight = round(mean(as.numeric(HeightClass), na.omit = T), digits = 2))%>%
-      dplyr::mutate(type = paste("Avg", type, "HeightClass", sep = ""))
+      {if(by_species == F)
+        dplyr::mutate(., type = paste("Avg", type, "HeightClass", sep = ""))
+        else dplyr::mutate(., GrowthHabit_measured = paste("Avg", GrowthHabit_measured, "HeightClass", sep = ""))}
 
     allheights <- rbind(height_summary, height_class)
   }
@@ -57,22 +69,37 @@ summarize_height <- function(height_tall,
   if (method == "max"){
 
     height_summary <- height_tall%>%
-      dplyr::group_by(!!!level, type)%>%
+      dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(AvgHeight = max(Height, na.omit = T))%>%
-      dplyr::mutate(type = ifelse(type %in% c("Woody", "Woody2", "Herbaceous"), paste("Max", type, "Height", sep = ""),
-        paste("Max", type, "Depth", sep = "")))
+      {if(by_species == F)
+        dplyr::mutate(., type = ifelse(type %in% c("Woody", "Woody2", "Herbaceous"), paste("Max", type, "Height", sep = ""), paste("Max", type, "Depth", sep = "")))
+        else dplyr::mutate(., GrowthHabit_measured = paste("Max", GrowthHabit_measured, "Height", sep = ""))}
 
     height_class <- height_tall%>%
       dplyr::filter(!is.na(HeightClass))%>%
-      dplyr::group_by(!!!level, type)%>%
+      dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(AvgHeight = max(as.numeric(HeightClass), na.omit = T))%>%
-      dplyr::mutate(type = paste("Max", type, "HeightClass", sep = ""))
+      {if(by_species == F)
+        dplyr::mutate(., type = paste("Max", type, "HeightClass", sep = ""))
+        else dplyr::mutate(., GrowthHabit_measured = paste("Max", GrowthHabit_measured, "HeightClass", sep = ""))}
 
     allheights <- rbind(height_summary, height_class)
   }
 
+  if(by_species){
+
+    by_speciescount <- height_tall%>%
+      dplyr::group_by(!!!level, Species)%>%
+      dplyr::summarize(AvgHeightCount = n())%>%
+      dplyr::filter(!(Species %in% c(NA, "N")))
+
+    allheights <- allheights%>%
+      dplyr::filter(!(Species %in% c(NA, "N")))%>%
+      dplyr::left_join(., by_speciescount, by = c("PlotID", "PlotKey", "Species"))
+  }
+
   if (tall == FALSE) {
-    allheights <- tidyr::pivot_wider(allheights, names_from = type, values_from = AvgHeight)
+    allheights <- tidyr::pivot_wider(allheights, names_from = rlang::quo_get_expr(category[[1]]), values_from = AvgHeight)
   }
 
   return(allheights)
