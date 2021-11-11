@@ -33,7 +33,7 @@ pct_FoliarCover <- function(lpi_tall){
                                          code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(PercentFoliarCover = sum(percent))
+    dplyr::summarize(TotalFoliarCover = sum(percent))
 
   return(PercentFoliarCover)
 }
@@ -52,7 +52,7 @@ pct_BasalCover <- function(lpi_tall){
                                         code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
     dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(PercentBasalCover = sum(percent))
+    dplyr::summarize(TotalBasalCover = sum(percent))
 
   return(PercentBasalCover)
 }
@@ -354,9 +354,10 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
                                        by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))}
 
-  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations.
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
+  #cover, I removed blank values to end up with only a list of Annual and Perennial cover.
   lpispeciesjoin <- lpispeciesjoin%>%
-    {if(covertype == "relative") dplyr::filter(., Duration !=""|is.na(Duration)) else .}
+    {if(covertype == "relative") dplyr::filter(., Duration !=""|is.na(Duration)) else dplyr::filter(., Duration !="")}
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
@@ -414,19 +415,15 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 }
 
 
-#'@export CombineCoverIndicators
+#'@export CombineRelativeCoverMetrics
 #'@rdname lentic_covermetrics
-CombineCoverIndicators <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
-
-  Foliar <- pct_FoliarCover(lpi_tall)
-
-  Basal <- pct_BasalCover(lpi_tall)
+CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
 
   TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall)
 
   RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative")
 
-  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative")
 
   RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative")
 
@@ -447,7 +444,7 @@ CombineCoverIndicators <- function(header, lpi_tall, masterspecieslist, unknownc
                              by = "PlotKey"
   )
 
-  LPI_Cover_Indicators <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
+  LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                               PlotKey,
                                                                               SiteName,
                                                                               AdminState,
@@ -456,10 +453,8 @@ CombineCoverIndicators <- function(header, lpi_tall, masterspecieslist, unknownc
                                                                               LongWGS),
                                                        .,
                                                        by = "PlotKey")%>%
-    dplyr::left_join(., Basal, by = "PlotKey")%>%
-    dplyr::left_join(., TotalAbsolute, by = "PlotKey")%>%
     dplyr::left_join(., RelativeNative, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteNoxious, by = "PlotKey")%>%
+    dplyr::left_join(., RelativeNoxious, by = "PlotKey")%>%
     dplyr::left_join(., RelativeHydro, by = "PlotKey")%>%
     dplyr::left_join(., RelativeHydroFAC, by = "PlotKey")%>%
     dplyr::left_join(., RelativeGrowthHabit, by = "PlotKey")%>%
@@ -467,6 +462,58 @@ CombineCoverIndicators <- function(header, lpi_tall, masterspecieslist, unknownc
     dplyr::left_join(., NonPlantCover, by = "PlotKey")
 
   return(LPI_Cover_Indicators)
+}
+
+#'@export CombineAbsoluteCoverMetrics
+#'@rdname lentic_covermetrics
+CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
+
+  Foliar <- pct_FoliarCover(lpi_tall)
+
+  Basal <- pct_BasalCover(lpi_tall)
+
+  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
+
+  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+
+  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+
+  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+
+  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "absolute")
+
+  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "absolute")
+
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotKey,
+                                                                                            TotalLitterThatchCover,
+                                                                                            TotalMossCover,
+                                                                                            TotalRockCover,
+                                                                                            TotalWaterCover),
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
+                                                                                              BareSoilCover,
+                                                                                              `BareOrganicMaterialCover`),
+                             by = "PlotKey"
+  )
+
+  LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
+                                                                                   PlotKey,
+                                                                                   SiteName,
+                                                                                   AdminState,
+                                                                                   VisitDate,
+                                                                                   LatWGS,
+                                                                                   LongWGS),
+                                                            .,
+                                                            by = "PlotKey")%>%
+    dplyr::left_join(., Basal, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteNative, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteNoxious, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteHydro, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteHydroFAC, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteGrowthHabit, by = "PlotKey")%>%
+    dplyr::left_join(., AbsoluteDuration, by = "PlotKey")%>%
+    dplyr::left_join(., NonPlantCover, by = "PlotKey")
+
+  return(LPI_AbsoluteCover_Metrics)
 }
 
 #'@export pct_AbsoluteSpeciesCover
@@ -519,7 +566,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                   Common.Name,
                   percent)%>%
     dplyr::arrange(PlotKey, desc(percent))%>%
-    dplyr::rename(PercentCover = percent)
+    dplyr::rename(SpeciesCover = percent)
 
   return(Cover_Species)
 
