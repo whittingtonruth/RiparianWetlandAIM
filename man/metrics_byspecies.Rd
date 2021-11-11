@@ -15,23 +15,22 @@ metrics_byspecies(
 )
 }
 \arguments{
-\item{header}{source of header data frame.}
+\item{header}{data.frame produced by \code{gather_header_lentic}.}
 
 \item{spp_inventory}{data.frame produced by \code{gather_spp_inventory_lentic}.}
 
-\item{lpi_tall}{source of lpi_tall data frame.}
+\item{lpi_tall}{tall data.frame of LPI detail data produced by \code{gather_lpi_lentic}}
 
-\item{height_tall}{Source of height_tall dataframe.}
+\item{height_tall}{tall data.frame of height data.}
 
-\item{woody_tall}{tall data frame of woody use data.}
+\item{woody_tall}{tall data.frame of woody use data.}
 
-\item{annualuse_tall}{tall data frame of annual use data.}
+\item{annualuse_tall}{tall data.frame of annual use data.}
 
-\item{masterspecieslist}{Character string. Full file path (including extension) to the file
-containing the species list.}
+\item{masterspecieslist}{data.frame containing the full species list.}
 }
 \value{
-Data.frame of species-based indicator data.
+data.frame of species-based indicator data.
 }
 \description{
 Combine species-level indicator information into one data.frame.

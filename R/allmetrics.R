@@ -5,13 +5,18 @@
 #'@param height_tall tall data.frame of height data.
 #'@param woody_tall tall data.frame of woody use data.
 #'@param annualuse_tall tall data.frame of annual use data.
+#'@param hummocks tall data frame of hummock data.
+#'@param unknowncodelist optional dataframe. Unknown species list matching unknown codes to their duration and
+#'Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a
+#'species or genus with those fields specified. If argument is unused, all unknown species without duration or
+#'Growth Habit specified will be filtered out before being passed on to pct_cover_lentic.
 #'@param masterspecieslist data.frame containing the full species list.
 #'@returns data.frame of species-based indicator data.
 
 
-#'@export metrics_byspecies
-#'@rdname metrics_byspecies
-metrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist){
+#'@export allmetrics_byspecies
+#'@rdname allmetrics
+allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist){
 
   SpeciesList <- dplyr::left_join(header, spp_inventory, by = c("PlotID", "PlotKey"))%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
@@ -23,6 +28,9 @@ metrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, wood
                   SiteName,
                   AdminState,
                   Region,
+                  LatWGS,
+                  LongWGS,
+                  Elevation,
                   Species,
                   UnknownCodeKey,
                   Scientific.Name,
@@ -75,4 +83,32 @@ metrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, wood
 
   return(SpeciesList)
 
+}
+
+#'@export allmetrics_byplot
+#'@rdname allmetrics
+allmetrics_byplot <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, hummocks, unknowncodelist, masterspecieslist){
+
+  absolutecovermetrics <- CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodelist)
+
+  communitymetrics <- Community_Metrics(header = header, spp_inventory = spp_inventory, lpi_tall = lpi_tall, masterspecieslist = masterspecieslist)
+
+  heightmetrics <- summarize_height(height_tall, woody_tall, method = "mean")
+
+  ageclassmetrics <- ageclass_metrics(header, woody_tall, masterspecieslist)
+
+  usemetrics <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist)
+
+  hummocksmetrics <- hummocks_metrics(hummocks)
+
+  allmetrics <- suppressMessages(
+    dplyr::left_join(header, communitymetrics)%>%
+    dplyr::left_join(., absolutecovermetrics)%>%
+    dplyr::left_join(., heightmetrics)%>%
+    dplyr::left_join(., ageclassmetrics)%>%
+    dplyr::left_join(., usemetrics)%>%
+    dplyr::left_join(., hummocksmetrics)
+  )
+
+  return(allmetrics)
 }
