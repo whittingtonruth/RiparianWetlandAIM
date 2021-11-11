@@ -322,7 +322,7 @@ gather_woodyspecies <- function(dsn){
     sf::st_read(dsn = dsn,
                 layer = "WoodySpecies",
                 stringsAsFactors = F))%>%
-    dplyr::select(PlotID:Recorder, Direction)
+    dplyr::select(globalid, PlotID:Recorder, Direction)
 
   woody_points <- suppressWarnings(sf::st_read(
     dsn = dsn,
@@ -331,7 +331,8 @@ gather_woodyspecies <- function(dsn){
   ))%>%
     dplyr::select(globalid,
                   PointNbr,
-                  PointLoc)
+                  PointLoc,
+                  parentglobalid)
 
   woody_detail <- suppressWarnings(
     sf::st_read(dsn = dsn,
@@ -348,7 +349,7 @@ gather_woodyspecies <- function(dsn){
     dplyr::select(-globalid)%>%
     dplyr::left_join(x = woody_header,
                      .,
-                     by = c("LineKey" = "RecKey")
+                     by = c("globalid" = "parentglobalid")
   )
 
   return(woody_tall)

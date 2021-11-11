@@ -1,6 +1,5 @@
 #' Build AIM Indicators Tables and Feature Classes
 #' @param dsn String File path to the TerrADat database.
-#' @param header Dataframe. Plot header containing plot metadata
 #' @param ... Query in grepl format that subsets plots.
 #' @return A \code{tbl} of header information on each evaluated plot.
 
@@ -42,15 +41,14 @@ header_build_lentic <- function(dsn, ...) {
                   PlotKey,
                   SiteName,
                   SamplingApproach,
-                  PlotLayout,
-                  Elevation = ElevationCtr,
-                  FieldOffice = Office,
-                  DistrictOffice = District,
                   AdminState,
                   Region,
+                  DistrictOffice = District,
+                  FieldOffice = Office,
                   VisitDate,
                   LatWGS = Northing,
-                  LongWGS = Easting
+                  LongWGS = Easting,
+                  Elevation = ElevationCtr
     )
 
   # Return the header file
