@@ -10,8 +10,6 @@ header_build_lentic(dsn, ...)
 \item{dsn}{String File path to the TerrADat database.}
 
 \item{...}{Query in grepl format that subsets plots.}
-
-\item{header}{Dataframe. Plot header containing plot metadata}
 }
 \value{
 A \code{tbl} of header information on each evaluated plot.
