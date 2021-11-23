@@ -12,7 +12,8 @@ allmetrics_byspecies(
   height_tall,
   woody_tall,
   annualuse_tall,
-  masterspecieslist
+  masterspecieslist,
+  unknowncodelist
 )
 
 allmetrics_byplot(
@@ -42,12 +43,12 @@ allmetrics_byplot(
 
 \item{masterspecieslist}{data.frame containing the full species list.}
 
-\item{hummocks}{tall data frame of hummock data.}
-
 \item{unknowncodelist}{optional dataframe. Unknown species list matching unknown codes to their duration and
 Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a
 species or genus with those fields specified. If argument is unused, all unknown species without duration or
 Growth Habit specified will be filtered out before being passed on to pct_cover_lentic.}
+
+\item{hummocks}{tall data frame of hummock data.}
 }
 \value{
 data.frame of species-based indicator data.

@@ -352,12 +352,13 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodelist, DurationUnknown = Duration),
                                        by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
-      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))}
+      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))
+    }
 
   #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
-  #cover, I removed blank values to end up with only a list of Annual and Perennial cover.
+  #cover, I can't remove empty values, because it'll throw off the number of pindrops.
   lpispeciesjoin <- lpispeciesjoin%>%
-    {if(covertype == "relative") dplyr::filter(., Duration !=""|is.na(Duration)) else dplyr::filter(., Duration !="")}
+    {if(covertype == "relative") dplyr::filter(., Duration !=""|is.na(Duration)) else .}
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
@@ -370,6 +371,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
                                        by_line = FALSE,
                                        Duration)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    dplyr::filter(grepl("Perennial|Annual", metric))%>%
     dplyr::group_by(PlotKey)%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 

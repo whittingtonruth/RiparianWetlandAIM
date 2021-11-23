@@ -16,7 +16,7 @@
 
 #'@export allmetrics_byspecies
 #'@rdname allmetrics
-allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist){
+allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist, unknowncodelist){
 
   SpeciesList <- dplyr::left_join(header, spp_inventory, by = c("PlotID", "PlotKey"))%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
@@ -43,14 +43,14 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                   ends_with("WetStatus"),
                   abundance)%>%
     tibble::add_column(., Noxious = NA,
-                       C.Value = NA,
+                       CValue = NA,
                        WetStatus = NA)
 
   #Add a C-Value based on AdminState.
   for (i in 1:nrow(SpeciesList)){
     C.Valuelist <- paste(SpeciesList$AdminState[i], "_C.Value", sep = "")
     StateC.Value <- SpeciesList[[i,C.Valuelist]]
-    SpeciesList$C.Value[i] <- StateC.Value
+    SpeciesList$CValue[i] <- StateC.Value
   }
 
   #Add a Noxious designation by state.
@@ -58,6 +58,16 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
     noxiouslist <- paste(SpeciesList$AdminState[i], "_NOX", sep = "")
     statenoxious <- SpeciesList[[i,noxiouslist]]
     SpeciesList$Noxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
+  }
+
+  if(!missing(unknowncodelist)){
+    SpeciesList <- SpeciesList%>%
+      dplyr::left_join(., unknowncodelist%>%
+                         dplyr::rename(GrowthHabitUnknown = GrowthHabit, DurationUnknown = Duration),
+                       by = c("PlotKey", "PlotID", "UnknownCodeKey"))%>%
+      dplyr::mutate(Duration = ifelse(Duration==""|is.na(Duration), DurationUnknown, Duration),
+                    GrowthHabitSub = ifelse(GrowthHabitSub==""|is.na(GrowthHabitSub), GrowthHabitUnknown, GrowthHabitSub))%>%
+      dplyr::select(-c(VisitDate:ScientificName))
   }
 
   #Add a WetlandIndicatorStatus based on Region. First change all the species statuses that are blank to NR
@@ -89,7 +99,8 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 #'@rdname allmetrics
 allmetrics_byplot <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, hummocks, unknowncodelist, masterspecieslist){
 
-  absolutecovermetrics <- CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodelist)
+  absolutecovermetrics <- CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodelist)%>%
+    dplyr::rename_with(stringr::str_replace,matches("Absolute"), "Absolute", "")
 
   communitymetrics <- Community_Metrics(header = header, spp_inventory = spp_inventory, lpi_tall = lpi_tall, masterspecieslist = masterspecieslist)
 
@@ -109,6 +120,10 @@ allmetrics_byplot <- function(header, spp_inventory, lpi_tall, height_tall, wood
     dplyr::left_join(., usemetrics)%>%
     dplyr::left_join(., hummocksmetrics)
   )
+
+  allmetrics <- allmetrics%>%
+    dplyr::mutate(CountHummocks = ifelse(is.na(CountHummocks), 0, CountHummocks),
+                  PctHummocks = ifelse(is.na(PctHummocks), 0, PctHummocks))
 
   return(allmetrics)
 }
