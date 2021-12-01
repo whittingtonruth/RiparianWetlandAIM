@@ -2,23 +2,27 @@
 % Please edit documentation in R/community_composition.R
 \name{Community_Composition}
 \alias{Community_Composition}
-\title{Summarize number or percent of species by PlotKey and provided grouping variables.}
+\title{Summarize Species or plant group by PlotKey based on species list.}
 \usage{
 Community_Composition(SpeciesList, method = "percent", tall = F, ...)
 }
 \arguments{
-\item{SpeciesList}{List of species by plot that will be summarized, including the grouping variables
-for which data is being summarized by.}
+\item{SpeciesList}{Data frame. Table of species by plot that will be summarized, including the grouping variables
+for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered
+out prior to submitting to function.}
 
 \item{method}{character string. The method used for the produced summary table. Can
-be \code{"percent"}, \code{"mean"}, or {"count"}. Defaults to \code{"percent"}.}
+be "percent", "mean", or "count". Defaults to "percent".}
 
-\item{tall}{indicates whether output will be tall table or wide. Defaults to FALSE.}
+\item{tall}{Logical. Indicates whether output will be tall table or wide. Defaults to FALSE.}
 
-\item{...}{grouping variables from the master species list to be used in calculating list.}
+\item{...}{Optional character strings. Grouping variables from the master species list to be used in calculating list.}
+}
+\value{
+Data frame of summarized metrics by plot.
 }
 \description{
-Basic function that takes species list and summarizes either the percent or count
-of species in that group. List provided to function should already be cleaned to remove
+Basic function that takes a species list and summarizes the percent, count, or average
+of species metrics in that group. The species list provided should already be cleaned to remove
 duplicate species or unwanted grouping variable categories.
 }

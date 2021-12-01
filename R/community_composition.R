@@ -1,16 +1,17 @@
-#'Summarize number or percent of species by PlotKey and provided grouping variables.
+#'Summarize Species or plant group by PlotKey based on species list.
 #'
-#'Basic function that takes species list and summarizes either the percent or count
-#'of species in that group. List provided to function should already be cleaned to remove
+#'@description Basic function that takes a species list and summarizes the percent, count, or average
+#'of species metrics in that group. The species list provided should already be cleaned to remove
 #'duplicate species or unwanted grouping variable categories.
 #'
-#'@param SpeciesList List of species by plot that will be summarized, including the grouping variables
-#'for which data is being summarized by.
+#'@param SpeciesList Data frame. Table of species by plot that will be summarized, including the grouping variables
+#'for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered
+#'out prior to submitting to function.
 #'@param method character string. The method used for the produced summary table. Can
-#'be \code{"percent"}, \code{"mean"}, or {"count"}. Defaults to \code{"percent"}.
-#'@param tall indicates whether output will be tall table or wide. Defaults to FALSE.
-#'@param ... grouping variables from the master species list to be used in calculating list.
-#'
+#'be "percent", "mean", or "count". Defaults to "percent".
+#'@param tall Logical. Indicates whether output will be tall table or wide. Defaults to FALSE.
+#'@param ... Optional character strings. Grouping variables from the master species list to be used in calculating list.
+#'@returns Data frame of summarized metrics by plot.
 
 #'@export Community_Composition
 Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...){

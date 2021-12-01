@@ -1,9 +1,9 @@
 #'Calculate use metrics from stubble height and woody data.
 #'
-#'@param header source of header data frame.
-#'@param annualuse_tall tall data frame of annual use data.
-#'@param woody_tall tall data frame of woody use data.
-#'@param hummocks tall data frame of hummock data.
+#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output.
+#'@param annualuse_tall Data frame. Use the data frame from the \code{gather_annualuse()} output.
+#'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
+#'@param hummocks Data frame. Use the data frame from the \code{gather_hummocks()} output.
 #'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
 #'Defaults to FALSE.
 #'@param by_species Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.

@@ -1,17 +1,23 @@
-#'Functions for summarizing community makeup for specific grouping variables.
+#'Summarize community composition for specified grouping variables.
 #'
-#'@param header data.frame. Table providing plot-based information on AdminState and Region used in
-#'Community Metric calculations.
-#'@param SpeciesList List of species by PlotKey that will be summarized. Can be either spp_inventory
-#'produced by \code{gather_spp_inventory_lentic} or \code{gather_lpi_lentic}.
-#'@param masterspecieslist Dataframe containing all possible species codes with
-#'necessary grouping variable information.
-#'@param listtype character string. Indicates the source of the SpeciesList provided. Can either be
-#'\code{"speciesinventory"} or \code{"lpi"}. Defaults to speciesinventory.
+#'@description This group of functions prepares a species list to be used in the embedded
+#'\code{community_composition()}. This can involve filtering duplicate species, combining
+#'grouping variable categories, and pulling plot information from plot headers to inform
+#'species classification. Analogous to \code{cover_metrics} functions.
+#'
+#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
+#'Wetland Indicator calculations to specify the plot region or state.
+#'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall
+#'produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
+#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'@param listtype Character string. Indicates the source of the SpeciesList provided. Can either be
+#'"speciesinventory" or"lpi". Defaults to "speciesinventory".
 #'@param method character string. The method used for the produced summary table. Can
-#'be \code{"percent"}, \code{"mean"}, or {"count"}.
+#'be "percent", "mean", or "count". Included in functions where applicable.
+#'@returns Data frame of summary metrics by plot.
 
 #'@export Community_Richness
+#'@rdname Community_Metrics
 Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
@@ -43,6 +49,7 @@ Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speci
 }
 
 #'@export Community_C.Value
+#'@rdname Community_Metrics
 Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
@@ -82,6 +89,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
 }
 
 #'@export Community_Native
+#'@rdname Community_Metrics
 Community_Native <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
@@ -123,6 +131,7 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
 }
 
 #'@export Community_NoxiousCount
+#'@rdname Community_Metrics
 Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
@@ -165,6 +174,7 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
 }
 
 #'@export Community_Hydrophytes
+#'@rdname Community_Metrics
 Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
@@ -225,6 +235,7 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
 }
 
 #'@export Community_HydroFAC
+#'@rdname Community_Metrics
 Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
@@ -285,6 +296,7 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
 }
 
 #'@export Community_GrowthHabit
+#'@rdname Community_Metrics
 Community_GrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
@@ -323,6 +335,7 @@ Community_GrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "sp
 }
 
 #'@export Community_Duration
+#'@rdname Community_Metrics
 Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
@@ -358,56 +371,4 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
                                                                   expr(count))})
 
   return(totals)
-}
-
-#'@export Community_Metrics
-Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist){
-
-  #Calculate all metrics using species inventory
-  SppInvRich <- Community_Richness(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvC.Val <- Community_C.Value(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvNative <- Community_Native(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvNox <- Community_NoxiousCount(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvHydro <- Community_Hydrophytes(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvHydroFAC <- Community_HydroFAC(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvGrowthForm <- Community_GrowthHabit(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvDuration <- Community_Duration(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-
-  #Calculate all metrics using LPI
-  LPIRich <- Community_Richness(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIC.Val <- Community_C.Value(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPINative <- Community_Native(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPINox <- Community_NoxiousCount(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIHydro <- Community_Hydrophytes(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIHydroFAC <- Community_HydroFAC(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIGrowthForm <- Community_GrowthHabit(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIDuration <- Community_Duration(lpi_tall, masterspecieslist, listtype = "lpi")
-
-  #Join all metrics into one table with PlotID, Name and AdminState.
-  AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
-                                                                 PlotKey,
-                                                                 SiteName,
-                                                                 AdminState,
-                                                                 VisitDate,
-                                                                 LatWGS,
-                                                                 LongWGS),
-                                          SppInvRich)%>%
-    dplyr::left_join(., SppInvC.Val) %>%
-    dplyr::left_join(., SppInvNative)%>%
-    dplyr::left_join(., SppInvNox)%>%
-    dplyr::left_join(., SppInvHydro)%>%
-    dplyr::left_join(., SppInvHydroFAC)%>%
-    dplyr::left_join(., SppInvGrowthForm)%>%
-    dplyr::left_join(., SppInvDuration)%>%
-
-    dplyr::left_join(., LPIRich)%>%
-    dplyr::left_join(., LPIC.Val)%>%
-    dplyr::left_join(., LPINative)%>%
-    dplyr::left_join(., LPINox)%>%
-    dplyr::left_join(., LPIHydro)%>%
-    dplyr::left_join(., LPIHydroFAC)%>%
-    dplyr::left_join(., LPIGrowthForm)%>%
-    dplyr::left_join(., LPIDuration)
-
-  return(AllCommunityMetrics)
 }

@@ -26,18 +26,18 @@ ageclass_metrics(
 hummocks_metrics(hummocks, by_line = F)
 }
 \arguments{
-\item{header}{source of header data frame.}
+\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output.}
 
-\item{annualuse_tall}{tall data frame of annual use data.}
+\item{annualuse_tall}{Data frame. Use the data frame from the \code{gather_annualuse()} output.}
 
-\item{woody_tall}{tall data frame of woody use data.}
+\item{woody_tall}{Data frame. Use the data frame from the \code{gather_woodyspecies()} output.}
 
 \item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
 Defaults to FALSE.}
 
 \item{by_species}{Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.}
 
-\item{hummocks}{tall data frame of hummock data.}
+\item{hummocks}{Data frame. Use the data frame from the \code{gather_hummocks()} output.}
 }
 \value{
 Data.frame of the summarized woody and annual use data by plot.

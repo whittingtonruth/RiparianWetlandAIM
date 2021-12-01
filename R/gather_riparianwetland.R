@@ -1,16 +1,16 @@
-#' Species gathering functions
+#' Pivoting functions to transform raw data tables from wide to tall format for use in indicator calculations.
 #'
 #' @description This group of functions allow you to transform Survey123 data uploaded to
-#' AGOL from wide format to long format. It contains six functions for transforming Species Richness,
-#' Unknown Plants, LPI, Heights from LPI, and Woody Species detail tables.
+#' AGOL from wide format to tall format. It contains seven functions for transforming species inventory,
+#' unknown plants, LPI, heights from LPI and woody species, woody species, annual use, and hummocks detail tables.
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.
 #' @importFrom magrittr %>%
-#' @name gather_lentic
-#' @return Data frame containing the data from a lentic AIM form
+#' @name gather_RiparianWetland
+#' @return tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.
 #'
 
 #' @export gather_lpi_lentic
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 ## Function to transform LPI data into tall format.
 gather_lpi_lentic <- function(dsn){
   #read in LPI header and detail tables
@@ -102,7 +102,7 @@ gather_lpi_lentic <- function(dsn){
 }
 
 #' @export gather_species_inventory_lentic
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_species_inventory_lentic <- function(dsn) {
 
   # Read in the files from the geodatabase
@@ -140,7 +140,7 @@ gather_species_inventory_lentic <- function(dsn) {
 }
 
 #' @export gather_unknowns_lentic
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_unknowns_lentic <- function(dsn) {
 
   # Read in the files from the geodatabase
@@ -179,7 +179,7 @@ gather_unknowns_lentic <- function(dsn) {
 }
 
 #' @export gather_height_lentic
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_height_lentic <- function(dsn){
   # Read in LPI files from geodatabase
   lpi_detail <- suppressWarnings(sf::st_read(
@@ -277,7 +277,7 @@ gather_height_lentic <- function(dsn){
 }
 
 #' @export gather_annualuse
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_annualuse <- function(dsn){
   lpi_detail <- suppressWarnings(sf::st_read(
     dsn = dsn,
@@ -315,7 +315,7 @@ gather_annualuse <- function(dsn){
 }
 
 #' @export gather_woodyspecies
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_woodyspecies <- function(dsn){
 
   woody_header <- suppressWarnings(
@@ -356,7 +356,7 @@ gather_woodyspecies <- function(dsn){
 }
 
 #' @export gather_hummocks
-#' @rdname gather_lentic
+#' @rdname gather_riparianwetland
 gather_hummocks <- function(dsn){
 
   hummocks_header <- suppressWarnings(

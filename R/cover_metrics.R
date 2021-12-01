@@ -1,25 +1,45 @@
-#'Calculate percent cover from LPI
+#'Calculate percent cover metrics from LPI
 #'
-#'Cover metrics return a \code{data.frame} of percent cover of specified categories calculated from
-#'gathered LPI data across plots. These defined functions execute the most common cover categories calculated
-#'from LPI.
+#'@description Metric calculation functions for specific grouping variables. These functions perform various modifications to
+#'the \code{lpi_tall} data frame in preparation for the \code{pct_cover_lentic()} function, then filtering the
+#'resulting data frame to the categories of interest.
 #'
-#'@param header source of header data frame.
-#'@param lpi_tall source of lpi_tall data frame.
-#'@param masterspecieslist Character string. Full file path (including extension) to the file
-#'containing the species list.
-#'@param unknowncodelist optional dataframe. Unknown species list matching unknown codes to their duration and
-#'Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a
-#'species or genus with those fields specified. If argument is unused, all unknown species without duration or
-#'Growth Habit specified will be filtered out before being passed on to pct_cover_lentic.
+#'Some functions pull information from a variety of tables from the field season data used to categorize variables. Region-
+#'or state-specific categorization requires joining the header data frame to the lpi_tall data frame. Growth Form and Duration
+#'calculations can optionally pull in data for unknowns entered by crews in the Unknown Plant form. Wetland Indicator Status
+#'and Noxious species group categories together before pushing to the \code{pct_cover_lentic()} function.
+#'
+#'Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic
+#'or plant groupings due to the way the percent denominators are calculated. Relative cover requires all species without
+#'relevant categorization to be removed to ensure only plant hits with a given category are included in calculations. (Example:
+#'In calculating relative native cover, plant hits of Elymus species should not be included in either numerator or denominator.)
+#'In contrast, absolute cover requires that all hits be submitted to the \code{pct_cover_lentic()} function, as these will
+#'be used to calculate the number of pin drops (i.e. the denominator). Absolute cover filters out uncategorized hits after
+#'cover has been calculated.
+#'
+#'Absolute and Relative cover metrics can be calculated all at once using \code{CombineRelativeCoverMetrics} and
+#'\code{CombineAbsoluteCoverMetrics}.
+#'
+#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
+#'Wetland Indicator calculations to specify the plot region or state.
+#'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
+#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param covertype Character string. "relative" or "absolute". Specifies the kind of cover calculation.
 #'Relative cover is only used for calculations on vascular plant species and specifies the percent of
 #'overall hits made up of a particular species or group. Absolute cover is the percent of the pin
 #'drops made up by a particular species or group.
-#'@return Dataframe of specified percent cover of different categories by plot.
+#'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output.
+#'Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration
+#'and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument
+#'is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed
+#'on to \code{pct_cover_lentic()}.
+#'@param hit Character string. "any", "first" or "basal". Only used in \code{pct_NonPlantGroundCover()}, where relative
+#'cover is not calculated. If "any" is used, any layer will be used to calculate non-plant cover. If "first" is used, only
+#'\code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Defaults to "any".
+#'@return Wide data frame of percent cover by plot of different categories.
 
 #'@export pct_FoliarCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_FoliarCover <- function(lpi_tall){
 
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
@@ -39,7 +59,7 @@ pct_FoliarCover <- function(lpi_tall){
 }
 
 #'@export pct_BasalCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_BasalCover <- function(lpi_tall){
 
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
@@ -58,7 +78,7 @@ pct_BasalCover <- function(lpi_tall){
 }
 
 #'@export pct_TotalAbsoluteCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_TotalAbsoluteCover <- function(lpi_tall){
 
   #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
@@ -77,7 +97,7 @@ pct_TotalAbsoluteCover <- function(lpi_tall){
 }
 
 #'@export pct_NativeCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative"){
 
   if(!(covertype %in% c("relative", "absolute"))){
@@ -118,7 +138,7 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
 }
 
 #'@export pct_NoxiousCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute"){
 
   if(!(covertype %in% c("relative", "absolute"))){
@@ -171,7 +191,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
 }
 
 #'@export pct_HydrophyteCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype = "relative"){
 
   if(!(covertype %in% c("relative", "absolute"))){
@@ -224,7 +244,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
 }
 
 #'@export pct_HydroFACCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "relative"){
 
   if(!(covertype %in% c("relative", "absolute"))){
@@ -276,8 +296,8 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
 }
 
 #'@export pct_GrowthHabitCover
-#'@rdname lentic_covermetrics
-pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative"){
+#'@rdname Cover_Metrics
+pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -298,9 +318,9 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, unknowncodelist, c
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodelist)){
+  if(!missing(unknowncodes)){
       lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
-                                         dplyr::rename(unknowncodelist, DurationUnknown = Duration),
+                                         dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                          by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
         dplyr::mutate(GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))}
 
@@ -326,8 +346,8 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, unknowncodelist, c
 }
 
 #'@export pct_DurationCover
-#'@rdname lentic_covermetrics
-pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative"){
+#'@rdname Cover_Metrics
+pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -348,9 +368,9 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodelist)){
+  if(!missing(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
-                                       dplyr::rename(unknowncodelist, DurationUnknown = Duration),
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))
     }
@@ -379,7 +399,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, unknowncodelist, cove
 }
 
 #'@export pct_NonPlantGroundCover
-#'@rdname lentic_covermetrics
+#'@rdname Cover_Metrics
 pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 
   if(!(hit %in% c("any", "first", "basal"))){
@@ -417,108 +437,8 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
 }
 
 
-#'@export CombineRelativeCoverMetrics
-#'@rdname lentic_covermetrics
-CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
-
-  TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall)
-
-  RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative")
-
-  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative")
-
-  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative")
-
-  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
-
-  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
-
-  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "relative")
-
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotKey,
-                                                                                            TotalLitterThatchCover,
-                                                                                            TotalMossCover,
-                                                                                            TotalRockCover,
-                                                                                            TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
-                                                                                              BareSoilCover,
-                                                                                              `BareOrganicMaterialCover`),
-                             by = "PlotKey"
-  )
-
-  LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
-                                                                              PlotKey,
-                                                                              SiteName,
-                                                                              AdminState,
-                                                                              VisitDate,
-                                                                              LatWGS,
-                                                                              LongWGS),
-                                                       .,
-                                                       by = "PlotKey")%>%
-    dplyr::left_join(., RelativeNative, by = "PlotKey")%>%
-    dplyr::left_join(., RelativeNoxious, by = "PlotKey")%>%
-    dplyr::left_join(., RelativeHydro, by = "PlotKey")%>%
-    dplyr::left_join(., RelativeHydroFAC, by = "PlotKey")%>%
-    dplyr::left_join(., RelativeGrowthHabit, by = "PlotKey")%>%
-    dplyr::left_join(., RelativeDuration, by = "PlotKey")%>%
-    dplyr::left_join(., NonPlantCover, by = "PlotKey")
-
-  return(LPI_Cover_Indicators)
-}
-
-#'@export CombineAbsoluteCoverMetrics
-#'@rdname lentic_covermetrics
-CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodelist){
-
-  Foliar <- pct_FoliarCover(lpi_tall)
-
-  Basal <- pct_BasalCover(lpi_tall)
-
-  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
-
-  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
-
-  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
-
-  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
-
-  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "absolute")
-
-  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, unknowncodelist, covertype = "absolute")
-
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotKey,
-                                                                                            TotalLitterThatchCover,
-                                                                                            TotalMossCover,
-                                                                                            TotalRockCover,
-                                                                                            TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotKey,
-                                                                                              BareSoilCover,
-                                                                                              `BareOrganicMaterialCover`),
-                             by = "PlotKey"
-  )
-
-  LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
-                                                                                   PlotKey,
-                                                                                   SiteName,
-                                                                                   AdminState,
-                                                                                   VisitDate,
-                                                                                   LatWGS,
-                                                                                   LongWGS),
-                                                            .,
-                                                            by = "PlotKey")%>%
-    dplyr::left_join(., Basal, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteNative, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteNoxious, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteHydro, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteHydroFAC, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteGrowthHabit, by = "PlotKey")%>%
-    dplyr::left_join(., AbsoluteDuration, by = "PlotKey")%>%
-    dplyr::left_join(., NonPlantCover, by = "PlotKey")
-
-  return(LPI_AbsoluteCover_Metrics)
-}
-
 #'@export pct_AbsoluteSpeciesCover
+#'@rdname Cover_Metrics
 pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
 
   #Create nonplantcodesfilter

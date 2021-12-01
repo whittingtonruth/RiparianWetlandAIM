@@ -1,6 +1,7 @@
 #' Build AIM Indicators Tables and Feature Classes
-#' @param dsn String File path to the TerrADat database.
+#' @param dsn String File path to a Riparian and Wetland File Geodatabase.
 #' @param ... Query in grepl format that subsets plots.
+#' @name header_build
 #' @return A \code{tbl} of header information on each evaluated plot.
 
 # Build the header portion of the Lentic SDE table

@@ -1,6 +1,7 @@
 #'Calculate average herbaceous and woody height and litter and water depth.
 #'
-#'@param height_tall Source of height_tall dataframe.
+#'@param height_tall Data frame. Use the data frame from the \code{gather_height_lentic()} output.
+#'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
 #'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
 #'height on the plot or \code{"mean"} which yields the mean height.
 #'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have
@@ -10,11 +11,12 @@
 #'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations.
 #'Defaults to TRUE.
 #'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.
-#'@returns Data.frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
+#'Defaults to FALSE.
+#'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
 
 
-#'@export summarize_height
-summarize_height <- function(height_tall,
+#'@export height_metrics
+height_metrics <- function(height_tall,
                              woody_tall,
                              method = "mean",
                              tall = FALSE,

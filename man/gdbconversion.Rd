@@ -16,5 +16,6 @@ Dataframe of specified perce cover of different categories by plot.
 }
 \description{
 Function converts all separate tables found in a FGDB into separate csv files to be
-more accessible to others.
+more accessible to others. Some schema changes are accomplished to ensure output is
+interpretable outside of a relational geodatabase format.
 }

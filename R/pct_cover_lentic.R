@@ -1,20 +1,32 @@
-#'Function used to calculate the percent cover by different grouping variables.
+#'Calculate percent cover of grouping variables categories.
 #'
-#'@param lpi_tall source of lpi_tall data frame.
-#'@param masterspecieslist Character string. Full file path (including extension) to the file
-#'containing the species list.
+#'@description Cover metric function use this underlying function to perform final cover calculation. \code{lpi_tall}
+#'data frame needs to contain the column used to group variables with all categories to be included.
+#'
+#'Depending on the variable, some manipulation to the lpi_tall dataframe may be required prior to feeding it into this
+#'function. When variables have meaningful nulls, such as Wetland Indicator status, care needs to be taken in the handling
+#'of meaningfully null classification compared with null values associated with unclassified higher order taxa. Further, if
+#'multiple categories are to be grouped in the metric reporting, they must be grouped prior to absolute cover calculations,
+#'since hits containing both categories should count as a single positive pin drop in absolute cover.
+#'
+#'This function also allows for users to calculate either relative (i.e. proportion of vascular species hits of a particular
+#'category) or absolute (i.e. proportion of LPI pin drops of a particular category) cover using the \code{hit} argument.
+#'This argument controls how the denominator is calculated. It also changes whether duplicate hits in a single pin drop
+#'are removed from the calculation (as in the case of absolute cover) or kept in (as with relative cover).
+#'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output, or a
+#'modified version of the \code{lpi_tall} table that adds categorical information used in cover calculations.
 #'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have
-#'opbervations for non-existent values. Defaults to FALSE.
+#'observations for non-existent values. Defaults to FALSE.
 #'@param hit Character string. Absolute cover can be calculated from "any", "first", or "basal" hits. This
 #'will count all pin drops with hits fitting into `grouping_variable` categories in specified layers and
-#'calculate their cover relative to total pin drops. If "first" is used, only TopCanopy hits will be counted.
-#'If "basal" is used, only SoilSurface hits will be counted. Relative cover can be calculated from "all" hits,
+#'calculate their cover relative to total pin drops. If "first" is used, only \code{"TopCanopy"} hits will be counted.
+#'If "basal" is used, only \code{"SoilSurface"} hits will be counted. Relative cover can be calculated from "all" hits,
 #'counting all hits of vascular species within `grouping_variable` categories. Defaults to "any".
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
+#'@param by_line Logical. If TRUE then results will be reported further grouped by line using '\code{"LineKey"}.
 #'Defaults to FALSE.
 #'@param ... Optional character strings. One or more variable name to calculate percent cover for, i.e.
 #'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
-#'
+#'@returns Data frame of the percent cover by plot of each category combination of the grouping variables provided.
 
 
 #'@export pct_cover_lentic
