@@ -56,7 +56,7 @@ gather_lpi_lentic <- function(dsn){
   lpi_chkbox_tall <- lpi_chkbox_tall%>%
     dplyr::filter(
       !(layer %in% c("ChkboxWoody",
-                     "ChkboxWoody2",
+                     "ChkboxWoody2", #used in 2020 but not in 2021, won't hurt to keep it in.
                      "ChkboxHerbaceous")))
 
   #Rename the checkbox layer names so they match
@@ -79,9 +79,9 @@ gather_lpi_lentic <- function(dsn){
       values_to = "UnknownCodeKey")%>%
     dplyr::filter(
       !layer %in% c("UnknownCodeWoodyKey",
-                    "UnknownCodeWoodyKey2",
+                    "UnknownCodeWoodyKey2", #used in 2020 but not in 2021, won't hurt to keep it in.
                     "UnknownCodeHerbaceousKey",
-                    "UnknownCodeStubbleKey"))
+                    "UnknownCodeStubbleKey")) #used in 2020 but not in 2021, won't hurt to keep it in.
 
   #replace layer names so they match
   lpi_unknowncode_tall$layer <- gsub(lpi_unknowncode_tall$layer,
@@ -95,7 +95,7 @@ gather_lpi_lentic <- function(dsn){
   lpi_tall <- suppressWarnings(dplyr::left_join(lpi_hits_tall,
                                                 lpi_chkbox_tall) %>%
                                  dplyr::left_join(., lpi_unknowncode_tall)%>%
-                                 dplyr::left_join(x = dplyr::select(lpi_header, "PlotID", "PlotKey", "LineKey":"LineLengthCM"),
+                                 dplyr::left_join(x = dplyr::select(lpi_header, "PlotID", "EvaluationID", "LineKey":"LineLengthCM"),
                                                   by = c("LineKey"= "RecKey")))
 
   return(lpi_tall)
@@ -122,7 +122,7 @@ gather_species_inventory_lentic <- function(dsn) {
   species_detail_tall <- species_inventory_detail %>%
     dplyr::filter(!(Species %in% c("", NA))) %>%
     dplyr::select(
-      "RecKey",
+      "SpecRichDetailEvaluationID",
       "Species",
       "UnknownCodeKey",
       "abundance")
@@ -130,9 +130,9 @@ gather_species_inventory_lentic <- function(dsn) {
   # Join the detail table to the header and remove any NAs
   species_inventory_tall <- dplyr::left_join(
     x = dplyr::select(species_inventory_header,
-                      "PlotID":"CrewNumber", "Observer"),
+                      "PlotID":"EvaluationID", "FormDate", "Observer"),
     y = species_detail_tall,
-    by = c("PlotKey" = "RecKey")
+    by = c("EvaluationID" = "SpecRichDetailEvaluationID")
   ) %>%
     subset(!is.na(Species))
 
@@ -158,22 +158,24 @@ gather_unknowns_lentic <- function(dsn) {
 
   # Make the species detail table tall
   unknown_detail_tall <- UnknownPlants_detail %>%
-    dplyr::filter(IdentificationStatus == "Not Identified") %>%
+    dplyr::filter(IdentificationStatus == "Lower Level Final") %>%
     dplyr::select(
+      "UnknownCodesEvaluationID",
       "UnknownCodeKey",
       "GrowthHabit",
       "Duration",
       "ScientificName"
-    )%>%
-    dplyr::mutate("PlotKey" = paste(sapply(strsplit(UnknownCodeKey, "_"), '[', 1), sapply(strsplit(UnknownCodeKey, "_"), '[', 2), sep = "_"))
+    )
 
   # Join the detail table to the header and remove any NAs
-  UnknownPlants_tall <- dplyr::left_join(
+  UnknownPlants_tall <- dplyr::right_join(
     x = dplyr::select(UnknownPlants_header,
                       "PlotID":"VisitDate"),
-    y = unknown_detail_tall)
+    y = unknown_detail_tall,
+    by = c("EvaluationID" = "UnknownCodesEvaluationID"),
+    )
 
-  UnknownPlants_tall$Duration[UnknownPlants_tall$Duration=="Unknown"] <- ""
+  UnknownPlants_tall$Duration[is.na(UnknownPlants_tall$Duration)] <- ""
 
   return(UnknownPlants_tall)
 }
@@ -197,7 +199,7 @@ gather_height_lentic <- function(dsn){
   # We only want to carry a subset of the lpi_header fields forward
   lpi_header <- dplyr::select(lpi_header,
                               PlotID,
-                              PlotKey,
+                              EvaluationID,
                               LineKey:LineLengthCM)
 
   lpi_height_tall_woody <- dplyr::select(
@@ -207,24 +209,10 @@ gather_height_lentic <- function(dsn){
     PointNbr,
     dplyr::matches("Woody$|WoodyKey$|^WoodyHeightClass$")
   ) %>% dplyr::mutate(type = "Woody", GrowthHabit_measured = "Woody")
-  # Strip out the extra name stuff so woody and herbacious variable names match
+  # Strip out the extra name stuff so woody and herbaceous variable names match
   names(lpi_height_tall_woody) <- stringr::str_replace_all(
     string = names(lpi_height_tall_woody),
     pattern = "Woody",
-    replacement = ""
-  )
-
-  lpi_height_tall_woody2 <- dplyr::select(
-    .data = lpi_detail,
-    PointLoc,
-    PointNbr,
-    RecKey,
-    dplyr::matches("Woody2$|WoodyKey2$|^WoodyHeightClass2$")
-  ) %>% dplyr::mutate(type = "Woody2", GrowthHabit_measured = "Woody")
-  # Strip out the extra name stuff so woody and herbacious variable names match
-  names(lpi_height_tall_woody2) <- stringr::str_replace_all(
-    string = names(lpi_height_tall_woody2),
-    pattern = "Woody2$|2$|Woody",
     replacement = ""
   )
 
@@ -262,7 +250,6 @@ gather_height_lentic <- function(dsn){
   #Merge all three plant height tables together
   lpi_height <- dplyr::bind_rows(
     lpi_height_tall_woody,
-    lpi_height_tall_woody2,
     lpi_height_tall_herb,
     lpi_depth_litter,
     lpi_depth_water
@@ -279,38 +266,41 @@ gather_height_lentic <- function(dsn){
 #' @export gather_annualuse
 #' @rdname gather_riparianwetland
 gather_annualuse <- function(dsn){
-  lpi_detail <- suppressWarnings(sf::st_read(
+  annualuse_detail <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "LPIDetail",
+    layer = "AnnualUsePointsRepeat",
     stringsAsFactors = FALSE
   ))
-  lpi_header <- suppressWarnings(sf::st_read(
+  annualuse_header <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "LPI",
+    layer = "WoodyStructureAnnualUse",
     stringsAsFactors = FALSE
   ))
 
-  # We only want to carry a subset of the lpi_header fields forward
-  lpi_header <- dplyr::select(lpi_header,
+  # We only want to carry a subset of the annualuse_header fields forward
+  annualuse_header <- dplyr::select(annualuse_header,
                               PlotID,
-                              PlotKey,
-                              LineKey:LineLengthCM)
+                              EvaluationID,
+                              LineKey:AnnualUseCollected,
+                              interval)
 
-  annualuse_tall <- lpi_detail %>%
+  annualuse_tall <- annualuse_detail %>%
     dplyr::select(
+      AnnualUsePointsEvaluationID,
       RecKey,
       PointNbr,
       PointLoc,
       StubbleHeightDominantSpecies,
+      UnknownCodeStubbleKey,
       StubbleHeight,
       Grazed,
       SoilAlteration
     ) %>%
     dplyr::filter(StubbleHeightDominantSpecies != "")
 
-  annualuse <- dplyr::left_join(x = lpi_header,
+  annualuse <- dplyr::left_join(x = annualuse_header,
                                 y = annualuse_tall,
-                                by = c("LineKey" = "RecKey"))
+                                by = c("LineKey" = "RecKey", "EvaluationID" = "AnnualUsePointsEvaluationID"))
   return(annualuse)
 }
 
@@ -320,36 +310,28 @@ gather_woodyspecies <- function(dsn){
 
   woody_header <- suppressWarnings(
     sf::st_read(dsn = dsn,
-                layer = "WoodySpecies",
+                layer = "WoodyStructureAnnualUse",
                 stringsAsFactors = F))%>%
-    dplyr::select(globalid, PlotID:Recorder, Direction)
+    dplyr::select(PlotID,
+                  EvaluationID,
+                  LineKey:AnnualUseCollected,
+                  interval)
 
-  woody_points <- suppressWarnings(sf::st_read(
+  woody_detail <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "PointsRepeat",
+    layer = "WoodyStructureRepeat",
     stringsAsFactors = F
   ))%>%
-    dplyr::select(globalid,
-                  PointNbr,
-                  PointLoc,
-                  parentglobalid)
-
-  woody_detail <- suppressWarnings(
-    sf::st_read(dsn = dsn,
-                layer = "WoodySpeciesRepeat",
-                stringsAsFactors = F))%>%
-    dplyr::select(parentglobalid,
-                  RecKey,
+    dplyr::select(WoodyStructureEvaluationID,
+                  WoodyStructureRecKey,
+                  WoodyStructurePointNbr,
                   RiparianWoodySpecies,
-                  RiparianWoodySpeciesLiveDead,
-                  Rhizomatous:UseClass)
+                  UnknownCodeKey:HeightClass)
 
-  woody_tall <- woody_points%>%
-    dplyr::left_join(., woody_detail, by = c("globalid" = "parentglobalid"))%>%
-    dplyr::select(-globalid)%>%
-    dplyr::left_join(x = woody_header,
-                     .,
-                     by = c("globalid" = "parentglobalid")
+  woody_tall <- woody_header%>%
+    dplyr::left_join(., woody_detail,
+                     by = c("EvaluationID" = "WoodyStructureEvaluationID",
+                            "LineKey" = "WoodyStructureRecKey")
   )
 
   return(woody_tall)
@@ -364,19 +346,18 @@ gather_hummocks <- function(dsn){
               layer = "Hummocks",
               stringsAsFactors = F)%>%
       sf::st_drop_geometry())%>%
-    dplyr::select(PlotID:Observer,
-                  HummocksPresent,
-                  globalid)
+    dplyr::select(PlotID:LineKey,
+                  HummocksPresentLine)
 
   hummocks_detail <- suppressWarnings(
     sf::st_read(dsn = dsn,
                 layer = "HummockDetail",
                 stringsAsFactors = F))%>%
-    dplyr::select(RecKey:parentglobalid)
+    dplyr::select(HummockDetailEvaluationID:VegCover)
 
   hummocks <- dplyr::left_join(hummocks_header,
                                hummocks_detail,
-                               by = c("globalid" = "parentglobalid"))
+                               by = c("EvaluationID" = "HummockDetailEvaluationID", "LineKey" = "RecKey"))
 
   return(hummocks)
 }
