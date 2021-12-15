@@ -104,7 +104,7 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
     stop("covertype must be 'relative' or 'absolute'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "RelativeNativeCover", "AbsoluteNativeCover")
+  fieldname <- ifelse(covertype == "relative", "Relative", "Absolute")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -118,6 +118,8 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
                   ends_with("_Nox")
     )
 
+  masterspecieslist$NativeStatus[masterspecieslist$NativeStatus=="cryptogenic"] <- "Nonnative"
+
   #join lpi_tall to species list then filter out species that were not classified as either native or nonnative.
   ##Only filter out plants not classified as native or nonnative for relative cover.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
@@ -130,9 +132,10 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
                                                       "absolute" = "any"),
                                          by_line = FALSE,
                                          NativeStatus)%>%
-    dplyr::filter(grepl("\\.NATIVE$", metric))%>%
-    dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    dplyr::filter(grepl("Native|Nonnative", metric))%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NativeCover)
 }
