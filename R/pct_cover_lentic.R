@@ -52,11 +52,11 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Specify how to group calculations
   if (by_line) {
-    level <- rlang::quos(PlotKey, LineKey)
-    level_colnames <- c("PlotKey", "LineKey")
+    level <- rlang::quos(EvaluationID, LineKey)
+    level_colnames <- c("EvaluationID", "LineKey")
   } else {
-    level <- rlang::quos(PlotKey)
-    level_colnames <- c("PlotKey")
+    level <- rlang::quos(EvaluationID)
+    level_colnames <- c("EvaluationID")
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
@@ -103,12 +103,12 @@ pct_cover_lentic <- function(lpi_tall,
                                                      "SoilSurface"))
                     ) %>% dplyr::arrange(layer)%>%
       dplyr::filter(!(code %in% c("", NA, "None", "N")))%>%
-      dplyr::group_by(PlotKey, LineKey, PointNbr)%>%
+      dplyr::group_by(EvaluationID, LineKey, PointNbr)%>%
       dplyr::summarize(code = dplyr::first(code))
 
     lpi_tall <- merge(
       x = dplyr::distinct(dplyr::select(lpi_tall,
-                                        "PlotKey",
+                                        "EvaluationID",
                                         "LineKey",
                                         "PointNbr",
                                         "layer",
@@ -138,7 +138,7 @@ pct_cover_lentic <- function(lpi_tall,
     dplyr::summarize(uniquehits = dplyr::n()) %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
     dplyr::left_join(., point_totals, by = level_colnames) %>%
-    dplyr::mutate(percent = round(uniquehits / total * 100, digits = 2))%>%
+    dplyr::mutate(percent = uniquehits / total * 100)%>%
     dplyr::select(-c(uniquehits, total))
 
   #remove all metrics with no value for one grouping_variable
@@ -149,15 +149,15 @@ pct_cover_lentic <- function(lpi_tall,
 
 
   #Based on whether grouping was at the plot- or transect-level, expand.grid is used to
-    #add columns for empty metrics across all level cases, whether level be plotkey or linekey.
+    #add columns for empty metrics across all level cases, whether level be EvaluationID or linekey.
   allsitemetrics <- if(length(level) == 1){
-      expand.grid(PlotKey= unique(lpi_tall%>%dplyr::pull(.,!!level[[1]])),
+      expand.grid(EvaluationID= unique(lpi_tall%>%dplyr::pull(.,!!level[[1]])),
                   metric = unique(summary$metric), stringsAsFactors = F)
     } else{
       expand.grid(LineKey = unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
                 metric = unique(summary$metric), stringsAsFactors = F) %>%
-        dplyr::mutate(PlotKey = gsub('.{2}$', '', LineKey)) %>%
-        dplyr::relocate(PlotKey)}
+        dplyr::mutate(EvaluationID = gsub('.{2}$', '', LineKey)) %>%
+        dplyr::relocate(EvaluationID)}
 
   #Now join summary to full metric table.
   summary <- suppressWarnings(allsitemetrics%>%
@@ -167,7 +167,7 @@ pct_cover_lentic <- function(lpi_tall,
                       {ifelse(rep(hit == "all", nrow(.)),
                               paste("Relative.", metric, sep = ""),
                               paste("Absolute.", metric, sep = ""))}) %>%
-      dplyr::arrange(PlotKey))
+      dplyr::arrange(EvaluationID))
 
   #translate to wide format if desired.
   if(!tall){summary <- summary%>%
