@@ -53,6 +53,7 @@ header_build_lentic <- function(dsn, ...) {
                   SiteName,
                   SamplingApproach,
                   AdminState,
+                  SpeciesState,
                   WetlandIndicatorRegion,
                   DistrictOffice,
                   FieldOffice,

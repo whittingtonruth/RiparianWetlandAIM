@@ -91,7 +91,7 @@ pct_TotalAbsoluteCover <- function(lpi_tall){
                                           code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(TotalAbsoluteCover = sum(percent))
+    dplyr::summarize(TotalAbsoluteCover = round(sum(percent), digits = 2))
 
   return(TotalAbsoluteCover)
 }
@@ -163,7 +163,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
 
   header <- header%>%
     dplyr::select(EvaluationID,
-                  AdminState)
+                  SpeciesState)
 
   #join lpi_tall to species list then add column for checking whether the species is considered Noxious.
   #Filter the list for relative cover to only include plants identified to species.
@@ -174,7 +174,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
 
   #Fill in the Noxious column based on the state data was collected.
   for (i in 1:nrow(lpispeciesjoin)){
-    noxiouslist <- paste(lpispeciesjoin$AdminState[i], "_NOX", sep = "")
+    noxiouslist <- paste(lpispeciesjoin$SpeciesState[i], "_NOX", sep = "")
     statenoxious <- lpispeciesjoin[,noxiouslist][i]
     lpispeciesjoin$Noxious[i] <- ifelse(statenoxious != "", "Noxious", "")
   }
@@ -188,7 +188,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
                                       Noxious)%>%
     dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(NoxiousCover)
 }
@@ -220,7 +220,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
 
   header <- header%>%
     dplyr::select(EvaluationID,
-                  AdminState,
+                  SpeciesState,
                   WetlandIndicatorRegion)
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
@@ -241,7 +241,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                                                  Hydro)%>%
     dplyr::filter(grepl("\\.HYDRO$", metric))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydrophyteCover)
 }
@@ -273,7 +273,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
 
   header <- header%>%
     dplyr::select(EvaluationID,
-                  AdminState,
+                  SpeciesState,
                   WetlandIndicatorRegion)
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
@@ -293,7 +293,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                                               HydroFAC)%>%
     dplyr::filter(grepl("\\.HYDROFAC$", metric))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydroFACCover)
 }
@@ -343,6 +343,7 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "relat
                                     GrowthHabitSub)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
     dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(GrowthHabitCover)
@@ -396,6 +397,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "relative
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
     dplyr::filter(grepl("Perennial|Annual", metric))%>%
     dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationCover)
@@ -415,8 +417,8 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
                       "basal" = "Surface")
 
   #Add cover category to non-plant calls.
-  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R", "AL", "ALGAE", "AE"),
-                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock", "Algae", "Algae", "Algae"))
+  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "AL", "ALGAE", "AE", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
+                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Algae", "Algae", "Algae", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
@@ -434,6 +436,7 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = ""))), "Cover", sep = ""))%>%
     dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch","Organicmaterial" = "OrganicMaterial")))%>%
     dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NonPlantCover)
