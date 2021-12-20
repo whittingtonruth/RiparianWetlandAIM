@@ -155,26 +155,27 @@ Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist
                                                                  EvaluationID,
                                                                  SiteName,
                                                                  AdminState,
-                                                                 VisitDate,
+                                                                 SpeciesState,
+                                                                 FieldEvalDate,
                                                                  LatWGS,
                                                                  LongWGS),
-                                          SppInvRich)%>%
-    dplyr::left_join(., SppInvC.Val) %>%
-    dplyr::left_join(., SppInvNative)%>%
-    dplyr::left_join(., SppInvNox)%>%
-    dplyr::left_join(., SppInvHydro)%>%
-    dplyr::left_join(., SppInvHydroFAC)%>%
-    dplyr::left_join(., SppInvGrowthForm)%>%
-    dplyr::left_join(., SppInvDuration)%>%
+                                          SppInvRich, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvC.Val, by = "EvaluationID") %>%
+    dplyr::left_join(., SppInvNative, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvNox, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvHydro, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvHydroFAC, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvGrowthForm, by = "EvaluationID")%>%
+    dplyr::left_join(., SppInvDuration, by = "EvaluationID")%>%
 
-    dplyr::left_join(., LPIRich)%>%
-    dplyr::left_join(., LPIC.Val)%>%
-    dplyr::left_join(., LPINative)%>%
-    dplyr::left_join(., LPINox)%>%
-    dplyr::left_join(., LPIHydro)%>%
-    dplyr::left_join(., LPIHydroFAC)%>%
-    dplyr::left_join(., LPIGrowthForm)%>%
-    dplyr::left_join(., LPIDuration)
+    dplyr::left_join(., LPIRich, by = "EvaluationID")%>%
+    dplyr::left_join(., LPIC.Val, by = "EvaluationID")%>%
+    dplyr::left_join(., LPINative, by = "EvaluationID")%>%
+    dplyr::left_join(., LPINox, by = "EvaluationID")%>%
+    dplyr::left_join(., LPIHydro, by = "EvaluationID")%>%
+    dplyr::left_join(., LPIHydroFAC, by = "EvaluationID")%>%
+    dplyr::left_join(., LPIGrowthForm, by = "EvaluationID")%>%
+    dplyr::left_join(., LPIDuration, by = "EvaluationID")
 
   return(AllCommunityMetrics)
 }
