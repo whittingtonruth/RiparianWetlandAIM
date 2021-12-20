@@ -1,4 +1,4 @@
-#'Summarize Species or plant group by PlotKey based on species list.
+#'Summarize Species or plant group by EvaluationID based on species list.
 #'
 #'@description Basic function that takes a species list and summarizes the percent, count, or average
 #'of species metrics in that group. The species list provided should already be cleaned to remove
@@ -22,31 +22,32 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
 
   grouping_variables <- rlang::quos(...)
 
-  #Convert grouping variables to upper case if not numeric vector.
+  #Convert grouping variables to upper case if not numeric vector. Rename EvaluationID column if needed.
   SpeciesList <- SpeciesList %>%
-    mutate(across(.cols = where(is.character) & c(!!!grouping_variables), .fns = ~toupper(.)))
+    mutate(across(.cols = where(is.character) & c(!!!grouping_variables), .fns = ~toupper(.)))%>%
+    {if("LPIDetailEvaluationID" %in% names(.)) rename(., EvaluationID = LPIDetailEvaluationID) else .}
 
   if(method == "count"){
     totals <- SpeciesList%>%
-      dplyr::group_by(PlotKey, !!!grouping_variables)%>%
+      dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
       dplyr::summarize("count" = n())
   }
 
   if(method == "mean"){
     totals <- SpeciesList%>%
-      dplyr::group_by(PlotKey)%>%
+      dplyr::group_by(EvaluationID)%>%
       dplyr::summarize("average" = round(mean(!!!grouping_variables, na.rm = T), digits = 2))
   }
 
   if(method == "percent"){
     speciescount <- SpeciesList%>%
-      dplyr::group_by(PlotKey)%>%
+      dplyr::group_by(EvaluationID)%>%
       dplyr::summarize(TotalSpecies = n())
 
     totals <- SpeciesList%>%
-      dplyr::group_by(PlotKey, !!!grouping_variables)%>%
+      dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
       dplyr::summarize(count = n())%>%
-      dplyr::left_join(., speciescount)%>%
+      dplyr::left_join(., speciescount, by = "EvaluationID")%>%
       dplyr::mutate(percent = round(count / TotalSpecies * 100, digits = 2))%>%
       dplyr::select(-c(count, TotalSpecies))
   }
@@ -59,20 +60,20 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
         x = metric,
         pattern = "^[.]|[.]$|\\.\\.|\\.NA|NA\\.|\\.NA\\."))
 
-    AllSiteMetrics <- expand.grid(PlotKey= unique(SpeciesList%>%dplyr::pull(.,PlotKey)),
+    AllSiteMetrics <- expand.grid(EvaluationID= unique(SpeciesList%>%dplyr::pull(.,EvaluationID)),
                 metric = unique(totals$metric), stringsAsFactors = F)
 
     totals <- AllSiteMetrics %>%
-      dplyr::left_join(., totals)%>%
+      dplyr::left_join(., totals, by = c("EvaluationID", "metric"))%>%
       dplyr::mutate(across(.fns = ~replace(., is.na(.), 0)))%>%
       dplyr::mutate(metric =
                       {ifelse(rep(method == "percent", nrow(.)),
                               paste("Percent.", metric, sep = ""),
                               paste("Count.", metric, sep = ""))})%>%
-      dplyr::arrange(PlotKey)
+      dplyr::arrange(EvaluationID)
 
     if(!tall){totals <- totals%>%
-      tidyr::pivot_wider(names_from = metric, values_from = -c(PlotKey, metric))
+      tidyr::pivot_wider(names_from = metric, values_from = -c(EvaluationID, metric))
     }
     }
 

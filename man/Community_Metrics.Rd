@@ -78,7 +78,7 @@ produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{g
 "speciesinventory" or"lpi". Defaults to "speciesinventory".}
 
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-Wetland Indicator calculations to specify the plot region or state.}
+Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.}
 
 \item{method}{character string. The method used for the produced summary table. Can
 be "percent", "mean", or "count". Included in functions where applicable.}
