@@ -11,11 +11,11 @@
 
 #'@export dominance_test
 #'@rdname dominance_test
-dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = T){
+dominance_test <- function(header, lpi_tall, masterspecieslist, test){
 
   header <- header%>%
     dplyr::select(EvaluationID,
-                  AdminState,
+                  SpeciesState,
                   WetlandIndicatorRegion)
 
   AbsoluteSpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)%>%

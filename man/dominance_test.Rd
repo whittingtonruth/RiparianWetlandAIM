@@ -4,7 +4,7 @@
 \alias{dominance_test}
 \title{Calculate whether each site passes the Dominance Test and Prevalence Test}
 \usage{
-dominance_test(header, lpi_tall, masterspecieslist, bystrata = T)
+dominance_test(header, lpi_tall, masterspecieslist, test)
 }
 \arguments{
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
