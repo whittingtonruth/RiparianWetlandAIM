@@ -215,8 +215,9 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                   ends_with("_Nox")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus))%>%
-    dplyr::mutate(WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus))
 
   header <- header%>%
     dplyr::select(EvaluationID,
@@ -227,7 +228,10 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
   #combine OBL and FACW species into one category.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(Hydro = ifelse(WetlandIndicatorRegion=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
+    mutate(Hydro = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                             WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                             WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                             TRUE ~ "REGIONMISSING"))%>%
     mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydro", Hydro))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
@@ -268,8 +272,9 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                   ends_with("_Nox")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus))%>%
-    dplyr::mutate(WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus))
 
   header <- header%>%
     dplyr::select(EvaluationID,
@@ -280,7 +285,10 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
   #combine OBL and FACW species into one category.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(HydroFAC = ifelse(WetlandIndicatorRegion=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
+    mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                TRUE ~ "REGIONMISSING"))%>%
     mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
     {if(covertype == "relative") dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC)) else .}
 
