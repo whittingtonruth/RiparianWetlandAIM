@@ -233,10 +233,11 @@ gather_height_lentic <- function(dsn){
     dplyr::select(PointLoc,
                   PointNbr,
                   RecKey,
-                  LitterOrThatchDepth)%>%
-    dplyr::mutate(type = "LitterThatch",
-                  GrowthHabit_measured = "LitterThatch")%>%
-    dplyr::rename(Height = LitterOrThatchDepth)
+                  LitterOrThatchDepth,
+                  LitterType)%>%
+    dplyr::mutate(GrowthHabit_measured = "LitterThatch")%>%
+    dplyr::rename(type = LitterType,
+                  Height = LitterOrThatchDepth)
 
   lpi_depth_water <- lpi_detail %>%
     dplyr::select(PointLoc,
@@ -257,7 +258,6 @@ gather_height_lentic <- function(dsn){
     x = lpi_header, y = ., by = c("LineKey" = "RecKey")) %>%
     dplyr::select(-c(CollectionNumber, UnknownCode))%>%
     subset(., !is.na(Height))
-
 
   # Output the woody/herbaceous level data
   return(lpi_height)

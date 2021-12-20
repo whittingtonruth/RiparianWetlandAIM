@@ -270,7 +270,7 @@ allmetrics_byplot <- function(header, spp_inventory, lpi_tall, height_tall, wood
 
   communitymetrics <- Community_Metrics(header = header, spp_inventory = spp_inventory, lpi_tall = lpi_tall, masterspecieslist = masterspecieslist)
 
-  heightmetrics <- height_metrics(height_tall, woody_tall, method = "mean")
+  heightmetrics <- height_metrics(height_tall, method = "mean")
 
   ageclassmetrics <- ageclass_metrics(header, woody_tall, masterspecieslist)
 
