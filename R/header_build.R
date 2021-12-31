@@ -15,7 +15,7 @@ header_build_lentic <- function(dsn, ...) {
   fieldvisits <- sf::st_read(dsn = dsn, layer = "FieldVisits",
                              stringsAsFactors = FALSE)%>%
     as.data.frame()%>%
-    dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit")%>%
+    dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit"|VisitType=="Annual Use Visit")%>%
     dplyr::distinct(StaticEvaluationID, .keep_all = T)
 
   # tblPlots provides the link between species tables
