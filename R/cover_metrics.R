@@ -52,7 +52,7 @@ pct_FoliarCover <- function(lpi_tall){
                                          by_line = FALSE,
                                          code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(TotalFoliarCover = round(sum(percent), digits = 2))
 
   return(PercentFoliarCover)
@@ -71,7 +71,7 @@ pct_BasalCover <- function(lpi_tall){
                                         by_line = FALSE,
                                         code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(TotalBasalCover = round(sum(percent), digits = 2))
 
   return(PercentBasalCover)
@@ -90,7 +90,7 @@ pct_TotalAbsoluteCover <- function(lpi_tall){
                                           by_line = FALSE,
                                           code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(TotalAbsoluteCover = round(sum(percent), digits = 2))
 
   return(TotalAbsoluteCover)
@@ -187,7 +187,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
                                       by_line = FALSE,
                                       Noxious)%>%
     dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(NoxiousCover)
@@ -244,7 +244,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                                                  by_line = FALSE,
                                                  Hydro)%>%
     dplyr::filter(grepl("\\.HYDRO$", metric))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydrophyteCover)
@@ -300,7 +300,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                                               by_line = FALSE,
                                               HydroFAC)%>%
     dplyr::filter(grepl("\\.HYDROFAC$", metric))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydroFACCover)
@@ -484,7 +484,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                                 by_line = FALSE,
                                 code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(EvaluationID)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::mutate(Code = stringr::str_replace(metric, "Absolute.", ""))%>%
     dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))%>%
     dplyr::filter(Species !=""&percent>0)
@@ -493,7 +493,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
   #needs to be done in two steps to keep plants with different unknown codes but the
   #same family/genus codes as other plants.
   Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%group_by(EvaluationID)%>%
-    dplyr::mutate(PlotID = stringr::str_sub(EvaluationID, start = 6))%>%
+    #dplyr::mutate(PlotID = stringr::str_sub(EvaluationID, start = 6))%>%
     dplyr::select(PlotID,
                   EvaluationID,
                   Code,

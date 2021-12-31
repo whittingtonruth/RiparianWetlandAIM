@@ -52,11 +52,11 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Specify how to group calculations
   if (by_line) {
-    level <- rlang::quos(EvaluationID, LineKey)
-    level_colnames <- c("EvaluationID", "LineKey")
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
   } else {
-    level <- rlang::quos(EvaluationID)
-    level_colnames <- c("EvaluationID")
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
@@ -78,12 +78,12 @@ pct_cover_lentic <- function(lpi_tall,
   point_totals <- if(hit %in% c("any", "first", "basal")){
     lpi_tall%>%dplyr::distinct(LineKey, PointNbr, .keep_all = T)%>%
       dplyr::group_by(!!!level) %>%
-      dplyr::summarize(total = dplyr::n())
+      dplyr::summarize(total = dplyr::n(), .groups = "drop")
   } else if(hit == "all"){
     lpi_tall%>%dplyr::filter(!!layerfilter & complete.cases(!!!grouping_variables) & !code%in%nonplantcodes$code)%>%
       dplyr::distinct(LineKey, PointNbr, code, .keep_all = T)%>%
       dplyr::group_by(!!!level) %>%
-      dplyr::summarize(total = dplyr::n())
+      dplyr::summarize(total = dplyr::n(), .groups = "drop")
   }
 
   #If pct cover is being calculated for the first hit, LPI should be filtered to the first hit of each pin drop, independent of
@@ -103,11 +103,12 @@ pct_cover_lentic <- function(lpi_tall,
                                                      "SoilSurface"))
                     ) %>% dplyr::arrange(layer)%>%
       dplyr::filter(!(code %in% c("", NA, "None", "N")))%>%
-      dplyr::group_by(EvaluationID, LineKey, PointNbr)%>%
+      dplyr::group_by(PlotID, EvaluationID, LineKey, PointNbr)%>%
       dplyr::summarize(code = dplyr::first(code))
 
     lpi_tall <- merge(
       x = dplyr::distinct(dplyr::select(lpi_tall,
+                                        "PlotID",
                                         "EvaluationID",
                                         "LineKey",
                                         "PointNbr",
@@ -135,7 +136,7 @@ pct_cover_lentic <- function(lpi_tall,
     {if(hit !="all") dplyr::distinct(.,LineKey, PointNbr, !!!grouping_variables, .keep_all = T)
       else dplyr::distinct(.,LineKey, PointNbr, code, .keep_all = T)} %>%
     dplyr::group_by(!!!level, !!!grouping_variables) %>%
-    dplyr::summarize(uniquehits = dplyr::n()) %>%
+    dplyr::summarize(uniquehits = dplyr::n(), .groups = "drop") %>%
     tidyr::unite(metric, !!!grouping_variables, sep = ".")%>%
     dplyr::left_join(., point_totals, by = level_colnames) %>%
     dplyr::mutate(percent = uniquehits / total * 100)%>%
@@ -150,24 +151,30 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Based on whether grouping was at the plot- or transect-level, expand.grid is used to
     #add columns for empty metrics across all level cases, whether level be EvaluationID or linekey.
-  allsitemetrics <- if(length(level) == 1){
-      expand.grid(EvaluationID= unique(lpi_tall%>%dplyr::pull(.,!!level[[1]])),
-                  metric = unique(summary$metric), stringsAsFactors = F)
+  allsitemetrics <- if(length(level) == 2){
+      expand.grid(EvaluationID= unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
+                  metric = unique(summary$metric), stringsAsFactors = F)%>%
+      right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID),
+                 .,
+                 by = "EvaluationID")
     } else{
-      expand.grid(LineKey = unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
-                metric = unique(summary$metric), stringsAsFactors = F) %>%
-        dplyr::mutate(EvaluationID = gsub('.{2}$', '', LineKey)) %>%
-        dplyr::relocate(EvaluationID)}
+      expand.grid(LineKey = unique(lpi_tall%>%dplyr::pull(.,!!level[[3]])),
+                metric = unique(summary$metric), stringsAsFactors = F)%>%
+        right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID, LineKey),
+                   .,
+                   by = "LineKey")}
 
   #Now join summary to full metric table.
   summary <- suppressWarnings(allsitemetrics%>%
-      dplyr::left_join(., summary, by = c("metric", level_colnames)) %>%
-      dplyr::mutate_all(dplyr::funs(replace(., is.na(.), 0)))%>%
-      dplyr::mutate(metric=
-                      {ifelse(rep(hit == "all", nrow(.)),
-                              paste("Relative.", metric, sep = ""),
-                              paste("Absolute.", metric, sep = ""))}) %>%
-      dplyr::arrange(EvaluationID))
+                                dplyr::left_join(., summary, by = c("metric", level_colnames))%>%
+                                dplyr::mutate_all(dplyr::funs(replace(., is.na(.), 0)))%>%
+                                dplyr::mutate(metric=
+                                                {ifelse(rep(hit == "all", nrow(.)),
+                                                        paste("Relative.", metric, sep = ""),
+                                                        paste("Absolute.", metric, sep = ""))}) %>%
+                                dplyr::arrange(EvaluationID)%>%
+                                dplyr::relocate(PlotID)
+                              )
 
   #translate to wide format if desired.
   if(!tall){summary <- summary%>%
