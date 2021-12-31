@@ -1,6 +1,7 @@
 #'Calculate average herbaceous and woody height and litter and water depth.
 #'
 #'@param height_tall Data frame. Use the data frame from the \code{gather_height_lentic()} output.
+#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
 #'height on the plot or \code{"mean"} which yields the mean height.
 #'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have
@@ -16,6 +17,7 @@
 
 #'@export height_metrics
 height_metrics <- function(height_tall,
+                           masterspecieslist,
                              method = "mean",
                              tall = FALSE,
                              by_line = FALSE,
@@ -35,7 +37,7 @@ height_metrics <- function(height_tall,
 
   #group by species if desired. Otherwise group by type.
   if (by_species) {
-    category <- rlang::quos(GrowthHabit_measured,Species)
+    category <- rlang::quos(GrowthHabit_measured, Species, UnknownCodeKey)
   } else {
     category <- rlang::quos(type)
   }
@@ -45,6 +47,14 @@ height_metrics <- function(height_tall,
     height_tall <- height_tall%>%
       dplyr::filter(Height > 0 & !(Species %in% c("", "N", "None")))
   }
+
+  #Edit UnknownCodeKey to NA if id'd to species. This will only effect by_species calculations
+  height_tall<- height_tall%>%
+    dplyr::left_join(.,
+                     masterspecieslist%>%dplyr::select(Symbol, ListSpecies = Species),
+                     by = c("Species"="Symbol"))%>%
+    dplyr::mutate(UnknownCodeKey = ifelse(ListSpecies %in% c(NA, ""), UnknownCodeKey, NA))%>%
+    dplyr::select(-ListSpecies)
 
   if(method == "mean"){
 
@@ -71,13 +81,13 @@ height_metrics <- function(height_tall,
   if(by_species){
 
     by_speciescount <- height_tall%>%
-      dplyr::group_by(!!!level, Species)%>%
+      dplyr::group_by(!!!level, Species, UnknownCodeKey)%>%
       dplyr::summarize(AvgHeightCount = n())%>%
       dplyr::filter(!(Species %in% c(NA, "N")))
 
     height_summary <- height_summary%>%
       dplyr::filter(!(Species %in% c(NA, "N")))%>%
-      dplyr::left_join(., by_speciescount, by = c("PlotID", "EvaluationID", "Species"))
+      dplyr::left_join(., by_speciescount, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))
   }
 
   if (tall == FALSE) {

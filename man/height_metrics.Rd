@@ -6,6 +6,7 @@
 \usage{
 height_metrics(
   height_tall,
+  masterspecieslist,
   method = "mean",
   tall = FALSE,
   by_line = FALSE,
@@ -15,6 +16,8 @@ height_metrics(
 }
 \arguments{
 \item{height_tall}{Data frame. Use the data frame from the \code{gather_height_lentic()} output.}
+
+\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
 \item{method}{Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
 height on the plot or \code{"mean"} which yields the mean height.}
