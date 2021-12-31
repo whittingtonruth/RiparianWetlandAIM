@@ -40,15 +40,17 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(EvaluationID,
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotID,
+                                                                                            EvaluationID,
                                                                                             TotalLitterThatchCover,
                                                                                             TotalMossCover,
                                                                                             TotalRockCover,
                                                                                             TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(EvaluationID,
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotID,
+                                                                                              EvaluationID,
                                                                                               BareSoilCover,
                                                                                               `BareOrganicMaterialCover`),
-                             by = "EvaluationID"
+                             by = c("PlotID", "EvaluationID")
   )
 
   LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
@@ -60,14 +62,14 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                      LatWGS,
                                                                                      LongWGS),
                                                               .,
-                                                              by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeNative, by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeNoxious, by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeHydro, by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeHydroFAC, by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeGrowthHabit, by = "EvaluationID")%>%
-    dplyr::left_join(., RelativeDuration, by = "EvaluationID")%>%
-    dplyr::left_join(., NonPlantCover, by = "EvaluationID")
+                                                              by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeNative, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeNoxious, by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeHydro, by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeHydroFAC, by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeGrowthHabit, by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., RelativeDuration, by =  c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., NonPlantCover, by =  c("PlotID", "EvaluationID"))
 
   return(LPI_Cover_Indicators)
 }
@@ -92,16 +94,18 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(EvaluationID,
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotID,
+                                                                                            EvaluationID,
                                                                                             TotalLitterThatchCover,
                                                                                             TotalMossCover,
                                                                                             TotalAlgaeCover,
                                                                                             TotalRockCover,
                                                                                             TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(EvaluationID,
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotID,
+                                                                                              EvaluationID,
                                                                                               BareSoilCover,
                                                                                               `BareOrganicMaterialCover`),
-                             by = "EvaluationID"
+                             by = c("PlotID", "EvaluationID")
   )
 
   LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
@@ -113,15 +117,15 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                    LatWGS,
                                                                                    LongWGS),
                                                             .,
-                                                            by = "EvaluationID")%>%
-    dplyr::left_join(., Basal, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteNative, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteNoxious, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteHydro, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteHydroFAC, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteGrowthHabit, by = "EvaluationID")%>%
-    dplyr::left_join(., AbsoluteDuration, by = "EvaluationID")%>%
-    dplyr::left_join(., NonPlantCover, by = "EvaluationID")
+                                                            by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., Basal, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteNative, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteNoxious, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteHydro, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteHydroFAC, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteGrowthHabit, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteDuration, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., NonPlantCover, by = c("PlotID", "EvaluationID"))
 
   return(LPI_AbsoluteCover_Metrics)
 }
@@ -184,22 +188,24 @@ Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist
 #'@rdname allmetrics
 allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist, unknowncodes){
 
-  SpeciesList <- dplyr::left_join(header, spp_inventory, by = c("PlotID", "EvaluationID"))%>%
+  SpeciesList <- dplyr::right_join(header, spp_inventory, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
+    dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::filter(!(duplicated(UnknownCodeKey) & Species.y %in% c(NA, "")) &
-                    !(duplicated(Species) & !(Species.y %in% c(NA, ""))))%>%
+    dplyr::distinct(EvaluationID, Species, UnknownCodeKey, .keep_all = T)%>%
     dplyr::select(EvaluationID,
                   PlotID,
                   SiteName,
                   AdminState,
-                  Region,
+                  SpeciesState,
+                  WetlandIndicatorRegion,
                   LatWGS,
                   LongWGS,
                   Elevation,
                   Species,
                   UnknownCodeKey,
                   Scientific.Name,
+                  Common.Name,
                   Species.y,
                   GrowthHabit = type,
                   GrowthHabitSub,
@@ -214,14 +220,14 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 
   #Add a C-Value based on AdminState.
   for (i in 1:nrow(SpeciesList)){
-    C.Valuelist <- paste(SpeciesList$AdminState[i], "_C.Value", sep = "")
+    C.Valuelist <- paste(SpeciesList$SpeciesState[i], "_C.Value", sep = "")
     StateC.Value <- SpeciesList[[i,C.Valuelist]]
     SpeciesList$CValue[i] <- StateC.Value
   }
 
   #Add a Noxious designation by state.
   for (i in 1:nrow(SpeciesList)){
-    noxiouslist <- paste(SpeciesList$AdminState[i], "_NOX", sep = "")
+    noxiouslist <- paste(SpeciesList$SpeciesState[i], "_NOX", sep = "")
     statenoxious <- SpeciesList[[i,noxiouslist]]
     SpeciesList$Noxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
   }
@@ -230,7 +236,7 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
     SpeciesList <- SpeciesList%>%
       dplyr::left_join(., unknowncodes%>%
                          dplyr::rename(GrowthHabitUnknown = GrowthHabit, DurationUnknown = Duration),
-                       by = c("EvaluationID", "PlotID", "UnknownCodeKey"))%>%
+                       by = c("EvaluationID", "PlotID", "UnknownCodeKey", "SpeciesState"))%>%
       dplyr::mutate(Duration = ifelse(Duration==""|is.na(Duration), DurationUnknown, Duration),
                     GrowthHabitSub = ifelse(GrowthHabitSub==""|is.na(GrowthHabitSub), GrowthHabitUnknown, GrowthHabitSub))%>%
       dplyr::select(-c(VisitDate:ScientificName))
@@ -238,24 +244,28 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 
   #Add a WetlandIndicatorStatus based on Region. First change all the species statuses that are blank to NR
   SpeciesList <- SpeciesList%>%
-    dplyr::mutate(AW_WetStatus = ifelse(Species.y!=""&AW_WetStatus=="","NR",AW_WetStatus))%>%
-    dplyr::mutate(WMVC_WetStatus = ifelse(Species.y!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus))%>%
-    dplyr::mutate(WetStatus = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
+    dplyr::mutate(AW_WetStatus = ifelse(Species.y!=""&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species.y!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species.y!=""&GP_WetStatus=="","NR", GP_WetStatus))%>%
+    dplyr::mutate(WetStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                        TRUE ~ "REGIONMISSING"))%>%
     dplyr::select(-c(ends_with("_NOX"), ends_with("_C.Value"), ends_with("_WetStatus"), Species.y))
 
   SpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
 
-  SpeciesHeight <- height_metrics(height_tall, woody_tall, method = "mean", by_species = T)
+  SpeciesHeight <- height_metrics(height_tall, masterspecieslist, method = "mean", by_species = T)
 
   SpeciesAnnualUse <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_species = T)
 
   SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T)
 
   SpeciesList <- SpeciesList%>%
-    dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "Scientific.Name", "UnknownCodeKey"))%>%
-    dplyr::left_join(., SpeciesHeight, by = c("PlotID", "EvaluationID", "Species"))%>%
-    dplyr::left_join(., SpeciesAnnualUse, by = c("PlotID", "EvaluationID", "Species"))%>%
-    dplyr::left_join(., SpeciesAgeClass, by = c("PlotID", "EvaluationID","Species"= "RiparianWoodySpecies"))
+    dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "Scientific.Name", "Common.Name", "UnknownCodeKey"))%>%
+    dplyr::left_join(., SpeciesHeight, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
+    dplyr::left_join(., SpeciesAnnualUse, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
+    dplyr::left_join(., SpeciesAgeClass, by = c("PlotID", "EvaluationID","Species"= "RiparianWoodySpecies", "UnknownCodeKey"))
 
   return(SpeciesList)
 
@@ -265,19 +275,24 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 #'@rdname allmetrics
 allmetrics_byplot <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, hummocks, unknowncodes, masterspecieslist){
 
+  print("Calculating cover metrics...")
   absolutecovermetrics <- CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)%>%
     dplyr::rename_with(stringr::str_replace,matches("Absolute"), "Absolute", "")
 
+  print("Calculating community metrics...")
   communitymetrics <- Community_Metrics(header = header, spp_inventory = spp_inventory, lpi_tall = lpi_tall, masterspecieslist = masterspecieslist)
 
+  print("Calculating height metrics...")
   heightmetrics <- height_metrics(height_tall, method = "mean")
 
-  ageclassmetrics <- ageclass_metrics(header, woody_tall, masterspecieslist)
+  print("Calculating use metrics...")
+  ageclassmetrics <- ageclass_metrics(header, woody_tall)
 
   usemetrics <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist)
 
   hummocksmetrics <- hummocks_metrics(hummocks)
 
+  print("Joining all metrics...")
   allmetrics <- suppressMessages(
     dplyr::left_join(header, communitymetrics)%>%
     dplyr::left_join(., absolutecovermetrics)%>%
