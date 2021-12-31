@@ -275,7 +275,8 @@ gather_annualuse <- function(dsn){
     dsn = dsn,
     layer = "WoodyStructureAnnualUse",
     stringsAsFactors = FALSE
-  ))
+  ))%>%
+    sf::st_drop_geometry()
 
   # We only want to carry a subset of the annualuse_header fields forward
   annualuse_header <- dplyr::select(annualuse_header,
@@ -315,7 +316,8 @@ gather_woodyspecies <- function(dsn){
     dplyr::select(PlotID,
                   EvaluationID,
                   LineKey:AnnualUseCollected,
-                  interval)
+                  interval)%>%
+    sf::st_drop_geometry()
 
   woody_detail <- suppressWarnings(sf::st_read(
     dsn = dsn,
@@ -329,7 +331,7 @@ gather_woodyspecies <- function(dsn){
                   UnknownCodeKey:HeightClass)
 
   woody_tall <- woody_header%>%
-    dplyr::left_join(., woody_detail,
+    dplyr::right_join(., woody_detail,
                      by = c("EvaluationID" = "WoodyStructureEvaluationID",
                             "LineKey" = "WoodyStructureRecKey")
   )
