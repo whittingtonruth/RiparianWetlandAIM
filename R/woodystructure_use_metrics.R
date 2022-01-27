@@ -94,7 +94,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
     annualusemetrics <- annualuse_tall%>%
       dplyr::group_by(!!!level, StubbleHeightDominantSpecies, UnknownCodeStubbleKey)%>%
       dplyr::filter(StubbleHeightDominantSpecies !="N")%>%
-      dplyr::summarize(AvgStubbleHeight = mean(StubbleHeight, na.rm = T),
+      dplyr::summarize(AvgStubbleHeight = round(mean(StubbleHeight, na.rm = T), digits = 2),
                 PercentGrazed = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
                 CountStubbleHeight = n())%>%
       dplyr::rename(Species = StubbleHeightDominantSpecies,
@@ -137,18 +137,30 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::count()%>%
       dplyr::mutate(AgeClass = paste("Count", AgeClass, sep = ""))%>%
       tidyr::pivot_wider(names_from = AgeClass, values_from = n)%>%
-      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/(CountSeedling + CountYoung + CountMature + CountRhizomatous)*100, digits = 2),
-                    PctSeedling = round(CountSeedling/(CountSeedling + CountYoung + CountMature)*100, digits = 2),
-                    PctYoung = round(CountYoung/(CountSeedling + CountYoung + CountMature)*100, digits = 2),
-                    PctMature = round(CountMature/(CountSeedling + CountYoung + CountMature)*100, digits = 2))%>%
+      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/sum(CountSeedling, CountYoung, CountMature, CountRhizomatous, na.rm = T)*100, digits = 2),
+                    PctSeedling = round(CountSeedling/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctYoung = round(CountYoung/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctMature = round(CountMature/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2))%>%
       dplyr::relocate(c(CountRhizomatous, CountSeedling), .before = CountYoung)
 
     WoodyHeightClass <- woody_tall%>%
       dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(AverageHeightClass = round(mean(HeightClass), digits = 2),
-                       CountHeightClass = n())
+      dplyr::summarize(CountHeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+                       CountHeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
+                       CountHeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
+                       CountHeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
+                       CountHeightClass5 = sum(ifelse(HeightClass == 5, 1, 0)),
+                       CountHeightClass6 = sum(ifelse(HeightClass == 6, 1, 0)),
+                       RepresentHeightClass = sum(ifelse(CountHeightClass1>0, 1, 0),
+                                                  ifelse(CountHeightClass2>0, 1, 0),
+                                                  ifelse(CountHeightClass3>0, 1, 0),
+                                                  ifelse(CountHeightClass4>0, 1, 0),
+                                                  ifelse(CountHeightClass5>0, 1, 0),
+                                                  ifelse(CountHeightClass6>0, 1, 0)),
+                       AvgWoodyHeightEstimate = round(10^(-0.7083129+0.297*mean(HeightClass)), digits = 2),
+                       CountWoodyHeightClass = n())
 
     WoodyStructureMetrics <- WoodyHeightClass%>%left_join(., WoodyStructureMetrics, by = level_colnames)
   }
@@ -170,18 +182,30 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::count()%>%
       dplyr::mutate(AgeClass = paste("Count", AgeClass, sep = ""))%>%
       tidyr::pivot_wider(names_from = AgeClass, values_from = n)%>%
-      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/(CountSeedling + CountYoung + CountMature + CountRhizomatous)*100, digits = 2),
-                    PctSeedling = round(CountSeedling/(CountSeedling + CountYoung + CountMature)*100, digits = 2),
-                    PctYoung = round(CountYoung/(CountSeedling + CountYoung + CountMature)*100, digits = 2),
-                    PctMature = round(CountMature/(CountSeedling + CountYoung + CountMature)*100, digits = 2))%>%
+      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/sum(CountSeedling, CountYoung, CountMature, CountRhizomatous, na.rm = T)*100, digits = 2),
+                    PctSeedling = round(CountSeedling/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctYoung = round(CountYoung/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctMature = round(CountMature/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2))%>%
       dplyr::relocate(c(CountRhizomatous, CountSeedling), .before = CountYoung)
 
     WoodyHeightClass <- woody_tall%>%
       dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
-      dplyr::summarize(AverageHeightClass = round(mean(HeightClass), digits = 2),
-                       CountHeightClass = n())
+      dplyr::summarize(CountHeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+                       CountHeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
+                       CountHeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
+                       CountHeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
+                       CountHeightClass5 = sum(ifelse(HeightClass == 5, 1, 0)),
+                       CountHeightClass6 = sum(ifelse(HeightClass == 6, 1, 0)),
+                       RepresentHeightClass = sum(ifelse(CountHeightClass1>0, 1, 0),
+                                                  ifelse(CountHeightClass2>0, 1, 0),
+                                                  ifelse(CountHeightClass3>0, 1, 0),
+                                                  ifelse(CountHeightClass4>0, 1, 0),
+                                                  ifelse(CountHeightClass5>0, 1, 0),
+                                                  ifelse(CountHeightClass6>0, 1, 0)),
+                       AvgWoodyHeightClass = round(mean(HeightClass), digits = 2),
+                       CountWoodyHeightClass = n())
 
     WoodyStructureMetrics <- WoodyHeightClass%>%left_join(., WoodyStructureMetrics, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))
   }
