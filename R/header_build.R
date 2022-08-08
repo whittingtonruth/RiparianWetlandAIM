@@ -8,24 +8,58 @@
 #' @export header_build_lentic
 #' @rdname header_build
 header_build_lentic <- function(dsn, ...) {
+  #read in LPI header and detail tables
+  if(endsWith(dsn, ".gdb")){
+    fieldvisits <- sf::st_read(dsn = dsn, layer = "FieldVisits",
+                               stringsAsFactors = FALSE)%>%
+      sf::st_drop_geometry()
+
+    plots <- sf::st_read(dsn = dsn, layer = "Plots",
+                         stringsAsFactors = FALSE)%>%
+      sf::st_drop_geometry()
+
+    plotchar <- sf::st_read(dsn = dsn, layer = "PlotCharacterization",
+                            stringsAsFactors = FALSE)%>%
+      sf::st_drop_geometry()
+
+    message("File Geodatabase data type is being downloaded and gathered into LPI tall table. ")
+
+  }
+
+  else if(startsWith(dsn, "https://")){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+
+    fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "FieldVisits")], sep = "/"))))%>%
+      sf::st_drop_geometry()
+
+    plots <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "Plots")], sep = "/"))))%>%
+      sf::st_drop_geometry()
+
+    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))%>%
+      sf::st_drop_geometry()
+
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI tall table. ")
+  }
+  else{
+    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+  }
+
   # Set up filter expression (e.g., filter on PlotKey, SpeciesState, etc)
   filter_exprs <- rlang::quos(...)
 
   #FieldVists has the correct visit date
-  fieldvisits <- sf::st_read(dsn = dsn, layer = "FieldVisits",
-                             stringsAsFactors = FALSE)%>%
+  fieldvisits <- fieldvisits%>%
     as.data.frame()%>%
     dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit"|VisitType=="Annual Use Visit")%>%
     dplyr::distinct(StaticEvaluationID, .keep_all = T)
 
   # tblPlots provides the link between species tables
   # (LPI, Height, Species Richness) and tblStateSpecies
-  header <- sf::st_read(dsn = dsn, layer = "Plots",
-                        stringsAsFactors = FALSE) %>%
-    as.data.frame() %>%
+  header <-  plots%>%
 
     # Filter using the filtering expression specified by user
-    dplyr::filter(!!!filter_exprs, EvalStatus == "Sampled")%>%
+    dplyr::filter(!!!filter_exprs, EvalStatus == "Sampled"|EvalStatus=="Sampled - Data reviewed")%>%
     dplyr::select(-SiteName)%>%
 
     #Add field visits
@@ -34,9 +68,7 @@ header_build_lentic <- function(dsn, ...) {
                      by = c("PlotID" = "PlotID"))
 
   #some fields can be brought in from Plot Characterization to expand information
-  plotcharfields <- sf::st_read(dsn = dsn, layer = "PlotCharacterization",
-                                stringsAsFactors = FALSE) %>%
-    as.data.frame() %>%
+  plotchar <- plotchar %>%
 
     dplyr::select(PlotID,
                   EvaluationID,
@@ -47,7 +79,7 @@ header_build_lentic <- function(dsn, ...) {
                   ElevationCtr)
 
   # Join two tables and remove unnecessary fields.
-  header <- dplyr::left_join(header, plotcharfields, by = c("PlotID", "EvaluationID")) %>%
+  header <- dplyr::left_join(header, plotchar, by = c("PlotID", "EvaluationID")) %>%
     dplyr::select(PlotID,
                   EvaluationID,
                   SiteName,
