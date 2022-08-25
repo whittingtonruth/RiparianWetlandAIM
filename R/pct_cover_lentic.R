@@ -60,8 +60,10 @@ pct_cover_lentic <- function(lpi_tall,
   }
 
   #convert all grouping variables to uppercase to avoid case issues in grouping.
-  lpi_tall <- lpi_tall %>%
-    dplyr::mutate_at(dplyr::vars(!!!grouping_variables), toupper)
+  if(!(rlang::as_string(rlang::quo_get_expr(grouping_variables[[1]])) == "code")){
+    lpi_tall <- lpi_tall %>%
+      dplyr::mutate_at(dplyr::vars(!!!grouping_variables), toupper)
+  }
 
   #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied,
   #so a universal filter is used. If hit is "first", the filter is more complicated, requiring us to select whichever code was hit first, independent of
