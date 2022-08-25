@@ -51,7 +51,7 @@ header_build_lentic <- function(dsn, ...) {
   #FieldVists has the correct visit date
   fieldvisits <- fieldvisits%>%
     as.data.frame()%>%
-    dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit"|VisitType=="Annual Use Visit")%>%
+    dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit"|VisitType=="Annual Use Visit"|VisitType=="AK Full Sample Visit")%>%
     dplyr::distinct(StaticEvaluationID, .keep_all = T)
 
   # tblPlots provides the link between species tables
@@ -78,22 +78,38 @@ header_build_lentic <- function(dsn, ...) {
                   PlotLayout,
                   ElevationCtr)
 
+
   # Join two tables and remove unnecessary fields.
-  header <- dplyr::left_join(header, plotchar, by = c("PlotID", "EvaluationID")) %>%
-    dplyr::select(PlotID,
-                  EvaluationID,
-                  SiteName,
-                  SamplingApproach,
-                  AdminState,
-                  SpeciesState,
-                  WetlandIndicatorRegion,
-                  DistrictOffice,
-                  FieldOffice,
-                  FieldEvalDate,
-                  LatWGS = Latitude,
-                  LongWGS = Longitude,
-                  Elevation = ElevationCtr
-    )
+  header <- dplyr::left_join(header, plotchar, by = c("PlotID", "EvaluationID"))
+
+  # Create a list of fields to keep, then test whether they are present in the header table.
+  finalfields <- rlang::quos(PlotID,
+                             EvaluationID,
+                             SiteName,
+                             VisitType,
+                             SamplingApproach,
+                             AdminState,
+                             SpeciesState,
+                             WetlandIndicatorRegion,
+                             DistrictOffice,
+                             FieldOffice,
+                             FieldEvalDate,
+                             LatWGS = Latitude,
+                             LongWGS = Longitude,
+                             Elevation = ElevationCtr)
+  finalfieldnames <- sapply(finalfields, rlang::quo_text)
+
+  # Identify the fields to remove.
+  removefields <- numeric()
+  for (i in 1:length(finalfieldnames)){
+    test <- finalfieldnames[i] %in% colnames(header)
+    if(!test){removefields <- append(removefields, i)}
+  }
+
+  finalfields <- finalfields[-c(removefields)]
+
+  header<- header%>%
+    dplyr::select(!!!finalfields)
 
   # Return the header file
   return(header)
