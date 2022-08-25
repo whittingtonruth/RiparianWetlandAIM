@@ -465,7 +465,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
   #Remove all unknowncodekeys for species that were identified to species. Use this
   #datatable to calculate cover for unknowns.
   UnknownSpeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    dplyr::mutate(UnknownCodeKey = ifelse(Species!="", NA, UnknownCodeKey))
+    dplyr::mutate(UnknownCodeKey = ifelse(Species!="" & !str_detect(code, "XXXX"), NA, UnknownCodeKey))
 
   UnknownCodeCover <- pct_cover_lentic(UnknownSpeciesjoin,
                                        tall = TRUE,
