@@ -106,7 +106,7 @@ header_build_lentic <- function(dsn, ...) {
     if(!test){removefields <- append(removefields, i)}
   }
 
-  finalfields <- finalfields[-c(removefields)]
+  finalfields <- finalfields[!finalfields %in% c(removefields)]
 
   header<- header%>%
     dplyr::select(!!!finalfields)
