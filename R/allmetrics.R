@@ -108,7 +108,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                              by = c("PlotID", "EvaluationID")
   )
 
-  LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::right_join(header%>%dplyr::select(PlotID,
+  LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::left_join(header%>%dplyr::select(PlotID,
                                                                                    EvaluationID,
                                                                                    SiteName,
                                                                                    AdminState,
