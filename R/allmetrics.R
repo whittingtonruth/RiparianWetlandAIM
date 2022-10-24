@@ -189,6 +189,7 @@ Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist
 allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist, unknowncodes){
 
   SpeciesList <- dplyr::right_join(header, spp_inventory, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::filter(!is.na(SpeciesState))%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::group_by(EvaluationID)%>%
