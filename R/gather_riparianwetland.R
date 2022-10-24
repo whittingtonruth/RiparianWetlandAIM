@@ -143,7 +143,7 @@ gather_species_inventory_lentic <- function(dsn) {
     ))%>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into LPI tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into species inventory table. ")
 
   }
 
@@ -156,7 +156,7 @@ gather_species_inventory_lentic <- function(dsn) {
 
     species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "SpecRichDetail")], sep = "/")))
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into species inventory table. ")
   }
   else{
     stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
@@ -303,7 +303,7 @@ gather_height_lentic <- function(dsn){
                                                stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into LPI tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into LPI heights tall table. ")
 
   }
 
@@ -316,7 +316,7 @@ gather_height_lentic <- function(dsn){
 
     lpi_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "LPI")], sep = "/")))
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI heights tall table. ")
   }
   else{
     stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
@@ -528,7 +528,7 @@ gather_hummocks <- function(dsn){
                   stringsAsFactors = F))%>%
       dplyr::select(HummockDetailEvaluationID:VegCover)
 
-    message("File Geodatabase data type is being downloaded and gathered into Woody tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
   }
 
   else if(startsWith(dsn, "https://")){
@@ -542,7 +542,7 @@ gather_hummocks <- function(dsn){
     hummocks_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "HummockDetail")], sep = "/")))%>%
       dplyr::select(HummockDetailEvaluationID:VegCover)
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into Woody tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
   }
   else{
     stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")

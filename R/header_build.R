@@ -22,7 +22,7 @@ header_build_lentic <- function(dsn, ...) {
                             stringsAsFactors = FALSE)%>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into LPI tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into header table used to select sites for analysis. ")
 
   }
 
@@ -39,7 +39,7 @@ header_build_lentic <- function(dsn, ...) {
     plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
   else{
     stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
@@ -60,7 +60,7 @@ header_build_lentic <- function(dsn, ...) {
 
     # Filter using the filtering expression specified by user
     dplyr::filter(!!!filter_exprs, EvalStatus == "Sampled"|EvalStatus=="Sampled - Data reviewed")%>%
-    dplyr::select(-SiteName)%>%
+    dplyr::select(-c(SiteName, contains("CowardinAttribute")))%>%
 
     #Add field visits
     dplyr::left_join(.,
@@ -76,7 +76,10 @@ header_build_lentic <- function(dsn, ...) {
                   Latitude,
                   Longitude,
                   PlotLayout,
-                  ElevationCtr)
+                  ElevationCtr,
+                  HGMClass,
+                  CowardinAttribute,
+                  WetlandType)
 
 
   # Join two tables and remove unnecessary fields.
@@ -88,11 +91,16 @@ header_build_lentic <- function(dsn, ...) {
                              SiteName,
                              VisitType,
                              SamplingApproach,
+                             PlotLayout,
+                             CowardinAttribute,
+                             HGMClass,
+                             WetlandType,
                              AdminState,
                              SpeciesState,
                              WetlandIndicatorRegion,
                              DistrictOffice,
                              FieldOffice,
+                             #County,
                              FieldEvalDate,
                              LatWGS = Latitude,
                              LongWGS = Longitude,
