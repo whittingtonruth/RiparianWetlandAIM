@@ -18,8 +18,8 @@ gdbconversion <- function(dsn, RawDataFolder){
     layer = "Plots",
     stringsAsFactors = FALSE
   ))%>%
-    sf::st_drop_geometry()%>%
-    select(-BLMContact)
+    sf::st_drop_geometry()#%>%
+    #select(-BLMContact)
 
     write.csv(plots, paste(RawDataFolder, "Plots.csv", sep = "/"), row.names = F)
 
