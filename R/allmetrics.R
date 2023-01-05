@@ -132,27 +132,21 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
 #'@export Community_Metrics
 #'@rdname allmetrics
-Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist){
+Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory"){
+
+  if(!(listtype %in% c("speciesinventory", "lpi"))){
+    stop("listtype must be 'speciesinventory' or 'lpi'.")
+  }
 
   #Calculate all metrics using species inventory
-  SppInvRich <- Community_Richness(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvC.Val <- Community_C.Value(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvNative <- Community_Native(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvNox <- Community_NoxiousCount(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvHydro <- Community_Hydrophytes(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvHydroFAC <- Community_HydroFAC(header, spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvGrowthForm <- Community_GrowthHabit(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-  SppInvDuration <- Community_Duration(spp_inventory, masterspecieslist, listtype = "speciesinventory")
-
-  #Calculate all metrics using LPI
-  LPIRich <- Community_Richness(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIC.Val <- Community_C.Value(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPINative <- Community_Native(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPINox <- Community_NoxiousCount(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIHydro <- Community_Hydrophytes(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIHydroFAC <- Community_HydroFAC(header, lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIGrowthForm <- Community_GrowthHabit(lpi_tall, masterspecieslist, listtype = "lpi")
-  LPIDuration <- Community_Duration(lpi_tall, masterspecieslist, listtype = "lpi")
+  Rich <- Community_Richness(SpeciesList, masterspecieslist, listtype = listtype)
+  C.Val <- Community_C.Value(header, SpeciesList, masterspecieslist, listtype = listtype)
+  Native <- Community_Native(SpeciesList, masterspecieslist, listtype = listtype)
+  Nox <- Community_NoxiousCount(header, SpeciesList, masterspecieslist, listtype = listtype)
+  Hydro <- Community_Hydrophytes(header, SpeciesList, masterspecieslist, listtype = listtype)
+  HydroFAC <- Community_HydroFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
+  GrowthForm <- Community_GrowthHabit(SpeciesList, masterspecieslist, listtype = listtype)
+  Duration <- Community_Duration(SpeciesList, masterspecieslist, listtype = listtype)
 
   #Join all metrics into one table with PlotID, Name and AdminState.
   AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -163,23 +157,14 @@ Community_Metrics <- function(header, spp_inventory, lpi_tall, masterspecieslist
                                                                  FieldEvalDate,
                                                                  LatWGS,
                                                                  LongWGS),
-                                          SppInvRich, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvC.Val, by = "EvaluationID") %>%
-    dplyr::left_join(., SppInvNative, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvNox, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvHydro, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvHydroFAC, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvGrowthForm, by = "EvaluationID")%>%
-    dplyr::left_join(., SppInvDuration, by = "EvaluationID")%>%
-
-    dplyr::left_join(., LPIRich, by = "EvaluationID")%>%
-    dplyr::left_join(., LPIC.Val, by = "EvaluationID")%>%
-    dplyr::left_join(., LPINative, by = "EvaluationID")%>%
-    dplyr::left_join(., LPINox, by = "EvaluationID")%>%
-    dplyr::left_join(., LPIHydro, by = "EvaluationID")%>%
-    dplyr::left_join(., LPIHydroFAC, by = "EvaluationID")%>%
-    dplyr::left_join(., LPIGrowthForm, by = "EvaluationID")%>%
-    dplyr::left_join(., LPIDuration, by = "EvaluationID")
+                                          Rich, by = "EvaluationID")%>%
+    dplyr::left_join(., C.Val, by = "EvaluationID") %>%
+    dplyr::left_join(., Native, by = "EvaluationID")%>%
+    dplyr::left_join(., Nox, by = "EvaluationID")%>%
+    dplyr::left_join(., Hydro, by = "EvaluationID")%>%
+    dplyr::left_join(., HydroFAC, by = "EvaluationID")%>%
+    dplyr::left_join(., GrowthForm, by = "EvaluationID")%>%
+    dplyr::left_join(., Duration, by = "EvaluationID")
 
   return(AllCommunityMetrics)
 }
