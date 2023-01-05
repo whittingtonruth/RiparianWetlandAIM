@@ -2,7 +2,7 @@
 % Please edit documentation in R/community_composition.R
 \name{Community_Composition}
 \alias{Community_Composition}
-\title{Summarize Species or plant group by PlotKey based on species list.}
+\title{Summarize Species or plant group by EvaluationID based on species list.}
 \usage{
 Community_Composition(SpeciesList, method = "percent", tall = F, ...)
 }

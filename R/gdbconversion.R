@@ -18,7 +18,8 @@ gdbconversion <- function(dsn, RawDataFolder){
     layer = "Plots",
     stringsAsFactors = FALSE
   ))%>%
-    sf::st_drop_geometry()
+    sf::st_drop_geometry()#%>%
+    #select(-BLMContact)
 
     write.csv(plots, paste(RawDataFolder, "Plots.csv", sep = "/"), row.names = F)
 
@@ -42,14 +43,14 @@ gdbconversion <- function(dsn, RawDataFolder){
                                             CowardinClass,
                                             ifelse(!(WaterRegime %in% c("", NA)), WaterRegime,""),
                                             ifelse(!(Modifiers %in% c("", NA, "None")), Modifiers, ""), sep = ""),
-                  HydroGeoSubType = case_when(HydroGeoSlopeType != "" ~ HydroGeoSlopeType,
-                                              HydroGeoRiverineType != "" ~ HydroGeoRiverineType,
-                                              HydroGeoDepType != "" ~ HydroGeoDepType,
-                                              HydroGeoFlatType != "" ~ HydroGeoFlatType,
-                                              LacustrineSubclass != "" ~ LacustrineSubclass),
-                  HydroGeoSubType = stringr::str_replace_all(HydroGeoSubType, "(.)([[:upper:]])([[:lower:]])", "\\1 \\2\\3"))%>%
+                  HGMSubclass = case_when(HGMSlopeSubclass != "" ~ HGMSlopeSubclass,
+                                              HGMRivSubclass != "" ~ HGMRivSubclass,
+                                              HGMDepSubclass != "" ~ HGMDepSubclass,
+                                              HGMFlatSubclass != "" ~ HGMFlatSubclass,
+                                              HGMLacSubclass != "" ~ HGMLacSubclass),
+                  HGMSubclass = stringr::str_replace_all(HGMSubclass, "(.)([[:upper:]])([[:lower:]])", "\\1 \\2\\3"))%>%
     dplyr::relocate(CowardinAttribute, .before = CowardinSystem)%>%
-    dplyr::relocate(HydroGeoSubType, .after = HydroGeoType)
+    dplyr::relocate(HGMSubclass, .after = HGMClass)
 
   write.csv(plotchar, paste(RawDataFolder, "PlotCharacterization.csv", sep = "/"), row.names = F)
 
@@ -92,21 +93,18 @@ gdbconversion <- function(dsn, RawDataFolder){
 
   disturb <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "HumanandNaturalDisturbance",
+    layer = "NaturalandHumanDisturbances",
     stringsAsFactors = FALSE
   ))%>%
     sf::st_drop_geometry()
 
-  write.csv(disturb, paste(RawDataFolder, "HumanandNaturalDisturbance.csv", sep = "/"), row.names = F)
+  write.csv(disturb, paste(RawDataFolder, "NaturalandHumanDisturbances.csv", sep = "/"), row.names = F)
 
   stressors <- suppressWarnings(sf::st_read(
     dsn = dsn,
     layer = "Stressors",
     stringsAsFactors = FALSE
-  ))%>%
-    dplyr::left_join(disturb%>%select(globalid, PlotID, PlotKey),
-                     .,
-                     by = c("globalid" = "parentglobalid"))
+  ))
 
   write.csv(stressors, paste(RawDataFolder, "StressorsDetail.csv", sep = "/"), row.names = F)
 
@@ -163,29 +161,26 @@ gdbconversion <- function(dsn, RawDataFolder){
 
   woodyspecies <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "WoodySpecies",
+    layer = "WoodyStructureAnnualUse",
     stringsAsFactors = FALSE
   ))%>%
     sf::st_drop_geometry()
 
   write.csv(woodyspecies, paste(RawDataFolder, "WoodySpecies.csv", sep = "/"), row.names = F)
 
-  pointsrepeat <- suppressWarnings(sf::st_read(
+  annualuserepeat <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "PointsRepeat",
+    layer = "AnnualUsePointsRepeat",
     stringsAsFactors = FALSE
   ))
 
+  write.csv(annualuserepeat, paste(RawDataFolder, "AnnualUsePointsRepeat.csv", sep = "/"), row.names = F)
+
   woodyspeciesdetail <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "WoodySpeciesRepeat",
+    layer = "WoodyStructureRepeat",
     stringsAsFactors = FALSE
-  ))%>%
-    dplyr::left_join(pointsrepeat%>%
-                       dplyr::select(globalid, PointNbr, PointLoc),
-                     ., by = c("globalid" = "parentglobalid"))%>%
-    dplyr::relocate(RecKey, .before = PointNbr)%>%
-    dplyr::select(-c(globalid, globalid.y))
+  ))
 
   write.csv(woodyspeciesdetail, paste(RawDataFolder, "WoodySpeciesDetail.csv", sep = "/"), row.names = F)
 
@@ -208,7 +203,7 @@ gdbconversion <- function(dsn, RawDataFolder){
 
   waterquality <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "WaterChemistry",
+    layer = "WaterQuality",
     stringsAsFactors = FALSE
   ))%>%
     sf::st_drop_geometry()
@@ -217,7 +212,7 @@ gdbconversion <- function(dsn, RawDataFolder){
 
   waterqualitydetail <- suppressWarnings(sf::st_read(
     dsn = dsn,
-    layer = "HydroChemDetail",
+    layer = "WaterQualityDetail",
     stringsAsFactors = FALSE
   ))%>%
     sf::st_drop_geometry()
@@ -240,5 +235,11 @@ gdbconversion <- function(dsn, RawDataFolder){
   ))%>%
     sf::st_drop_geometry()
 
-  write.csv(photos, paste(RawDataFolder, "Photos.csv", sep = "/"), row.names = F)
+  photosdetail <- suppressWarnings(sf::st_read(
+    dsn = dsn,
+    layer = "PhotosRepeat",
+    stringsAsFactors = FALSE
+  ))
+
+  write.csv(photosdetail, paste(RawDataFolder, "PhotosRepeat.csv", sep = "/"), row.names = F)
 }

@@ -15,32 +15,30 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
 
   #Allow to be calculated by line
   if (by_line) {
-    level <- rlang::quos(PlotID, PlotKey, LineKey)
-    level_colnames <- c("PlotID", "PlotKey", "LineKey")
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
   } else {
-    level <- rlang::quos(PlotID, PlotKey)
-    level_colnames <- c("PlotID", "PlotKey")
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  #drop geometry attribute
-  annualuse_tall <- annualuse_tall%>%
-    sf::st_drop_geometry()
-
-  woody_tall <- woody_tall%>%
-    sf::st_drop_geometry()
 
   #select relevant columns from species list.
   masterspecieslist <- masterspecieslist%>%
-    dplyr::select(Symbol, ends_with("WetStatus"))
+    dplyr::select(Symbol, ends_with("WetStatus"), Species)
 
   #calculate use metrics from woodies, first by filtering woody species use to riparian woody species
   riparianwoody <- woody_tall%>%
-    dplyr::left_join(header%>%dplyr::select(PlotID, PlotKey, Region),
+    dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), UseClass != "")%>%
+    dplyr::right_join(header%>%dplyr::select(PlotID, EvaluationID, WetlandIndicatorRegion),
                      .,
-                     by = c("PlotID", "PlotKey"))%>%
+                     by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., masterspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
-    dplyr::mutate(RipStatus = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
-    dplyr::filter(RipStatus %in% c("OBL", "FACW", "FAC"))
+    dplyr::mutate(RipStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                        TRUE ~ "REGIONMISSING"),
+                  UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))%>%
+    dplyr::select(-Species)
 
   if(by_species == F){
     #Calculate annual use on graminoids. First find dominant species.
@@ -48,7 +46,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::group_by(!!!level, StubbleHeightDominantSpecies)%>%
       dplyr::summarize(Count = n())%>%
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
-      dplyr::arrange(PlotKey, desc(Count))%>%
+      dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
       pivot_wider(., id_cols = c(!!!level), values_from = StubbleHeightDominantSpecies, names_prefix = "DominantGraminoid", names_from= rank)
 
@@ -62,15 +60,17 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
 
     #now put together dominant woody species
     dominantripwood <- riparianwoody%>%
+      dplyr::filter(RipStatus %in% c("OBL", "FACW", "FAC"))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies)%>%
       dplyr::summarize(Count = n())%>%
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
-      dplyr::arrange(PlotKey, desc(Count))%>%
+      dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
       tidyr::pivot_wider(., id_cols = c(!!!level), values_from = RiparianWoodySpecies, names_prefix = "DominantRiparianWoody", names_from= rank)
 
     #Calculate Woody Metrics
     woodymetrics <- riparianwoody%>%
+      dplyr::filter(RipStatus %in% c("OBL", "FACW", "FAC"))%>%
       dplyr::rowwise()%>%
       dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
       dplyr::group_by(!!!level)%>%
@@ -83,19 +83,27 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::left_join(., dominantripwood, by = level_colnames)
 
   } else{
+    annualuse_tall <- annualuse_tall%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, Species),
+                       by = c("StubbleHeightDominantSpecies"="Symbol"))%>%
+      dplyr::mutate(UnknownCodeStubbleKey = ifelse(Species %in% c(NA, ""), UnknownCodeStubbleKey, NA))%>%
+      dplyr::select(-Species)
+
     #No need to calculate "dominant species" when calculating averages by species.
     annualusemetrics <- annualuse_tall%>%
-      dplyr::group_by(!!!level, StubbleHeightDominantSpecies)%>%
+      dplyr::group_by(!!!level, StubbleHeightDominantSpecies, UnknownCodeStubbleKey)%>%
       dplyr::filter(StubbleHeightDominantSpecies !="N")%>%
-      dplyr::summarize(AvgStubbleHeight = mean(StubbleHeight, na.rm = T),
+      dplyr::summarize(AvgStubbleHeight = round(mean(StubbleHeight, na.rm = T), digits = 2),
                 PercentGrazed = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
                 CountStubbleHeight = n())%>%
-      dplyr::rename(Species = StubbleHeightDominantSpecies)
+      dplyr::rename(Species = StubbleHeightDominantSpecies,
+                    UnknownCodeKey = UnknownCodeStubbleKey)
 
     woodymetrics <- riparianwoody%>%
       dplyr::rowwise()%>%
       dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
-      dplyr::group_by(!!!level, RiparianWoodySpecies)%>%
+      dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
       dplyr::summarize(PctWoodyNotAvailable = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
                 AvgWoodyUseClass = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
                 CountUseClass = sum(TotalUseClass))%>%
@@ -114,64 +122,95 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
 
   #allow metrics to be calculated at the plot level or the line level.
   if (by_line) {
-    level <- rlang::quos(PlotID, PlotKey, LineKey)
-    level_colnames <- c("PlotID", "PlotKey", "LineKey")
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
   } else {
-    level <- rlang::quos(PlotID, PlotKey)
-    level_colnames <- c("PlotID", "PlotKey")
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  #select relevant columns from species list to filter data to riparian woody species only.
-  masterspecieslist <- masterspecieslist%>%
-    dplyr::select(Symbol, ends_with("WetStatus"))
-
-  #calculate use metrics from woodies, first by filtering woody species use to riparian woody species
-  riparianwoody <- woody_tall%>%
-    left_join(header%>%dplyr::select(PlotID, PlotKey, Region),
-              .,
-              by = c("PlotID", "PlotKey"))%>%
-    left_join(., masterspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
-    dplyr::mutate(RipStatus = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
-    filter(RipStatus %in% c("OBL", "FACW", "FAC"))
 
   #Calculate metrics by plot
   if (!by_species){
-    WoodyStructureMetrics <- riparianwoody%>%
-      dplyr::filter(Rhizomatous != "")%>%
-      dplyr::rowwise()%>%
-      dplyr::mutate(TotalAgeClassRhiz = ifelse(Rhizomatous=="Yes", 1, sum(SeedlingTally, YoungTally, MatureTally, na.rm = T)),
-                       TotalAgeClass = sum(SeedlingTally, YoungTally, MatureTally, na.rm = T))%>%
+    WoodyStructureMetrics <- woody_tall%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", AgeClass != "")%>%
+      dplyr::group_by(!!!level, AgeClass)%>%
+      dplyr::count()%>%
+      dplyr::mutate(AgeClass = paste("Count", AgeClass, sep = ""))%>%
+      tidyr::pivot_wider(names_from = AgeClass, values_from = n)%>%
+      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/sum(CountSeedling, CountYoung, CountMature, CountRhizomatous, na.rm = T)*100, digits = 2),
+                    PctSeedling = round(CountSeedling/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctYoung = round(CountYoung/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctMature = round(CountMature/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2))%>%
+      dplyr::relocate(c(CountRhizomatous, CountSeedling), .before = CountYoung)
+
+    WoodyHeightClass <- woody_tall%>%
+      dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
+      dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(PctRhizomatous = round(sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100, digits = 2),
-                       PctSeedlings = round(sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       PctYoung = round(sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       PctMature = round(sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       CountRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0)),
-                       CountSeedlings = sum(SeedlingTally, na.rm = T),
-                       CountYoung = sum(YoungTally, na.rm = T),
-                       CountMature = sum(MatureTally, na.rm = T))
+      dplyr::summarize(CountHeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+                       CountHeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
+                       CountHeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
+                       CountHeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
+                       CountHeightClass5 = sum(ifelse(HeightClass == 5, 1, 0)),
+                       CountHeightClass6 = sum(ifelse(HeightClass == 6, 1, 0)),
+                       RepresentHeightClass = sum(ifelse(CountHeightClass1>0, 1, 0),
+                                                  ifelse(CountHeightClass2>0, 1, 0),
+                                                  ifelse(CountHeightClass3>0, 1, 0),
+                                                  ifelse(CountHeightClass4>0, 1, 0),
+                                                  ifelse(CountHeightClass5>0, 1, 0),
+                                                  ifelse(CountHeightClass6>0, 1, 0)),
+                       AvgWoodyHeightEstimate = round(10^(-0.7083129+0.297*mean(HeightClass)), digits = 2),
+                       CountWoodyHeightClass = n())
+
+    WoodyStructureMetrics <- WoodyHeightClass%>%left_join(., WoodyStructureMetrics, by = level_colnames)
   }
 
   #Calculate metrics per species.
   if (by_species){
-    WoodyStructureMetrics <- riparianwoody%>%
-      dplyr::filter(Rhizomatous != "")%>%
-      dplyr::rowwise()%>%
-      dplyr::mutate(TotalAgeClassRhiz = ifelse(Rhizomatous=="Yes", 1, sum(SeedlingTally, YoungTally, MatureTally, na.rm = T)),
-                  TotalAgeClass = sum(SeedlingTally, YoungTally, MatureTally, na.rm = T))%>%
-      dplyr::group_by(!!!level, RiparianWoodySpecies)%>%
-      dplyr::summarize(PctRhizomatous = round(sum(ifelse(Rhizomatous=="Yes", 1, 0))/sum(TotalAgeClassRhiz)*100, digits = 2),
-                       PctSeedlings = round(sum(SeedlingTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       PctYoung = round(sum(YoungTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       PctMature = round(sum(MatureTally, na.rm = T)/sum(TotalAgeClass)*100, digits = 2),
-                       CountRhizomatous = sum(ifelse(Rhizomatous=="Yes", 1, 0)),
-                       CountSeedlings = sum(SeedlingTally, na.rm = T),
-                       CountYoung = sum(YoungTally, na.rm = T),
-                       CountMature = sum(MatureTally, na.rm = T))
+
+    #Join to master list to indicate which are ID'd to Species
+    woody_tall <- woody_tall%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, Species),
+                       by = c("RiparianWoodySpecies"="Symbol"))%>%
+      dplyr::mutate(UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))
+
+    #Calculate metrics on known species
+    WoodyStructureMetrics <- woody_tall%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", AgeClass != "")%>%
+      dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey, AgeClass)%>%
+      dplyr::count()%>%
+      dplyr::mutate(AgeClass = paste("Count", AgeClass, sep = ""))%>%
+      tidyr::pivot_wider(names_from = AgeClass, values_from = n)%>%
+      dplyr::mutate(PctRhizomatous = round(CountRhizomatous/sum(CountSeedling, CountYoung, CountMature, CountRhizomatous, na.rm = T)*100, digits = 2),
+                    PctSeedling = round(CountSeedling/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctYoung = round(CountYoung/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2),
+                    PctMature = round(CountMature/sum(CountSeedling, CountYoung, CountMature, na.rm = T)*100, digits = 2))%>%
+      dplyr::relocate(c(CountRhizomatous, CountSeedling), .before = CountYoung)
+
+    WoodyHeightClass <- woody_tall%>%
+      dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
+      dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
+      dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
+      dplyr::summarize(CountHeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+                       CountHeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
+                       CountHeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
+                       CountHeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
+                       CountHeightClass5 = sum(ifelse(HeightClass == 5, 1, 0)),
+                       CountHeightClass6 = sum(ifelse(HeightClass == 6, 1, 0)),
+                       RepresentHeightClass = sum(ifelse(CountHeightClass1>0, 1, 0),
+                                                  ifelse(CountHeightClass2>0, 1, 0),
+                                                  ifelse(CountHeightClass3>0, 1, 0),
+                                                  ifelse(CountHeightClass4>0, 1, 0),
+                                                  ifelse(CountHeightClass5>0, 1, 0),
+                                                  ifelse(CountHeightClass6>0, 1, 0)),
+                       AvgWoodyHeightClass = round(mean(HeightClass), digits = 2),
+                       CountWoodyHeightClass = n())
+
+    WoodyStructureMetrics <- WoodyHeightClass%>%left_join(., WoodyStructureMetrics, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))
   }
 
   return(WoodyStructureMetrics)
-
 }
 
 #' @export hummocks_metrics
@@ -179,14 +218,14 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
 hummocks_metrics <- function(hummocks, by_line = F){
 
   if (by_line) {
-    level <- rlang::quos(PlotID, PlotKey, LineKey)
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
   } else {
-    level <- rlang::quos(PlotID, PlotKey)
+    level <- rlang::quos(PlotID, EvaluationID)
   }
 
   hummocksmetrics <- hummocks%>%
     dplyr::group_by(!!!level)%>%
-    dplyr::summarize(CountHummocks = sum(ifelse(HummocksPresent=="Yes", 1, 0)),
+    dplyr::summarize(CountHummocks = sum(ifelse(HummocksPresentLine=="Yes", 1, 0)),
               PctHummocks = round(sum(Width,na.rm = T)/7500*100, digits = 2),
               AvgHummockHeight = ifelse(CountHummocks > 0, round(mean(Height, na.rm = T), digits = 2), NA),
               AvgHummockWidth = ifelse(CountHummocks > 0, round(mean(Width, na.rm = T), digits = 2), NA),

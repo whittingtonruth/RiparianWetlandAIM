@@ -52,8 +52,8 @@ pct_FoliarCover <- function(lpi_tall){
                                          by_line = FALSE,
                                          code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(TotalFoliarCover = sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(TotalFoliarCover = round(sum(percent), digits = 2))
 
   return(PercentFoliarCover)
 }
@@ -71,8 +71,8 @@ pct_BasalCover <- function(lpi_tall){
                                         by_line = FALSE,
                                         code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(TotalBasalCover = sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(TotalBasalCover = round(sum(percent), digits = 2))
 
   return(PercentBasalCover)
 }
@@ -90,8 +90,8 @@ pct_TotalAbsoluteCover <- function(lpi_tall){
                                           by_line = FALSE,
                                           code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(TotalAbsoluteCover = sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(TotalAbsoluteCover = round(sum(percent), digits = 2))
 
   return(TotalAbsoluteCover)
 }
@@ -104,7 +104,7 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
     stop("covertype must be 'relative' or 'absolute'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "RelativeNativeCover", "AbsoluteNativeCover")
+  fieldname <- ifelse(covertype == "relative", "Relative", "Absolute")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -118,6 +118,8 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
                   ends_with("_Nox")
     )
 
+  masterspecieslist$NativeStatus[masterspecieslist$NativeStatus=="cryptogenic"] <- "Nonnative"
+
   #join lpi_tall to species list then filter out species that were not classified as either native or nonnative.
   ##Only filter out plants not classified as native or nonnative for relative cover.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
@@ -130,9 +132,10 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "relative")
                                                       "absolute" = "any"),
                                          by_line = FALSE,
                                          NativeStatus)%>%
-    dplyr::filter(grepl("\\.NATIVE$", metric))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    dplyr::filter(grepl("Native|Nonnative", metric))%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NativeCover)
 }
@@ -159,19 +162,19 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
                   ends_with("_Nox"))
 
   header <- header%>%
-    dplyr::select(PlotKey,
-                  AdminState)
+    dplyr::select(EvaluationID,
+                  SpeciesState)
 
   #join lpi_tall to species list then add column for checking whether the species is considered Noxious.
   #Filter the list for relative cover to only include plants identified to species.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
     mutate(Noxious = "")%>%
     {if(covertype == "relative") dplyr::filter(.,Species !=""|is.na(Species)) else .}
 
   #Fill in the Noxious column based on the state data was collected.
   for (i in 1:nrow(lpispeciesjoin)){
-    noxiouslist <- paste(lpispeciesjoin$AdminState[i], "_NOX", sep = "")
+    noxiouslist <- paste(lpispeciesjoin$SpeciesState[i], "_NOX", sep = "")
     statenoxious <- lpispeciesjoin[,noxiouslist][i]
     lpispeciesjoin$Noxious[i] <- ifelse(statenoxious != "", "Noxious", "")
   }
@@ -184,8 +187,8 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
                                       by_line = FALSE,
                                       Noxious)%>%
     dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(NoxiousCover)
 }
@@ -212,19 +215,23 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                   ends_with("_Nox")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus))%>%
-    dplyr::mutate(WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus))
 
   header <- header%>%
-    dplyr::select(PlotKey,
-                  AdminState,
-                  Region)
+    dplyr::select(EvaluationID,
+                  SpeciesState,
+                  WetlandIndicatorRegion)
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
   #combine OBL and FACW species into one category.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(Hydro = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
+    mutate(Hydro = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                             WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                             WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                             TRUE ~ "REGIONMISSING"))%>%
     mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydro", Hydro))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
@@ -237,8 +244,8 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                                                  by_line = FALSE,
                                                  Hydro)%>%
     dplyr::filter(grepl("\\.HYDRO$", metric))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydrophyteCover)
 }
@@ -265,19 +272,23 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                   ends_with("_Nox")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus))%>%
-    dplyr::mutate(WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus))
 
   header <- header%>%
-    dplyr::select(PlotKey,
-                  AdminState,
-                  Region)
+    dplyr::select(EvaluationID,
+                  SpeciesState,
+                  WetlandIndicatorRegion)
 
   #join lpi_tall to species list then add column that shows the wetland indicator status of the region, then
   #combine OBL and FACW species into one category.
-  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "PlotKey")%>%
+  lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(HydroFAC = ifelse(Region=="Arid West", AW_WetStatus, WMVC_WetStatus))%>%
+    mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                TRUE ~ "REGIONMISSING"))%>%
     mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
     {if(covertype == "relative") dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC)) else .}
 
@@ -289,8 +300,8 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                                               by_line = FALSE,
                                               HydroFAC)%>%
     dplyr::filter(grepl("\\.HYDROFAC$", metric))%>%
-    dplyr::group_by(PlotKey)%>%
-    dplyr::summarize(!!fieldname := sum(percent))
+    dplyr::group_by(PlotID, EvaluationID)%>%
+    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
 
   return(HydroFACCover)
 }
@@ -321,7 +332,7 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "relat
   if(!missing(unknowncodes)){
       lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                          dplyr::rename(unknowncodes, DurationUnknown = Duration),
-                                         by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
+                                         by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
         dplyr::mutate(GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))}
 
   #Then filter out any blank values where GrowthHabitSub == "". This is only necessary for relative cover calculations
@@ -330,7 +341,7 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "relat
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
-  #pivot to show in wide format by PlotKey
+  #pivot to show in wide format by EvaluationID
   GrowthHabitCover <- pct_cover_lentic(lpispeciesjoin,
                                     tall = TRUE,
                                     hit = switch(covertype,
@@ -339,7 +350,8 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "relat
                                     by_line = FALSE,
                                     GrowthHabitSub)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
-    dplyr::group_by(PlotKey)%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(GrowthHabitCover)
@@ -371,7 +383,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "relative
   if(!missing(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
-                                       by = c("PlotID", "PlotKey", "UnknownCodeKey"))%>%
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))
     }
 
@@ -382,7 +394,7 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "relative
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
-  #pivot to show in wide format by PlotKey
+  #pivot to show in wide format by EvaluationID
   DurationCover <- pct_cover_lentic(lpispeciesjoin,
                                        tall = TRUE,
                                        hit = switch(covertype,
@@ -392,7 +404,8 @@ pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "relative
                                        Duration)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
     dplyr::filter(grepl("Perennial|Annual", metric))%>%
-    dplyr::group_by(PlotKey)%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationCover)
@@ -412,8 +425,8 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
                       "basal" = "Surface")
 
   #Add cover category to non-plant calls.
-  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
-                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
+  nonplantcategory <- data.frame(code = c("TH", "HL", "DL", "WL", "NL", "EL", "M", "AL", "ALGAE", "AE", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
+                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Algae", "Algae", "Algae", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
@@ -430,7 +443,8 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any"){
                                          covercategory)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = ""))), "Cover", sep = ""))%>%
     dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch","Organicmaterial" = "OrganicMaterial")))%>%
-    dplyr::group_by(PlotKey)%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NonPlantCover)
@@ -451,7 +465,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
   #Remove all unknowncodekeys for species that were identified to species. Use this
   #datatable to calculate cover for unknowns.
   UnknownSpeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    dplyr::mutate(UnknownCodeKey = ifelse(Species!="", NA, UnknownCodeKey))
+    dplyr::mutate(UnknownCodeKey = ifelse(Species!="" & !str_detect(code, "XXXX"), NA, UnknownCodeKey))
 
   UnknownCodeCover <- pct_cover_lentic(UnknownSpeciesjoin,
                                        tall = TRUE,
@@ -459,7 +473,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                                        by_line = FALSE,
                                        code, UnknownCodeKey)%>%
     dplyr::filter(percent > 0)%>%
-    dplyr::group_by(PlotKey)%>%
+    dplyr::group_by(EvaluationID)%>%
     tidyr::separate(metric, into = c("Absolute", "Code", "UnknownCodeKey"), sep = "\\.")%>%
     dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))
 
@@ -470,7 +484,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                                 by_line = FALSE,
                                 code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::group_by(PlotKey)%>%
+    dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::mutate(Code = stringr::str_replace(metric, "Absolute.", ""))%>%
     dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))%>%
     dplyr::filter(Species !=""&percent>0)
@@ -478,17 +492,18 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
   #join two cover lists together
   #needs to be done in two steps to keep plants with different unknown codes but the
   #same family/genus codes as other plants.
-  Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%group_by(PlotKey)%>%
-    dplyr::mutate(PlotID = stringr::str_sub(PlotKey, start = 6))%>%
+  Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%group_by(EvaluationID)%>%
+    #dplyr::mutate(PlotID = stringr::str_sub(EvaluationID, start = 6))%>%
     dplyr::select(PlotID,
-                  PlotKey,
+                  EvaluationID,
                   Code,
                   UnknownCodeKey,
                   Scientific.Name,
                   Common.Name,
                   percent)%>%
-    dplyr::arrange(PlotKey, desc(percent))%>%
-    dplyr::rename(SpeciesCover = percent)
+    dplyr::arrange(EvaluationID, desc(percent))%>%
+    dplyr::rename(SpeciesCover = percent)%>%
+    dplyr::mutate(SpeciesCover = round(SpeciesCover, digits = 2))
 
   return(Cover_Species)
 
