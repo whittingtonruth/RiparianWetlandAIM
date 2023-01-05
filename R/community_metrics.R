@@ -25,7 +25,7 @@ Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speci
   }
 
   #assign a field name based on source of data.
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "Richness", sep = "")
+  fieldname <- paste(ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "_Richness_Cnt", sep = "")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -43,7 +43,7 @@ Community_Richness <- function(SpeciesList, masterspecieslist, listtype = "speci
                     !(duplicated(Species) & !(Species.y %in% c(NA, ""))))
 
   totals <- Community_Composition(SpeciesList, method = "count")%>%
-    dplyr::rename(!!fieldname := count)
+    dplyr::rename(!!fieldname := Cnt)
 
   return(totals)
 }
@@ -57,7 +57,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
   }
 
   #assign fieldname based on source of the species list data.
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "MeanC.Value", sep = "")
+  fieldname <- paste(ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "_CValue_Avg", sep = "")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -83,7 +83,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
   }
 
   totals <- Community_Composition(SpeciesList, method = "mean", tall = T, C.Value)%>%
-    dplyr::rename(!!fieldname := average)
+    dplyr::rename(!!fieldname := Avg)
 
   return(totals)
 }
@@ -101,7 +101,7 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
   }
 
   #Create fieldname based on source of data and kind of calculation.
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -123,13 +123,14 @@ Community_Native <- function(SpeciesList, masterspecieslist, listtype = "species
 
   #Calculate community metrics and rename columns.
   totals <- Community_Composition(SpeciesList, method = method, tall = T, NativeStatus)%>%
-    dplyr::filter(grepl("NATIVE$", metric))%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Percent\\.|Count\\.", "")), sep = ""))%>%
+    dplyr::filter(grepl("NATIVE_", metric))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
-                                             expr(percent),
-                                             expr(count))})
+                                             expr(Pct),
+                                             expr(Cnt))})
 
   return(totals)
 }
@@ -143,7 +144,7 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
   }
 
   #create fieldnames based on source of species data.
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), "CountNoxious", sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   #Remove non-plant codes if using LPI.
   if(listtype == "lpi"){
@@ -170,9 +171,11 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
 
   #Calculate community metrics and rename columns.
   totals <- Community_Composition(SpeciesList, method = "count", tall = T, Noxious)%>%
-    dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
+    dplyr::filter(grepl("*NOXIOUS_", metric))%>%
+    dplyr::mutate(metric = paste(fieldname, stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := count)
+    tidyr::pivot_wider(names_from = metric,
+                       values_from = Cnt)
 
   return(totals)
 }
@@ -190,7 +193,7 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
   }
 
   #Create fieldname based on source of species list and method used to calculate metrics
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), "Hydrophyte", sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -233,11 +236,14 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
                   Hydro)
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, Hydro)%>%
-    dplyr::filter(grepl("\\.HYDRO$", metric))%>%
+    dplyr::filter(grepl("*HYDRO_", metric))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := {ifelse(method == "percent",
-                                            percent,
-                                            count)})
+    tidyr::pivot_wider(names_from = metric,
+                       values_from = {ifelse(method == "percent",
+                                             expr(Pct),
+                                             expr(Cnt))})
 
   return(totals)
 }
@@ -255,7 +261,7 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
   }
 
   #Create fieldname based on source of species list and method used to calculate metrics
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), "HydroFAC", sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -298,11 +304,14 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
                   HydroFAC)
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, HydroFAC)%>%
-    dplyr::filter(grepl("\\.HYDROFAC$", metric))%>%
+    dplyr::filter(grepl("*HYDROFAC_", metric))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace(metric, "HYDROFAC", "HydroFAC"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(!!fieldname := {ifelse(method == "percent",
-                                            percent,
-                                            count)})
+    tidyr::pivot_wider(names_from = metric,
+                       values_from = {ifelse(method == "percent",
+                                             expr(Pct),
+                                             expr(Cnt))})
 
   return(totals)
 }
@@ -319,7 +328,7 @@ Community_GrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "sp
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -337,11 +346,12 @@ Community_GrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "sp
     dplyr::filter(GrowthHabitSub != "" & !is.na(GrowthHabitSub))
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabitSub)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Percent\\.|Count\\.", "")), sep = ""))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
-                                                                  expr(percent),
-                                                                  expr(count))})
+                                                                  expr(Pct),
+                                                                  expr(Cnt))})
 
   return(totals)
 }
@@ -358,7 +368,7 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
     stop("listtype must be 'speciesinventory' or 'lpi'.")
   }
 
-  fieldname <- paste("Community", ifelse(listtype == "speciesinventory", "SppInv", "LPI"), ifelse(method == "percent", "Pct", "Count"), sep = "")
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -376,11 +386,14 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
     dplyr::filter(Duration != "" & !is.na(Duration))
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, Duration)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Percent\\.|Count\\.", "")), sep = ""))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
-                                                                  expr(percent),
-                                                                  expr(count))})
+                                                                  expr(Pct),
+                                                                  expr(Cnt))})
 
   return(totals)
 }
+
+
