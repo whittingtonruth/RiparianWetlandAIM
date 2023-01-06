@@ -4,6 +4,7 @@
 #' AGOL from wide format to tall format. It contains seven functions for transforming species inventory,
 #' unknown plants, LPI, heights from LPI and woody species, woody species, annual use, and hummocks detail tables.
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.
+#' @param source Character string. The source and schema of the data being analyzed. Default is SDE, but other options are AGOL and
 #' @param familygenuslist data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Should be
 #' an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level
 #' ('Level'), i.e. "Family" or "Genus".
@@ -15,9 +16,11 @@
 #' @export gather_lpi_lentic
 #' @rdname gather_riparianwetland
 ## Function to transform LPI data into tall format.
-gather_lpi_lentic <- function(dsn){
+gather_lpi_lentic <- function(dsn, source = "SDE"){
+
   #read in LPI header and detail tables
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
+
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
                                                layer = "lpiDetail",
                                                stringsAsFactors = F))
@@ -28,23 +31,37 @@ gather_lpi_lentic <- function(dsn){
                                              stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into LPI height table. ")
+    message("Gathering LPI data from GDB into LPI tall table. ")
 
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    lpi_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "LPI")], sep = "/"))))%>%
+    lpi_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "LPI")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    lpi_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "LPI")], sep = "/")))
+    lpi_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "LPI")], sep = "/")))
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI height table. ")
+    message("Gathering LPI data from a live ArcGIS Online feature service into LPI tall table. ")
   }
+  else if(source == "SDE"){
+    lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
+                                               layer = "F_LPIDetail",
+                                               stringsAsFactors = F))
+
+
+    lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
+                                               layer = "F_LPI",
+                                               stringsAsFactors = F)) %>%
+      sf::st_drop_geometry()
+
+    message("Gathering LPI data from the SDE into LPI tall table. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   #Make a tall table of the hit and all point identifying information
@@ -126,15 +143,16 @@ gather_lpi_lentic <- function(dsn){
 
 #' @export gather_species_inventory_lentic
 #' @rdname gather_riparianwetland
-gather_species_inventory_lentic <- function(dsn) {
+gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
   #Load data from either .gdb or directly from a feature service on ArcGIS online.
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     species_inventory_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
       layer = "SpecRichDetail",
       stringsAsFactors = FALSE
-    ))
+    ))%>%
+      dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")
 
     species_inventory_header <- suppressWarnings(sf::st_read(
       dsn = dsn,
@@ -143,30 +161,46 @@ gather_species_inventory_lentic <- function(dsn) {
     ))%>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into species inventory table. ")
+    message("Gathering Species Inventory from GDB. ")
 
   }
-
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    species_inventory_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "SpeciesInventory")], sep = "/"))))%>%
+    species_inventory_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SpeciesInventory")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "SpecRichDetail")], sep = "/")))
+    species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "SpecRichDetail")], sep = "/")))%>%
+      dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into species inventory table. ")
+    message("Downloading and gathering Species Inventory from ArcGIS Online live feature service.")
   }
+  else if(source == "SDE"){
+    species_inventory_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_SpecRichDetail",
+      stringsAsFactors = FALSE
+    ))
+
+    species_inventory_header <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_SpeciesInventory",
+      stringsAsFactors = FALSE
+    ))
+
+    message("Gathering Species Inventory from SDE.")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   # Make the species detail table tall
   species_detail_tall <- species_inventory_detail %>%
     dplyr::filter(!(Species %in% c("", NA))) %>%
     dplyr::select(
-      "SpecRichDetailEvaluationID",
+      "EvaluationID",
       "Species",
       "UnknownCodeKey",
       "abundance")
@@ -176,7 +210,7 @@ gather_species_inventory_lentic <- function(dsn) {
     x = dplyr::select(species_inventory_header,
                       "PlotID":"EvaluationID", "FormDate", "Observer"),
     y = species_detail_tall,
-    by = c("EvaluationID" = "SpecRichDetailEvaluationID")
+    by = c("EvaluationID")
   ) %>%
     subset(!is.na(Species))
 
@@ -185,10 +219,10 @@ gather_species_inventory_lentic <- function(dsn) {
 
 #' @export gather_unknowns_lentic
 #' @rdname gather_riparianwetland
-gather_unknowns_lentic <- function(dsn, familygenuslist) {
+gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
 
   # Read in the files from the geodatabase
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     UnknownPlants_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
       layer = "UnknownCodes",
@@ -221,7 +255,7 @@ gather_unknowns_lentic <- function(dsn, familygenuslist) {
 
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into unknown table. All unknown species will be maintained in the list for use in correcting uningested data. ")
 
     if(missing(familygenuslist)){
@@ -231,10 +265,10 @@ gather_unknowns_lentic <- function(dsn, familygenuslist) {
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    UnknownPlants_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "UnknownPlants")], sep = "/"))))%>%
+    UnknownPlants_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "UnknownPlants")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    UnknownPlants_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "UnknownCodes")], sep = "/")))
+    UnknownPlants_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "UnknownCodes")], sep = "/")))
 
     UnknownPlants_tall <- UnknownPlants_detail %>%
       dplyr::select(
@@ -281,8 +315,39 @@ gather_unknowns_lentic <- function(dsn, familygenuslist) {
       dplyr::select(-c(GrowthHabitCode, DurationCode, GenusCode, FamilyCode, Family, Genus))
 
   }
+  else if(source == "SDE"){
+    UnknownPlants_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_UnknownCodes",
+      stringsAsFactors = FALSE
+    ))
+    UnknownPlants_header <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_UnknownPlants",
+      stringsAsFactors = FALSE
+    ))
+
+    # Make the species detail table tall
+    UnknownPlants_tall <- UnknownPlants_detail %>%
+      dplyr::filter(IdentificationStatus == "Lower Level Final") %>%
+      dplyr::select(
+        "EvaluationID",
+        "UnknownCodeKey",
+        "GrowthHabit",
+        "Duration",
+        "ScientificName")%>%
+      # Join the detail table to the header and remove any NAs
+      dplyr::right_join(x = UnknownPlants_header%>%dplyr::select("EvaluationID":"VisitDate"),
+                        y = .,
+                        by = c("EvaluationID"))
+
+    UnknownPlants_tall$Duration[is.na(UnknownPlants_tall$Duration)] <- ""
+
+    message("Unknown Plants data is being gathered into Unknown Plants table from the SDE. Only unknown codes not identified to species will be maintained. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   return(UnknownPlants_tall)
@@ -290,9 +355,9 @@ gather_unknowns_lentic <- function(dsn, familygenuslist) {
 
 #' @export gather_height_lentic
 #' @rdname gather_riparianwetland
-gather_height_lentic <- function(dsn){
+gather_height_lentic <- function(dsn, source = "SDE"){
   # Read in LPI files from geodatabase
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
                                                layer = "lpiDetail",
                                                stringsAsFactors = F))
@@ -303,23 +368,37 @@ gather_height_lentic <- function(dsn){
                                                stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
-    message("File Geodatabase data type is being downloaded and gathered into LPI heights tall table. ")
+    message("Gathering LPI data from GDB into LPI Heights tall table. ")
 
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    lpi_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "LPI")], sep = "/"))))%>%
+    lpi_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "LPI")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    lpi_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "LPI")], sep = "/")))
+    lpi_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "LPI")], sep = "/")))
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into LPI heights tall table. ")
+    message("Gathering LPI data from ArcGIS Online live feature service into LPI tall table. ")
   }
+  else if(source == "SDE"){
+    lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
+                                               layer = "F_LPIDetail",
+                                               stringsAsFactors = F))
+
+
+    lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
+                                               layer = "F_LPI",
+                                               stringsAsFactors = F)) %>%
+      sf::st_drop_geometry()
+
+    message("Gathering LPI data from the SDE into LPI tall table. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   # We only want to carry a subset of the lpi_header fields forward
@@ -391,14 +470,15 @@ gather_height_lentic <- function(dsn){
 
 #' @export gather_annualuse
 #' @rdname gather_riparianwetland
-gather_annualuse <- function(dsn){
+gather_annualuse <- function(dsn, source = "SDE"){
   #read in LPI header and detail tables
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     annualuse_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
       layer = "AnnualUsePointsRepeat",
       stringsAsFactors = FALSE
-    ))
+    ))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
 
     annualuse_header <- suppressWarnings(sf::st_read(
       dsn = dsn,
@@ -411,19 +491,36 @@ gather_annualuse <- function(dsn){
 
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    annualuse_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
+    annualuse_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    annualuse_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "AnnualUsePointsRepeat")], sep = "/")))
+    annualuse_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "AnnualUsePointsRepeat")], sep = "/")))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into annual use tall table. ")
   }
+  else if(source == "SDE"){
+    annualuse_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_AnnualUsePointsRepeat",
+      stringsAsFactors = FALSE
+    ))
+
+    annualuse_header <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_WoodyStructureAnnualUse",
+      stringsAsFactors = FALSE
+    ))
+
+    message("Gathering tables from the SDE into annual use tall table. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   # We only want to carry a subset of the annualuse_header fields forward
@@ -435,7 +532,7 @@ gather_annualuse <- function(dsn){
 
   annualuse_tall <- annualuse_detail %>%
     dplyr::select(
-      AnnualUsePointsEvaluationID,
+      EvaluationID,
       RecKey,
       PointNbr,
       PointLoc,
@@ -449,16 +546,16 @@ gather_annualuse <- function(dsn){
 
   annualuse <- dplyr::left_join(x = annualuse_header,
                                 y = annualuse_tall,
-                                by = c("LineKey" = "RecKey", "EvaluationID" = "AnnualUsePointsEvaluationID"))
+                                by = c("LineKey" = "RecKey", "EvaluationID"))
   return(annualuse)
 }
 
 #' @export gather_woodyspecies
 #' @rdname gather_riparianwetland
-gather_woodyspecies <- function(dsn){
+gather_woodyspecies <- function(dsn, source = "SDE"){
 
   #read in woody header and detail tables
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     woody_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
                   layer = "WoodyStructureAnnualUse",
@@ -469,30 +566,51 @@ gather_woodyspecies <- function(dsn){
       dsn = dsn,
       layer = "WoodyStructureRepeat",
       stringsAsFactors = F
-    ))
+    ))%>%
+      dplyr::rename("EvaluationID" = "WoodyStructureEvaluationID",
+                    "RecKey" = "WoodyStructureRecKey",
+                    "PointNbr" = "WoodyStructurePointNbr")
 
     message("File Geodatabase data type is being downloaded and gathered into Woody tall table. ")
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    woody_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
+    woody_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    woody_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "WoodyStructureRepeat")], sep = "/")))
+    woody_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "WoodyStructureRepeat")], sep = "/")))%>%
+      dplyr::rename("EvaluationID" = "WoodyStructureEvaluationID",
+                    "RecKey" = "WoodyStructureRecKey",
+                    "PointNbr" = "WoodyStructurePointNbr")
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into Woody tall table. ")
   }
+  else if(source == "SDE"){
+    woody_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_WoodyStructureAnnualUse",
+                  stringsAsFactors = F))
+
+    woody_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_WoodyStructureRepeat",
+      stringsAsFactors = F
+    ))
+
+    message("Gathering tables from the SDE into woody structure tall table. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   woody_detail <- woody_detail%>%
-    dplyr::select(WoodyStructureEvaluationID,
-                  WoodyStructureRecKey,
-                  WoodyStructurePointNbr,
+    dplyr::select(EvaluationID,
+                  RecKey,
+                  PointNbr,
                   RiparianWoodySpecies,
                   UnknownCodeKey:HeightClass)
 
@@ -502,8 +620,7 @@ gather_woodyspecies <- function(dsn){
                   LineKey:AnnualUseCollected,
                   interval)%>%
     dplyr::right_join(., woody_detail,
-                     by = c("EvaluationID" = "WoodyStructureEvaluationID",
-                            "LineKey" = "WoodyStructureRecKey")
+                     by = c("EvaluationID", "LineKey" = "RecKey")
   )
 
   return(woody_tall)
@@ -511,9 +628,9 @@ gather_woodyspecies <- function(dsn){
 
 #' @export gather_hummocks
 #' @rdname gather_riparianwetland
-gather_hummocks <- function(dsn){
+gather_hummocks <- function(dsn, source = "SDE"){
 
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     hummocks_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
                   layer = "Hummocks",
@@ -526,31 +643,49 @@ gather_hummocks <- function(dsn){
       sf::st_read(dsn = dsn,
                   layer = "HummockDetail",
                   stringsAsFactors = F))%>%
-      dplyr::select(HummockDetailEvaluationID:VegCover)
+      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
+                    RecKey:VegCover)
 
     message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    hummocks_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "Hummocks")], sep = "/"))))%>%
+    hummocks_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Hummocks")], sep = "/"))))%>%
       sf::st_drop_geometry()%>%
       dplyr::select(PlotID:LineKey, HummocksPresentLine)
 
-    hummocks_detail <- arc.select(arc.open(paste(dsn, rs[str_which(rs, "HummockDetail")], sep = "/")))%>%
-      dplyr::select(HummockDetailEvaluationID:VegCover)
+    hummocks_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "HummockDetail")], sep = "/")))%>%
+      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
+                    RecKey:VegCover)
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
   }
+  else if(source == "SDE"){
+    hummocks_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_Hummocks",
+                  stringsAsFactors = F)%>%
+      dplyr::select(EvaluationID:LineKey,
+                    HummocksPresentLine))
+
+    hummocks_detail <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_HummockDetail",
+                  stringsAsFactors = F))
+
+    message("Gathering tables from the SDE into woody structure tall table. ")
+  }
+  #Check that the source is one of the appropriate options
   else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
   hummocks <- dplyr::left_join(hummocks_header,
                                hummocks_detail,
-                               by = c("EvaluationID" = "HummockDetailEvaluationID", "LineKey" = "RecKey"))
+                               by = c("EvaluationID", "LineKey" = "RecKey"))
 
   return(hummocks)
 }
