@@ -562,6 +562,12 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
                   stringsAsFactors = F))%>%
       sf::st_drop_geometry()
 
+    points_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "AnnualUsePointsRepeat",
+                  stringsAsFactors = F))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
+
     woody_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
       layer = "WoodyStructureRepeat",
@@ -581,6 +587,9 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
     woody_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
+    points_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "AnnualUsePointsRepeat")], sep = "/"))))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
+
     woody_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "WoodyStructureRepeat")], sep = "/")))%>%
       dplyr::rename("EvaluationID" = "WoodyStructureEvaluationID",
                     "RecKey" = "WoodyStructureRecKey",
@@ -592,6 +601,11 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
     woody_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
                   layer = "F_WoodyStructureAnnualUse",
+                  stringsAsFactors = F))
+
+    points_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_AnnualUsePointsRepeat",
                   stringsAsFactors = F))
 
     woody_detail <- suppressWarnings(sf::st_read(
@@ -612,16 +626,24 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
                   RecKey,
                   PointNbr,
                   RiparianWoodySpecies,
-                  UnknownCodeKey:HeightClass)
+                  UnknownCodeKey:AgeClass)%>%
+    dplyr::left_join(points_header%>%
+                       dplyr::select(EvaluationID,
+                                     RecKey,
+                                     PointNbr),
+                     .,
+                     by = c("EvaluationID", "RecKey", "PointNbr"))
 
   woody_tall <- woody_header%>%
     dplyr::select(PlotID,
                   EvaluationID,
-                  LineKey:AnnualUseCollected,
-                  interval)%>%
-    dplyr::right_join(., woody_detail,
+                  LineKey:WoodyStructureCollected,
+                  interval,
+                  WoodySpeciesPresent)%>%
+    dplyr::left_join(., woody_detail,
                      by = c("EvaluationID", "LineKey" = "RecKey")
-  )
+  )%>%
+    dplyr::filter(WoodyStructureCollected == "Yes")
 
   return(woody_tall)
 }
