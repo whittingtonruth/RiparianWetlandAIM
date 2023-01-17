@@ -29,13 +29,16 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
   #calculate use metrics from woodies, first by filtering woody species use to riparian woody species
   riparianwoody <- woody_tall%>%
     dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), UseClass != "")%>%
-    dplyr::right_join(header%>%dplyr::select(PlotID, EvaluationID, WetlandIndicatorRegion),
+    dplyr::right_join(header%>%
+                        dplyr::select(PlotID, EvaluationID, WetlandIndicatorRegion)%>%
+                        sf::st_drop_geometry(),
                      .,
                      by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., masterspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
     dplyr::mutate(RipStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                         WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                         WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                        WetlandIndicatorRegion=="Alaska" ~ AK_WetStatus,
                                         TRUE ~ "REGIONMISSING"),
                   UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::select(-Species)
@@ -48,14 +51,14 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
       dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
-      pivot_wider(., id_cols = c(!!!level), values_from = StubbleHeightDominantSpecies, names_prefix = "DominantGraminoid", names_from= rank)
+      pivot_wider(., id_cols = c(!!!level), values_from = StubbleHeightDominantSpecies, names_prefix = "AU_DominantGraminoid", names_from= rank)
 
     #Next calculate AnnualUse metrics
     annualusemetrics <- annualuse_tall%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(AvgSoilAlteration = round(mean(as.numeric(SoilAlteration), na.rm = T), digits = 2),
-                      AvgStubbleHeight = round(mean(StubbleHeight, na.rm = T), digits = 2),
-                      PctGrazed = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2))%>%
+      dplyr::summarize(AU_SoilAlteration_Avg = round(mean(as.numeric(SoilAlteration), na.rm = T), digits = 2),
+                       AU_StubbleHeight_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
+                       AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2))%>%
       dplyr::left_join(., dominantspecies, by = level_colnames)
 
     #now put together dominant woody species
@@ -66,7 +69,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
       dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
-      tidyr::pivot_wider(., id_cols = c(!!!level), values_from = RiparianWoodySpecies, names_prefix = "DominantRiparianWoody", names_from= rank)
+      tidyr::pivot_wider(., id_cols = c(!!!level), values_from = RiparianWoodySpecies, names_prefix = "AU_DominantWoody", names_from= rank)
 
     #Calculate Woody Metrics
     woodymetrics <- riparianwoody%>%
@@ -74,8 +77,8 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::rowwise()%>%
       dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(PctWoodyNotAvailable = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
-                       AvgWoodyUseClass = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2))
+      dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
+                       AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2))
 
     #All metrics together
     UseMetrics <- annualusemetrics%>%
@@ -94,9 +97,9 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
     annualusemetrics <- annualuse_tall%>%
       dplyr::group_by(!!!level, StubbleHeightDominantSpecies, UnknownCodeStubbleKey)%>%
       dplyr::filter(StubbleHeightDominantSpecies !="N")%>%
-      dplyr::summarize(AvgStubbleHeight = round(mean(StubbleHeight, na.rm = T), digits = 2),
-                PercentGrazed = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
-                CountStubbleHeight = n())%>%
+      dplyr::summarize(AU_StubbleHeight_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
+                       AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0))/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
+                       AU_StubbleHeight_Cnt = n())%>%
       dplyr::rename(Species = StubbleHeightDominantSpecies,
                     UnknownCodeKey = UnknownCodeStubbleKey)
 
@@ -104,9 +107,9 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::rowwise()%>%
       dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
-      dplyr::summarize(PctWoodyNotAvailable = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
-                AvgWoodyUseClass = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
-                CountUseClass = sum(TotalUseClass))%>%
+      dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
+                       AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
+                       AU_UseClass_Cnt = sum(TotalUseClass))%>%
       dplyr::rename(Species = RiparianWoodySpecies)
 
     #Metrics together
@@ -297,10 +300,11 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
                        WS_HeightClassCnt = n())
 
     WoodyStructureMetrics <- woodyheightclass_byquad%>%
-      dplyr::left_join(., allwoodyheight_byquads, by = level_colnames)%>%
-      dplyr::left_join(., allwoodyheight, by = level_colnames)%>%
-      dplyr::left_join(., ageclass_sum, by = level_colnames)%>%
-      dplyr::left_join(., rhiz_byquad, by = level_colnames)
+      dplyr::left_join(., allwoodyheight_byquads, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
+      dplyr::left_join(., allwoodyheight, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
+      dplyr::left_join(., ageclass_sum, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
+      dplyr::left_join(., rhiz_byquad, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
+      dplyr::rename(Species = RiparianWoodySpecies)
 
   }
 
