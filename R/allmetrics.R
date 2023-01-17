@@ -94,17 +94,33 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotID,
-                                                                                            EvaluationID,
-                                                                                            TotalLitterThatchCover,
-                                                                                            TotalMossCover,
-                                                                                            TotalAlgaeCover,
-                                                                                            TotalRockCover,
-                                                                                            TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotID,
-                                                                                              EvaluationID,
-                                                                                              BareSoilCover,
-                                                                                              `BareOrganicMaterialCover`),
+  AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterlist, covertype = "absolute", unknowncodes)%>%
+    select(PlotID,
+           EvaluationID,
+           AH_AnnualGraminoidCover)
+
+  AbsolutePreferredForbs <- pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)%>%
+                               dplyr::select(PlotID,
+                                             EvaluationID,
+                                             AH_TotalLitterThatchCover = AH_LitterThatchCover,
+                                             AH_MossCover,
+                                             AH_AlgaeCover,
+                                             AH_LichenCover,
+                                             AH_RockCover,
+                                             AH_WaterCover),
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist)%>%
+                               dplyr::select(PlotID,
+                                             EvaluationID,
+                                             FH_TotalLitterThatchCover = FH_LitterThatchCover,
+                                             FH_MossCover,
+                                             FH_AlgaeCover,
+                                             FH_LichenCover,
+                                             FH_RockCover,
+                                             FH_WaterCover,
+                                             BareSoilCover = FH_SoilCover,
+                                             BareOrganicMaterialCover = FH_OrganicMaterialCover),
                              by = c("PlotID", "EvaluationID")
   )
 
@@ -113,9 +129,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                    SiteName,
                                                                                    AdminState,
                                                                                    SpeciesState,
-                                                                                   FieldEvalDate,
-                                                                                   LatWGS,
-                                                                                   LongWGS),
+                                                                                   FieldEvalDate),
                                                             .,
                                                             by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., Basal, by = c("PlotID", "EvaluationID"))%>%
@@ -125,6 +139,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., AbsoluteHydroFAC, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., AbsoluteGrowthHabit, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., AbsoluteDuration, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsoluteDurationGrowth, by = c("PlotID", "EvaluationID"))%>%
+    dplyr::left_join(., AbsolutePreferredForbs, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., NonPlantCover, by = c("PlotID", "EvaluationID"))
 
   return(LPI_AbsoluteCover_Metrics)
@@ -147,6 +163,8 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
   HydroFAC <- Community_HydroFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
   GrowthForm <- Community_GrowthHabit(SpeciesList, masterspecieslist, listtype = listtype)
   Duration <- Community_Duration(SpeciesList, masterspecieslist, listtype = listtype)
+  PreferredForb <- Community_PreferredForb(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
+    dplyr::rename("NumSpp_PreferredForb" = "SppInv_PreferredForb_Cnt")
 
   #Join all metrics into one table with PlotID, Name and AdminState.
   AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -154,9 +172,7 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
                                                                  SiteName,
                                                                  AdminState,
                                                                  SpeciesState,
-                                                                 FieldEvalDate,
-                                                                 LatWGS,
-                                                                 LongWGS),
+                                                                 FieldEvalDate),
                                           Rich, by = "EvaluationID")%>%
     dplyr::left_join(., C.Val, by = "EvaluationID") %>%
     dplyr::left_join(., Native, by = "EvaluationID")%>%
@@ -164,7 +180,8 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
     dplyr::left_join(., Hydro, by = "EvaluationID")%>%
     dplyr::left_join(., HydroFAC, by = "EvaluationID")%>%
     dplyr::left_join(., GrowthForm, by = "EvaluationID")%>%
-    dplyr::left_join(., Duration, by = "EvaluationID")
+    dplyr::left_join(., Duration, by = "EvaluationID")%>%
+    dplyr::left_join(., PreferredForb, by = "EvaluationID")
 
   return(AllCommunityMetrics)
 }
