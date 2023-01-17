@@ -190,7 +190,9 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
 #'@rdname allmetrics
 allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist, unknowncodes){
 
-  SpeciesList <- dplyr::right_join(header, spp_inventory, by = c("PlotID", "EvaluationID"))%>%
+  SpeciesList <- dplyr::right_join(header%>%
+                                     sf::st_drop_geometry(),
+                                   spp_inventory, by = c("PlotID", "EvaluationID"))%>%
     dplyr::filter(!is.na(SpeciesState))%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
@@ -199,16 +201,20 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
     dplyr::select(EvaluationID,
                   PlotID,
                   SiteName,
+                  SamplingApproach,
                   AdminState,
                   SpeciesState,
                   WetlandIndicatorRegion,
-                  LatWGS,
-                  LongWGS,
-                  Elevation,
+                  CowardinAttribute,
+                  HGMClass,
+                  WetlandType,
+                  EcotypeAlaska,
+                  PlotLayout,
+                  Elevation_m,
                   Species,
                   UnknownCodeKey,
-                  Scientific.Name,
-                  Common.Name,
+                  ScientificName = Scientific.Name,
+                  CommonName = Common.Name,
                   Species.y,
                   GrowthHabit = type,
                   GrowthHabitSub,
@@ -216,43 +222,50 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                   ends_with("_NOX"),
                   ends_with("_C.Value"),
                   ends_with("WetStatus"),
+                  PreferredForb,
                   abundance)%>%
-    tibble::add_column(., Noxious = NA,
-                       CValue = NA,
-                       WetStatus = NA)
+    tibble::add_column(., StateNoxious = NA,
+                       StateCValue = NA,
+                       WetlandIndicatorStatus = NA)
 
   #Add a C-Value based on AdminState.
   for (i in 1:nrow(SpeciesList)){
     C.Valuelist <- paste(SpeciesList$SpeciesState[i], "_C.Value", sep = "")
     StateC.Value <- SpeciesList[[i,C.Valuelist]]
-    SpeciesList$CValue[i] <- StateC.Value
+    SpeciesList$StateCValue[i] <- StateC.Value
   }
 
   #Add a Noxious designation by state.
   for (i in 1:nrow(SpeciesList)){
     noxiouslist <- paste(SpeciesList$SpeciesState[i], "_NOX", sep = "")
     statenoxious <- SpeciesList[[i,noxiouslist]]
-    SpeciesList$Noxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
+    SpeciesList$StateNoxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
   }
 
   if(!missing(unknowncodes)){
     SpeciesList <- SpeciesList%>%
-      dplyr::left_join(., unknowncodes%>%
-                         dplyr::rename(GrowthHabitUnknown = GrowthHabit, DurationUnknown = Duration),
-                       by = c("EvaluationID", "PlotID", "UnknownCodeKey", "SpeciesState"))%>%
+      dplyr::left_join(.,
+                       unknowncodes%>%
+                         dplyr::select(EvaluationID, PlotID,
+                                       UnknownCodeKey,
+                                       GrowthHabitUnknown = GrowthHabit,
+                                       DurationUnknown = Duration),
+                       by = c("EvaluationID", "PlotID", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration==""|is.na(Duration), DurationUnknown, Duration),
                     GrowthHabitSub = ifelse(GrowthHabitSub==""|is.na(GrowthHabitSub), GrowthHabitUnknown, GrowthHabitSub))%>%
-      dplyr::select(-c(VisitDate:ScientificName))
+      dplyr::select(-c(GrowthHabit, Duration))
   }
 
   #Add a WetlandIndicatorStatus based on Region. First change all the species statuses that are blank to NR
   SpeciesList <- SpeciesList%>%
     dplyr::mutate(AW_WetStatus = ifelse(Species.y!=""&AW_WetStatus=="","NR",AW_WetStatus),
                   WMVC_WetStatus = ifelse(Species.y!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
-                  GP_WetStatus = ifelse(Species.y!=""&GP_WetStatus=="","NR", GP_WetStatus))%>%
-    dplyr::mutate(WetStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                  GP_WetStatus = ifelse(Species.y!=""&GP_WetStatus=="","NR", GP_WetStatus),
+                  AK_WetStatus = ifelse(Species.y!=""&AK_WetStatus=="","NR", AK_WetStatus))%>%
+    dplyr::mutate(WetlandIndicatorStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                         WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                         WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                        WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
                                         TRUE ~ "REGIONMISSING"))%>%
     dplyr::select(-c(ends_with("_NOX"), ends_with("_C.Value"), ends_with("_WetStatus"), Species.y))
 
@@ -265,10 +278,11 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
   SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T)
 
   SpeciesList <- SpeciesList%>%
-    dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "Scientific.Name", "Common.Name", "UnknownCodeKey"))%>%
+    dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "ScientificName" = "Scientific.Name", "CommonName" = "Common.Name", "UnknownCodeKey"))%>%
     dplyr::left_join(., SpeciesHeight, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
     dplyr::left_join(., SpeciesAnnualUse, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
-    dplyr::left_join(., SpeciesAgeClass, by = c("PlotID", "EvaluationID","Species"= "RiparianWoodySpecies", "UnknownCodeKey"))
+    dplyr::left_join(., SpeciesAgeClass, by = c("PlotID", "EvaluationID","Species", "UnknownCodeKey"))%>%
+    dplyr::left_join(., header%>%dplyr::select(EvaluationID), by = "EvaluationID")
 
   return(SpeciesList)
 
