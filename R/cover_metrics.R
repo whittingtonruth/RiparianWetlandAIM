@@ -621,8 +621,8 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist){
                   Common.Name,
                   percent)%>%
     dplyr::arrange(EvaluationID, desc(percent))%>%
-    dplyr::rename(SpeciesCover = percent)%>%
-    dplyr::mutate(SpeciesCover = round(SpeciesCover, digits = 2))
+    dplyr::rename(AH_SpeciesCover = percent)%>%
+    dplyr::mutate(AH_SpeciesCover = round(AH_SpeciesCover, digits = 2))
 
   return(Cover_Species)
 

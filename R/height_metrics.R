@@ -16,10 +16,10 @@
 #'@export height_metrics
 height_metrics <- function(height_tall,
                            masterspecieslist,
-                             method = "mean",
-                             by_line = FALSE,
-                             omit_zero = TRUE,
-                             by_species = FALSE){
+                           method = "mean",
+                           by_line = FALSE,
+                           omit_zero = TRUE,
+                           by_species = FALSE){
 
   if(!(method %in% c("mean", "max"))){
     stop("Method must be either 'mean' or 'max'.")
@@ -78,6 +78,10 @@ height_metrics <- function(height_tall,
         tidyr::pivot_longer(cols = c(Avg, Cnt))%>%
         tidyr::unite(GrowthHabit_measured, GrowthHabit_measured, name, sep = "_")%>%
         dplyr::mutate(GrowthHabit_measured = paste("Hgt_", GrowthHabit_measured, sep = ""))
+    } else{
+      height_summary <- height_summary%>%
+        rename(Hgt_Species_Avg = Avg,
+               Hgt_Species_Cnt = Cnt)
     }
   }
 
