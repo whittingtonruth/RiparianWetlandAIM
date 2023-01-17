@@ -103,7 +103,8 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                                               State,
                                               WetlandIndicatorRegion,
                                               LatitudeWGS84,
-                                              LongitudeWGS84))
+                                              LongitudeWGS84),
+                       by = c("PlotID"))
 
     header <- header%>%
       bind_rows(., annualusevisits)
