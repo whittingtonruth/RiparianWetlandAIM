@@ -119,7 +119,9 @@ height_metrics <- function(height_tall,
       dplyr::filter(!(Species %in% c(NA, "N")))
   }else{
     height_summary <-
-      tidyr::pivot_wider(height_summary, names_from = rlang::quo_get_expr(category[[1]]), values_from = value)
+      tidyr::pivot_wider(height_summary, names_from = rlang::quo_get_expr(category[[1]]), values_from = value)%>%
+      dplyr::mutate(dplyr::across(dplyr::ends_with("_Cnt"), ~tidyr::replace_na(., 0)))
+
   }
 
   return(height_summary)
