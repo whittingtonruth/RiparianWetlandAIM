@@ -587,7 +587,7 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
     woody_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    points_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "AnnualUsePointsRepeat")], sep = "/"))))%>%
+    points_header <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "AnnualUsePointsRepeat")], sep = "/")))%>%
       dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
 
     woody_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "WoodyStructureRepeat")], sep = "/")))%>%
@@ -622,11 +622,11 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
   }
 
   woody_detail <- woody_detail%>%
-    dplyr::select(EvaluationID,
-                  RecKey,
-                  PointNbr,
-                  RiparianWoodySpecies,
-                  UnknownCodeKey:AgeClass)%>%
+    # dplyr::select(EvaluationID,
+    #               RecKey,
+    #               PointNbr,
+    #               RiparianWoodySpecies,
+    #               UnknownCodeKey:AgeClass)%>%
     dplyr::left_join(points_header%>%
                        dplyr::select(EvaluationID,
                                      RecKey,
@@ -710,4 +710,120 @@ gather_hummocks <- function(dsn, source = "SDE"){
                                by = c("EvaluationID", "LineKey" = "RecKey"))
 
   return(hummocks)
+}
+
+#' @export gather_gap
+#' @rdname gather_riparianwetland
+gather_gap <- function(dsn, source = "SDE"){
+
+  if(source == "GDB"){
+    gap_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "Gap",
+                  stringsAsFactors = F)%>%
+        sf::st_drop_geometry())%>%
+      dplyr::select(PlotID:LineKey,
+                    HummocksPresentLine)
+
+    gap_detail <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "GapDetail",
+                  stringsAsFactors = F))%>%
+      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
+                    RecKey:VegCover)
+
+    message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
+    }
+  else if(source == "AGOL"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+
+    gap_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Hummocks")], sep = "/"))))%>%
+      sf::st_drop_geometry()%>%
+      dplyr::select(PlotID:LineKey, HummocksPresentLine)
+
+    gap_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "HummockDetail")], sep = "/")))%>%
+      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
+                    RecKey:VegCover)
+
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
+    }
+  else if(source == "SDE"){
+    gap_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_Gap",
+                  stringsAsFactors = F, quiet = T))
+
+    gap_detail <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_GapDetail",
+                  stringsAsFactors = F, quiet = T))
+
+    message("Gathering tables from the SDE into woody structure tall table. ")
+  }
+
+  # Join the detail table to the header.
+  gap_tall <- dplyr::left_join(gap_header,
+                               gap_detail,
+                               by = c("EvaluationID", "LineKey" = "RecKey"))
+
+  gap_tall[gap_tall$NoCanopyGaps == "No", ] <- gap_tall %>%
+    dplyr::filter(NoCanopyGaps == "No") %>%
+    tidyr::replace_na(list(
+      RecType = "C",
+      GapStart = 0,
+      GapEnd = 0,
+      Gap = 0
+    ))
+
+  return(gap_tall)
+}
+
+#' @export gather_soilstab
+#' @rdname gather_riparianwetland
+gather_soilstab <- function(dsn, source = "SDE"){
+
+  if(source == "GDB"){
+    gap_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "SoilStability",
+                  stringsAsFactors = F)%>%
+        sf::st_drop_geometry())
+
+    message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
+  }
+  else if(source == "AGOL"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+
+    soilstab <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SoilStability")], sep = "/"))))%>%
+      sf::st_drop_geometry()
+
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
+  }
+  else if(source == "SDE"){
+    soilstab <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_SoilStability",
+                  stringsAsFactors = F, quiet = T))
+
+    message("Gathering tables from the SDE into woody structure tall table. ")
+  }
+
+  gathered <- soilstab%>%
+    dplyr::select(-c(PlotID, AdminState, FormDate, Observer, Notes))%>%
+    tidyr::pivot_longer(.,c(Veg1:Hydro18))%>%
+    filter(value!="")%>%
+    dplyr::mutate(key = stringr::str_extract(string = name,
+                                             pattern = "^[A-z]+"),
+                  Position = stringr::str_extract(string = name,
+                                                  pattern = "[0-9]+"))%>%
+    dplyr::select(-c(name))%>%
+    dplyr::filter(!(key=="Hydro"&value != 0))%>%
+    tidyr::pivot_wider(., id_cols = c("EvaluationID", "Position"), names_from = key, values_from = value)%>%
+
+    # Change all Unsampleable points to NA instead of 0
+    dplyr::mutate(Rating = ifelse(Veg == "U", NA, Rating))
+
+  return(gathered)
+
 }
