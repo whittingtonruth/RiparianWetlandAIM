@@ -262,7 +262,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
     stop("covertype must be 'relative' or 'absolute'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "RelativeHydroFACCover", "AbsoluteHydroFACCover")
+  fieldname <- ifelse(covertype == "relative", "RelativeHydroFACCover", "AH_HydroFACCover")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -540,13 +540,15 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", masterspecieslist){
                          dplyr::select(Symbol, GrowthHabitSub),
                        by = c("code" = "Symbol"))%>%
       dplyr::mutate(code = dplyr::case_when(GrowthHabitSub=="Moss"~"M",
+                                            GrowthHabitSub=="Hornwort" ~ "M",
+                                            GrowthHabitSub=="Liverwort" ~ "M",
                                             GrowthHabitSub=="Lichen"~"LI",
                                             TRUE~code))
   }
 
   #Add cover category to non-plant calls.
-  nonplantcategory <- data.frame(code = c("SL", "TH", "HL", "DL", "WL", "NL", "EL", "M", "AL", "ALGAE", "AE", "LC", "VL", "LI", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R"),
-                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Algae", "Algae", "Algae", "Lichen", "Lichen", "Lichen", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock"))
+  nonplantcategory <- data.frame(code = c("SL", "TH", "HL", "DL", "WL", "NL", "EL", "M", "AL", "ALGAE", "AE", "LC", "VL", "LI", "W", "OM", "S", "GR", "CB", "ST", "BY", "BR", "R", "SA"),
+                                 covercategory= c("LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "LitterThatch", "Moss", "Algae", "Algae", "Algae", "Lichen", "Lichen", "Lichen", "Water", "OrganicMaterial", "Soil", "Rock", "Rock", "Rock", "Rock", "Rock", "Rock", "SaltCrust"))
 
   #Join LPI to the nonplant category table to create non-plant categories to summarize by in pct_cover
   lpi_tall <- lpi_tall%>%
@@ -562,7 +564,9 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", masterspecieslist){
                                          by_line = FALSE,
                                          covercategory)%>%
     dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = ""))), "Cover", sep = ""))%>%
-    dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch","Organicmaterial" = "OrganicMaterial")))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch",
+                                                              "Organicmaterial" = "OrganicMaterial",
+                                                              "Saltcrust" = "SaltCrust")))%>%
     dplyr::group_by(EvaluationID)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
