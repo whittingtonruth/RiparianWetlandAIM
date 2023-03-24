@@ -20,8 +20,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
       sf::st_drop_geometry()
 
     plotchar <- sf::st_read(dsn = dsn, layer = "PlotCharacterization",
-                            stringsAsFactors = FALSE)%>%
-      sf::st_drop_geometry()
+                            stringsAsFactors = FALSE)
 
     message("File Geodatabase data type is being downloaded and gathered into header table used to select sites for analysis. ")
 
@@ -34,8 +33,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "FieldVisits")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))%>%
-      sf::st_drop_geometry()
+    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
@@ -50,7 +48,8 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   filter_exprs <- rlang::quos(...)
 
   plotchar <- plotchar%>%
-    mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")),
+    mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
+             lubridate::hours(12),
            VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
            StateCode = SpeciesState)
 
@@ -82,7 +81,10 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     if(!test){removefields <- append(removefields, i)}
   }
 
-  finalfields <- finalfields[!finalfields %in% c(removefields)]
+  if(length(removefields) > 0){
+    finalfields <- finalfields[-removefields]
+  }
+
 
   header<- plotchar%>%
     dplyr::select(!!!finalfields)
@@ -90,20 +92,22 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   if(!missing(annualuse_tall)){
     annualusevisits <- annualuse_tall%>%
       dplyr::select(PlotID,
-             EvaluationID,
-             AdminState,
-             SpeciesState)%>%
+                    EvaluationID)%>%
       dplyr::distinct(EvaluationID, .keep_all = T)%>%
       dplyr::filter(!(EvaluationID %in% header$EvaluationID))%>%
       dplyr::mutate(VisitType = "Annual Use Visit",
-                    FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")))%>%
+                    FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")) + lubridate::hours(12))%>%
       dplyr::left_join(.,
                        header%>%dplyr::select(PlotID,
                                               SiteName,
+                                              SamplingApproach,
                                               State,
+                                              AdminState,
+                                              SpeciesState,
                                               WetlandIndicatorRegion,
                                               LatitudeWGS84,
-                                              LongitudeWGS84),
+                                              LongitudeWGS84)%>%
+                         dplyr::distinct(PlotID, .keep_all = T),
                        by = c("PlotID"))
 
     header <- header%>%
