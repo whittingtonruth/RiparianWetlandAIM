@@ -1,15 +1,12 @@
 #' Build AIM Indicators Tables and Feature Classes
+#'
 #' @param dsn String File path to a Riparian and Wetland File Geodatabase.
-#' @param source String. The source from which data is being drawn from. Can be
-#' "SDE", "GDB", or "AGOL". Defaults to "SDE".
-#' @param annualuse_tall data.frame. Optional. Tall table exported from `gather_annualuse`
-#' used to create entries in header for annual use only visits. Without the table,
-#' header will only include visits in Plot Characterization.
+#' @param source String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".
+#' @param annualuse_tall data.frame. Optional. Tall table exported from `gather_annualuse` used to create entries in header for annual use only visits. Without the table, header will only include visits in Plot Characterization.
 #' @param ... Query in grepl format that subsets plots.
 #' @name header_build
 #' @return A \code{tbl} of header information on each evaluated plot.
 
-# Build the header portion of the Lentic SDE table
 #' @export header_build_lentic
 #' @rdname header_build
 header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {

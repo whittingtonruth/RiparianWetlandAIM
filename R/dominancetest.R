@@ -1,9 +1,8 @@
 #'Calculate whether each site passes the Dominance Test and Prevalence Test
 #'
-#'@description
+#'@description Calculate metrics at the plot level to determine whether species data collected passes the dominance or prevalence tests.
 #'
-#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-#'Wetland Indicator calculations to specify the plot region or state.
+#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param bystrata logical. Indicates whether Dominance Test should be performed by strata, as is recommended by the USACE.

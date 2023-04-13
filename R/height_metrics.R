@@ -2,15 +2,11 @@
 #'
 #'@param height_tall Data frame. Use the data frame from the \code{gather_height_lentic()} output.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
-#'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
-#'height on the plot or \code{"mean"} which yields the mean height.
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
-#'Defaults to FALSE.
-#'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations.
-#'Defaults to TRUE.
-#'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.
-#'Defaults to FALSE.
-#'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
+#'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.
+#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
+#'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.
+#'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level. Defaults to FALSE.
+#'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, or woody categories.
 
 
 #'@export height_metrics

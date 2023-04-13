@@ -1,19 +1,13 @@
 #' Calculate the number, length, and percent of gaps
-#' @description Calculate the number, length, and percent of gaps by plot or line.
-#' Calculations taken directly from terradactyl package to match Terrestrial AIM
-#' indicator calculations.
+#'
+#' @description Calculate the number, length, and percent of gaps by plot or line. Calculations taken directly from Terradactyl package to match Terrestrial AIM indicator calculations.
+#'
 #' @param gap_tall Raw tables as imported from TerrADat use gather_gap .
-#' @param tall Logical. If \code{TRUE} then the returned data frame will be tall
-#' rather than wide and will not have observations for non-existent values e.g.,
-#' if no data fell into a group on a plot, there will be no row for that group
-#' on that plot. Defaults to \code{FALSE}.
-#' @param by_line Logical. If \code{TRUR} then results will be reported further
-#' grouped by line using the \code{LineKey} field from the data forms.
-#' Defaults to \code{FALSE}.
+#' @param tall Logical. If \code{TRUE} then the returned data frame will be tall rather than wide and will not have observations for non-existent values e.g., if no data fell into a group on a plot, there will be no row for that group on that plot. Defaults to \code{FALSE}.
+#' @param by_line Logical. If \code{TRUR} then results will be reported further grouped by line using the \code{LineKey} field from the data forms. Defaults to \code{FALSE}.
 #' @param breaks Vector of all break values. Defaults to \code{20,25, 51, 100, 200}
-#' @param type String. Specifies the type of gap calculation
-#' \code{"canopy", "basal", "perennial canopy"}
-#' @export
+#' @param type String. Specifies the type of gap calculation \code{"canopy", "basal", "perennial canopy"}
+#' @returns List of three data frames summarizing gap percent, count, and length (in cm) of gaps by their size category.
 
 # Percent Gap
 #' @export gap_cover

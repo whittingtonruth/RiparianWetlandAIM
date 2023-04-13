@@ -1,31 +1,16 @@
 #'Calculate percent cover of grouping variables categories.
 #'
-#'@description Cover metric function use this underlying function to perform final cover calculation. \code{lpi_tall}
-#'data frame needs to contain the column used to group variables with all categories to be included.
+#'@description Underlying function used in percent cover functions to perform final cover calculation. \code{lpi_tall} data frame needs to contain the column used to group variables with all categories to be included. All unique combinations of the grouping variable used will be included in the final output, excluding NA or Null values.
 #'
-#'Depending on the variable, some manipulation to the lpi_tall dataframe may be required prior to feeding it into this
-#'function. When variables have meaningful nulls, such as Wetland Indicator status, care needs to be taken in the handling
-#'of meaningfully null classification compared with null values associated with unclassified higher order taxa. Further, if
-#'multiple categories are to be grouped in the metric reporting, they must be grouped prior to absolute cover calculations,
-#'since hits containing both categories should count as a single positive pin drop in absolute cover.
+#'Depending on the variable, some manipulation to the lpi_tall dataframe may be required prior to feeding it into this function. In some cases, users may want their output grouped differently than the original grouping variable. For example, noxious data often includes several categories of listed species (e.g. List A, List B, etc.). If cover for all noxious categories together is preferred, then the noxious variable may require transformation so that all noxious species fall into a single group. For other grouping variables, users may be interested in reporting the cover of null categories. For example, Wetland Indicator Statuses for many upland species have been left empty. To differentiate meaningfully empty groups from unknown statuses (i.e. an unknown plant identified only as Poa), some transformation of the wetland indicator variable is required. These transformations are taken care of in all built-in cover indicator functions.
 #'
-#'This function also allows for users to calculate either relative (i.e. proportion of vascular species hits of a particular
-#'category) or absolute (i.e. proportion of LPI pin drops of a particular category) cover using the \code{hit} argument.
-#'This argument controls how the denominator is calculated. It also changes whether duplicate hits in a single pin drop
-#'are removed from the calculation (as in the case of absolute cover) or kept in (as with relative cover).
-#'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output, or a
-#'modified version of the \code{lpi_tall} table that adds categorical information used in cover calculations.
-#'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have
-#'observations for non-existent values. Defaults to FALSE.
-#'@param hit Character string. Absolute cover can be calculated from "any", "first", or "basal" hits. This
-#'will count all pin drops with hits fitting into `grouping_variable` categories in specified layers and
-#'calculate their cover relative to total pin drops. If "first" is used, only \code{"TopCanopy"} hits will be counted.
-#'If "basal" is used, only \code{"SoilSurface"} hits will be counted. Relative cover can be calculated from "all" hits,
-#'counting all hits of vascular species within `grouping_variable` categories. Defaults to "any".
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using '\code{"LineKey"}.
-#'Defaults to FALSE.
-#'@param ... Optional character strings. One or more variable name to calculate percent cover for, i.e.
-#'"GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
+#'This function also allows for users to calculate either relative (i.e. proportion of vascular species hits of a particular category) or absolute (i.e. proportion of LPI pin drops of a particular category) cover using the \code{hit} argument. This argument controls how the denominator is calculated. It also changes whether duplicate hits in a single pin drop are removed from the calculation (as in the case of absolute cover) or kept in (as with relative cover). Relative calculations are completed using \code{hit = 'all'}. For these calculations, users should consider how unknown hits should be handled, whether filtered out (i.e. excluded from the denominator), or kept in.
+#'
+#'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output, or a modified version of the \code{lpi_tall} table that adds categorical information columns used in cover calculations.
+#'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have observations for groups not observed in a given plot. Defaults to FALSE.
+#'@param hit Character string. Absolute cover can be calculated from "any", "first", or "basal" hits. This will count all pin drops with hits fitting into `grouping_variable` categories in specified layers and calculate their cover relative to total pin drops. If "first" is used, only \code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Relative cover can be calculated from "all" hits, counting all hits of vascular species within `grouping_variable` categories. Defaults to "any".
+#'@param by_line Logical. If TRUE then results will be reported further grouped by line using '\code{"LineKey"}. Defaults to FALSE.
+#'@param ... Optional character strings. One or more variable name to calculate percent cover for, i.e. "GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'@returns Data frame of the percent cover by plot of each category combination of the grouping variables provided.
 
 

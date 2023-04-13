@@ -1,17 +1,15 @@
 #'Convert FGDB into separate .csv files
 #'
-#'Function converts all separate tables found in a FGDB into separate csv files to be
-#'more accessible to others. Some schema changes are accomplished to ensure output is
-#'interpretable outside of a relational geodatabase format.
+#'Function converts all separate tables found in a FGDB into separate csv files to be more accessible to others. Some schema changes are accomplished to ensure output is interpretable outside of a relational geodatabase format.
 #'
 #'@param dsn location of the File Geodatabase
 #'@param RawDataFolder location where all csvs will be stored.
-#'@return Dataframe of specified perce cover of different categories by plot.
+#'@param source String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".
 #'
 
 
 #'@export gdbconversion
-gdbconversion <- function(dsn, RawDataFolder){
+gdbconversion <- function(dsn, RawDataFolder, source = "SDE"){
 
   plots <- suppressWarnings(sf::st_read(
     dsn = dsn,

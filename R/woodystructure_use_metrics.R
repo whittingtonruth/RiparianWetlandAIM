@@ -4,8 +4,7 @@
 #'@param annualuse_tall Data frame. Use the data frame from the \code{gather_annualuse()} output.
 #'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
 #'@param hummocks Data frame. Use the data frame from the \code{gather_hummocks()} output.
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
-#'Defaults to FALSE.
+#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
 #'@param by_species Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.
 #'@returns Data.frame of the summarized woody and annual use data by plot.
 
