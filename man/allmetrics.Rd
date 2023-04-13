@@ -6,13 +6,18 @@
 \alias{Community_Metrics}
 \alias{allmetrics_byspecies}
 \alias{allmetrics_byplot}
-\title{Combine species-level indicator information into one data.frame.}
+\title{Combine species-level and plot-level indicator information into one data.frame.}
 \usage{
 CombineRelativeCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)
 
 CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)
 
-Community_Metrics(header, spp_inventory, lpi_tall, masterspecieslist)
+Community_Metrics(
+  header,
+  SpeciesList,
+  masterspecieslist,
+  listtype = "speciesinventory"
+)
 
 allmetrics_byspecies(
   header,
@@ -33,6 +38,9 @@ allmetrics_byplot(
   woody_tall,
   annualuse_tall,
   hummocks,
+  gap_tall,
+  soil_stability_tall,
+  waterqualdet,
   unknowncodes,
   masterspecieslist
 )
@@ -44,11 +52,7 @@ allmetrics_byplot(
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
-\item{unknowncodes}{Optional dataframe. Use the data frame from the \code{gather_unknowns_lentic()} output.
-Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration
-and growth habit for plants in LPI never identified to a species or genus with those fields specified. If
-argument is unused, all unknown species without duration or Growth Habit specified will be filtered out
-before being passed on to \code{pct_cover_lentic()}.}
+\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
 
 \item{spp_inventory}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
 
@@ -59,14 +63,16 @@ before being passed on to \code{pct_cover_lentic()}.}
 \item{annualuse_tall}{Data frame. Use the data frame from the \code{gather_annualuse()} output.}
 
 \item{hummocks}{Data frame. Use the data frame from the \code{gather_hummocks()} output.}
+
+\item{gap_tall}{optional data frame. Use the data frame from the \code{gather_gap()} output.}
+
+\item{soil_stability_tall}{Optional data frame. Use the data frame from the \code{gather_soilstab()} output.}
+
+\item{waterqualdet}{Optional data frame. Use the data frame from the file geodatabase. Must have EvaluationID as the identifying column.}
 }
 \value{
-data.frame of species-based indicator data.
+Data frame of indicator data calculated by EvaluationID.
 }
 \description{
-Functions starting with tall table outputs from gather functions to calculate all metrics.
-\code{CombineRelativeCoverMetrics()} and \code{CombineRelativeCoverMetrics()} focus on cover metrics.
-Together with \code{Community_Metrics()}, these functions feed into final wrapping functions to create
-two indicator tables ready to be incorperated into the final dataset, Indicators and SpeciesIndicators.
-These data tables are created with \code{allmetrics_byplot()} and \code{allmetrics_byspecies()}.
+Functions starting with tall table outputs from gather functions to calculate all metrics. \code{CombineRelativeCoverMetrics()} and \code{CombineRelativeCoverMetrics()} focus on cover metrics. Together with \code{Community_Metrics()}, these functions feed into final wrapping functions to create two indicator tables ready to be incorporated into the final data set, Indicators and Species Indicators. These data tables are created with \code{allmetrics_byplot()} and \code{allmetrics_byspecies()}.
 }

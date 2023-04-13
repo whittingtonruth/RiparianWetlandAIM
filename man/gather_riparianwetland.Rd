@@ -9,30 +9,40 @@
 \alias{gather_annualuse}
 \alias{gather_woodyspecies}
 \alias{gather_hummocks}
-\title{Pivoting functions to transform raw data tables from wide to tall format for use in indicator calculations.}
+\alias{gather_gap}
+\alias{gather_soilstab}
+\title{Transform raw datatables from multiple sources into standard format}
 \usage{
-gather_lpi_lentic(dsn)
+gather_lpi_lentic(dsn, source = "SDE")
 
-gather_species_inventory_lentic(dsn)
+gather_species_inventory_lentic(dsn, source = "SDE")
 
-gather_unknowns_lentic(dsn)
+gather_unknowns_lentic(dsn, familygenuslist, source = "SDE")
 
-gather_height_lentic(dsn)
+gather_height_lentic(dsn, source = "SDE")
 
-gather_annualuse(dsn)
+gather_annualuse(dsn, source = "SDE")
 
-gather_woodyspecies(dsn)
+gather_woodyspecies(dsn, source = "SDE")
 
-gather_hummocks(dsn)
+gather_hummocks(dsn, source = "SDE")
+
+gather_gap(dsn, source = "SDE")
+
+gather_soilstab(dsn, source = "SDE")
 }
 \arguments{
-\item{dsn}{Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.}
+\item{dsn}{Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.For the AGOL source, a URL can be used.}
+
+\item{source}{Character string. The source and schema of the data being analyzed. Default is SDE, but other options are AGOL and GDB. AGOL anticipates loading data from a feature service URL from online, while GDB anticipates a structure identical to the Survey123 project but from a local File Geodatabase.}
+
+\item{familygenuslist}{data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.
+an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level
+('Level'), i.e. "Family" or "Genus".}
 }
 \value{
 tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.
 }
 \description{
-This group of functions allow you to transform Survey123 data uploaded to
-AGOL from wide format to tall format. It contains seven functions for transforming species inventory,
-unknown plants, LPI, heights from LPI and woody species, woody species, annual use, and hummocks detail tables.
+This group of functions transforms data from varied formats into one uniform structure. It contains functions for transforming data from species inventory, unknown plants, LPI, LPI heights from LPI, Woody Structure, Annual Use, Hummocks, Gap, and Soil Stability tables. For LPI, gathering pivots the data from wide to long format. Gathering Unknown Plants also corrects field season data from online data. Most other transformations merely combine data from parent and child tables into a single table to be used in analysis and ensure consistent column names across sources.
 }
