@@ -182,7 +182,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
     stop("covertype must be 'relative' or 'absolute'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "RelativeHydrophyteCover", "AH_HydrophyteCover")
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -216,7 +216,7 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                              WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                              WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
                              TRUE ~ "REGIONMISSING"))%>%
-    mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydro", Hydro))%>%
+    mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
 
@@ -227,9 +227,10 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                                                               "absolute" = "any"),
                                                  by_line = FALSE,
                                                  Hydro)%>%
-    dplyr::filter(grepl("\\.HYDRO$", metric))%>%
-    dplyr::group_by(PlotID, EvaluationID)%>%
-    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""),
+                  percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)%>%
+    dplyr::select(c("PlotID", "EvaluationID", tidyselect::matches("Hydrophyte|Upland")))
 
   return(HydrophyteCover)
 }
@@ -446,6 +447,124 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype 
                                                  "absolute" = "any"),
                                     by_line = FALSE,
                                     Duration,GrowthHabitSub)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""),
+                                 "Cover", sep = ""))%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(DurationGrowthCover)
+}
+
+pct_DurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  GrowthHabitSub,
+                  Duration,
+                  PreferredForb
+    )
+
+  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
+  #These plant hits would be included in the denominator of the calculation if left in.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodes)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration),
+                    GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))
+  }
+
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
+  #cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., Duration !=""&!is.na(Duration)&GrowthHabitSub !=""&!is.na(GrowthHabitSub)) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #Remove AbsoluteCover from the data frame to take out nulls.
+  #pivot to show in wide format by EvaluationID
+  DurationGrowthCover <- pct_cover_lentic(lpispeciesjoin,
+                                    tall = TRUE,
+                                    hit = switch(covertype,
+                                                 "relative" = "all",
+                                                 "absolute" = "any"),
+                                    by_line = FALSE,
+                                    Duration,GrowthHabitSub)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""),
+                                 "Cover", sep = ""))%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(DurationGrowthCover)
+}
+
+pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  NativeStatus,
+                  GrowthHabitSub,
+                  Duration,
+                  PreferredForb
+    )
+
+  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
+  #These plant hits would be included in the denominator of the calculation if left in.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodes)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration),
+                    GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))
+  }
+
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
+  #cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., Duration !=""&!is.na(Duration)&GrowthHabitSub !=""&!is.na(GrowthHabitSub)&NativeStatus!=""&!is.na(NativeStatus)) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #Remove AbsoluteCover from the data frame to take out nulls.
+  #pivot to show in wide format by EvaluationID
+  DurationGrowthCover <- pct_cover_lentic(lpispeciesjoin,
+                                          tall = TRUE,
+                                          hit = switch(covertype,
+                                                       "relative" = "all",
+                                                       "absolute" = "any"),
+                                          by_line = FALSE,
+                                          NativeStatus, Duration,GrowthHabitSub)%>%
     dplyr::mutate(metric = paste(fieldname,
                                  stringr::str_replace_all(
                                    stringr::str_to_title(
