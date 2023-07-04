@@ -35,27 +35,12 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any")%>%dplyr::select(PlotID,
-                                                                                            EvaluationID,
-                                                                                            TotalLitterThatchCover,
-                                                                                            TotalMossCover,
-                                                                                            TotalRockCover,
-                                                                                            TotalWaterCover),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first")%>%dplyr::select(PlotID,
-                                                                                              EvaluationID,
-                                                                                              BareSoilCover,
-                                                                                              `BareOrganicMaterialCover`),
-                             by = c("PlotID", "EvaluationID")
-  )
-
   LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                                      EvaluationID,
                                                                                      SiteName,
                                                                                      AdminState,
                                                                                      SpeciesState,
-                                                                                     FieldEvalDate,
-                                                                                     LatWGS,
-                                                                                     LongWGS),
+                                                                                     FieldEvalDate),
                                                               .,
                                                               by =  c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeNative, by = c("PlotID", "EvaluationID"))%>%
@@ -63,8 +48,7 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., RelativeHydro, by =  c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeHydroFAC, by =  c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeGrowthHabit, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeDuration, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., NonPlantCover, by =  c("PlotID", "EvaluationID"))
+    dplyr::left_join(., RelativeDuration, by =  c("PlotID", "EvaluationID"))
 
   return(LPI_Cover_Indicators)
 }
