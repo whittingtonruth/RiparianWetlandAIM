@@ -30,7 +30,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
   UnknownCover <- AbsoluteSpeciesCover%>%
     dplyr::filter(Species==""|is.na(Species))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(AbsoluteUnknownCover = sum(SpeciesCover))
+    dplyr::summarize(AbsoluteUnknownCover = sum(AH_SpeciesCover))
 
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
@@ -48,20 +48,20 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   Totals <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    summarise(TotalCover = sum(SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
+    summarise(TotalCover = sum(AH_SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
 
   Dominants <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    arrange(!!!level, desc(SpeciesCover))%>%
+    arrange(!!!level, desc(AH_SpeciesCover))%>%
     left_join(Totals)%>%
-    dplyr::mutate(PreviousCumulativeCover = cumsum(SpeciesCover)-SpeciesCover,
-                  Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(SpeciesCover > TwentyPercent, "20", "N")),
+    dplyr::mutate(PreviousCumulativeCover = cumsum(AH_SpeciesCover)-AH_SpeciesCover,
+                  Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(AH_SpeciesCover > TwentyPercent, "20", "N")),
                   HydroDominant = ifelse(HydroFAC %in% c("FAC", "FACW","OBL"), Dominant, "N"),
-                  WeightedPrevalence = case_when(HydroFAC == "UPL" ~ SpeciesCover * 5,
-                                         HydroFAC == "FACU" ~ SpeciesCover * 4,
-                                         HydroFAC == "FAC" ~ SpeciesCover * 3,
-                                         HydroFAC == "FACW" ~ SpeciesCover * 2,
-                                         HydroFAC == "OBL" ~ SpeciesCover * 1))
+                  WeightedPrevalence = case_when(HydroFAC == "UPL" ~ AH_SpeciesCover * 5,
+                                         HydroFAC == "FACU" ~ AH_SpeciesCover * 4,
+                                         HydroFAC == "FAC" ~ AH_SpeciesCover * 3,
+                                         HydroFAC == "FACW" ~ AH_SpeciesCover * 2,
+                                         HydroFAC == "OBL" ~ AH_SpeciesCover * 1))
 
   PlotDominanceTest <- Dominants%>%
     dplyr::group_by(EvaluationID)%>%
@@ -78,9 +78,9 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
   PlotPrevalenceTest <- Dominants %>%
     dplyr::filter(HydroFAC != "")%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(TotalCover = sum(SpeciesCover),
+    dplyr::summarize(TotalCover = sum(AH_SpeciesCover),
                      TotalPrevalence = sum(WeightedPrevalence, na.rm = T),
-                     PrevalenceIndex = sum(WeightedPrevalence)/sum(SpeciesCover))%>%
+                     PrevalenceIndex = sum(WeightedPrevalence)/sum(AH_SpeciesCover))%>%
     dplyr::mutate(PrevalenceTest = ifelse(PrevalenceIndex <= 3, "Y", "N"))
 
   AllDominanceTests <- dplyr::left_join(PlotDominanceTest,
