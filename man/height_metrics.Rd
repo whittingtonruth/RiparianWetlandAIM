@@ -8,7 +8,6 @@ height_metrics(
   height_tall,
   masterspecieslist,
   method = "mean",
-  tall = FALSE,
   by_line = FALSE,
   omit_zero = TRUE,
   by_species = FALSE
@@ -19,23 +18,16 @@ height_metrics(
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
-\item{method}{Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
-height on the plot or \code{"mean"} which yields the mean height.}
+\item{method}{Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.}
 
-\item{tall}{Logical. If TRUE then the returned data frame will be tall rather than wide and will not have
-opbervations for non-existent values. Defaults to FALSE.}
+\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.}
 
-\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
-Defaults to FALSE.}
+\item{omit_zero}{Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.}
 
-\item{omit_zero}{Logical. Indicates whether zeros should be included in average height and depth calculations.
-Defaults to TRUE.}
-
-\item{by_species}{Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.
-Defaults to FALSE.}
+\item{by_species}{Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level. Defaults to FALSE.}
 }
 \value{
-Data frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
+Data frame of the summarized height data by plot grouped into herbaceous, litter, water, or woody categories.
 }
 \description{
 Calculate average herbaceous and woody height and litter and water depth.

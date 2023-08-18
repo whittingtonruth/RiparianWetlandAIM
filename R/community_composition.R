@@ -1,14 +1,9 @@
 #'Summarize Species or plant group by EvaluationID based on species list.
 #'
-#'@description Basic function that takes a species list and summarizes the percent, count, or average
-#'of species metrics in that group. The species list provided should already be cleaned to remove
-#'duplicate species or unwanted grouping variable categories.
+#'@description Underlying function used in community metric functions that summarizes the percent, count, or average of an indicated variable found in a provided species list. All unique combinations of the grouping variable used will be included in the final output, excluding NA or Null values.The species list provided should already be cleaned to remove duplicate species or unwanted grouping variable categories.
 #'
-#'@param SpeciesList Data frame. Table of species by plot that will be summarized, including the grouping variables
-#'for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered
-#'out prior to submitting to function.
-#'@param method character string. The method used for the produced summary table. Can
-#'be "percent", "mean", or "count". Defaults to "percent".
+#'@param SpeciesList Data frame. Table of species by plot that will be summarized, including the grouping variables for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered out prior to submitting to function.
+#'@param method character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Defaults to "percent".
 #'@param tall Logical. Indicates whether output will be tall table or wide. Defaults to FALSE.
 #'@param ... Optional character strings. Grouping variables from the master species list to be used in calculating list.
 #'@returns Data frame of summarized metrics by plot.
@@ -30,13 +25,13 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
   if(method == "count"){
     totals <- SpeciesList%>%
       dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
-      dplyr::summarize("count" = n())
+      dplyr::summarize("Cnt" = n())
   }
 
   if(method == "mean"){
     totals <- SpeciesList%>%
       dplyr::group_by(EvaluationID)%>%
-      dplyr::summarize("average" = round(mean(!!!grouping_variables, na.rm = T), digits = 2))
+      dplyr::summarize("Avg" = round(mean(!!!grouping_variables, na.rm = T), digits = 2))
   }
 
   if(method == "percent"){
@@ -48,7 +43,7 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
       dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
       dplyr::summarize(count = n())%>%
       dplyr::left_join(., speciescount, by = "EvaluationID")%>%
-      dplyr::mutate(percent = round(count / TotalSpecies * 100, digits = 2))%>%
+      dplyr::mutate(Pct = round(count / TotalSpecies * 100, digits = 2))%>%
       dplyr::select(-c(count, TotalSpecies))
   }
 
@@ -68,8 +63,8 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
       dplyr::mutate(across(.fns = ~replace(., is.na(.), 0)))%>%
       dplyr::mutate(metric =
                       {ifelse(rep(method == "percent", nrow(.)),
-                              paste("Percent.", metric, sep = ""),
-                              paste("Count.", metric, sep = ""))})%>%
+                              paste(metric, "Pct", sep = "_"),
+                              paste(metric, "Cnt", sep = "_"))})%>%
       dplyr::arrange(EvaluationID)
 
     if(!tall){totals <- totals%>%

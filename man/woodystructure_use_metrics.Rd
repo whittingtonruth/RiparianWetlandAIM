@@ -32,8 +32,7 @@ hummocks_metrics(hummocks, by_line = F)
 
 \item{woody_tall}{Data frame. Use the data frame from the \code{gather_woodyspecies()} output.}
 
-\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
-Defaults to FALSE.}
+\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.}
 
 \item{by_species}{Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.}
 

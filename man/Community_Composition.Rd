@@ -7,12 +7,9 @@
 Community_Composition(SpeciesList, method = "percent", tall = F, ...)
 }
 \arguments{
-\item{SpeciesList}{Data frame. Table of species by plot that will be summarized, including the grouping variables
-for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered
-out prior to submitting to function.}
+\item{SpeciesList}{Data frame. Table of species by plot that will be summarized, including the grouping variables for which data is being summarized by. Duplicates and unwanted grouping variables should be filtered out prior to submitting to function.}
 
-\item{method}{character string. The method used for the produced summary table. Can
-be "percent", "mean", or "count". Defaults to "percent".}
+\item{method}{character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Defaults to "percent".}
 
 \item{tall}{Logical. Indicates whether output will be tall table or wide. Defaults to FALSE.}
 
@@ -22,7 +19,5 @@ be "percent", "mean", or "count". Defaults to "percent".}
 Data frame of summarized metrics by plot.
 }
 \description{
-Basic function that takes a species list and summarizes the percent, count, or average
-of species metrics in that group. The species list provided should already be cleaned to remove
-duplicate species or unwanted grouping variable categories.
+Underlying function used in community metric functions that summarizes the percent, count, or average of an indicated variable found in a provided species list. All unique combinations of the grouping variable used will be included in the final output, excluding NA or Null values.The species list provided should already be cleaned to remove duplicate species or unwanted grouping variable categories.
 }

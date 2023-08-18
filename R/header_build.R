@@ -1,89 +1,54 @@
 #' Build AIM Indicators Tables and Feature Classes
+#'
 #' @param dsn String File path to a Riparian and Wetland File Geodatabase.
+#' @param source String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".
+#' @param annualuse_tall data.frame. Optional. Tall table exported from `gather_annualuse` used to create entries in header for annual use only visits. Without the table, header will only include visits in Plot Characterization.
 #' @param ... Query in grepl format that subsets plots.
 #' @name header_build
 #' @return A \code{tbl} of header information on each evaluated plot.
 
-# Build the header portion of the Lentic SDE table
 #' @export header_build_lentic
 #' @rdname header_build
-header_build_lentic <- function(dsn, ...) {
+header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   #read in LPI header and detail tables
-  if(endsWith(dsn, ".gdb")){
+  if(source == "GDB"){
     fieldvisits <- sf::st_read(dsn = dsn, layer = "FieldVisits",
                                stringsAsFactors = FALSE)%>%
       sf::st_drop_geometry()
 
-    plots <- sf::st_read(dsn = dsn, layer = "Plots",
-                         stringsAsFactors = FALSE)%>%
-      sf::st_drop_geometry()
-
     plotchar <- sf::st_read(dsn = dsn, layer = "PlotCharacterization",
-                            stringsAsFactors = FALSE)%>%
-      sf::st_drop_geometry()
+                            stringsAsFactors = FALSE)
 
     message("File Geodatabase data type is being downloaded and gathered into header table used to select sites for analysis. ")
 
   }
 
-  else if(startsWith(dsn, "https://")){
+  else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
     fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "FieldVisits")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    plots <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "Plots")], sep = "/"))))%>%
-      sf::st_drop_geometry()
-
-    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))%>%
-      sf::st_drop_geometry()
+    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
-  else{
-    stop("dsn string does not match expected pattern. Must start with 'https://' or end with '.gdb'. ")
+  if(source == "SDE"){
+    plotchar <- sf::st_read(dsn = dsn, layer = "F_PlotCharacterization",
+                            stringsAsFactors = FALSE)
+
+    message("The SDE PlotChar table is being gathered into header table used to select sites for analysis. ")
   }
 
   # Set up filter expression (e.g., filter on PlotKey, SpeciesState, etc)
   filter_exprs <- rlang::quos(...)
 
-  #FieldVists has the correct visit date
-  fieldvisits <- fieldvisits%>%
-    as.data.frame()%>%
-    dplyr::filter(VisitType=="Full Sample Visit"|VisitType=="Calibration Visit"|VisitType=="Annual Use Visit"|VisitType=="AK Full Sample Visit")%>%
-    dplyr::distinct(StaticEvaluationID, .keep_all = T)
-
-  # tblPlots provides the link between species tables
-  # (LPI, Height, Species Richness) and tblStateSpecies
-  header <-  plots%>%
-
-    # Filter using the filtering expression specified by user
-    dplyr::filter(!!!filter_exprs, EvalStatus == "Sampled"|EvalStatus=="Sampled - Data reviewed")%>%
-    dplyr::select(-c(SiteName, contains("CowardinAttribute")))%>%
-
-    #Add field visits
-    dplyr::left_join(.,
-                     fieldvisits%>%dplyr::select(PlotID, EvaluationID = StaticEvaluationID, FieldEvalDate, VisitType),
-                     by = c("PlotID" = "PlotID"))
-
-  #some fields can be brought in from Plot Characterization to expand information
-  plotchar <- plotchar %>%
-
-    dplyr::select(PlotID,
-                  EvaluationID,
-                  SiteName,
-                  Latitude,
-                  Longitude,
-                  PlotLayout,
-                  ElevationCtr,
-                  HGMClass,
-                  CowardinAttribute,
-                  WetlandType)
-
-
-  # Join two tables and remove unnecessary fields.
-  header <- dplyr::left_join(header, plotchar, by = c("PlotID", "EvaluationID"))
+  plotchar <- plotchar%>%
+    mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
+             lubridate::hours(12),
+           VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
+           StateCode = SpeciesState)
 
   # Create a list of fields to keep, then test whether they are present in the header table.
   finalfields <- rlang::quos(PlotID,
@@ -95,29 +60,56 @@ header_build_lentic <- function(dsn, ...) {
                              CowardinAttribute,
                              HGMClass,
                              WetlandType,
+                             EcotypeAlaska = AlaskaEcotypeClassification,
                              AdminState,
+                             State = StateCode,
                              SpeciesState,
                              WetlandIndicatorRegion,
-                             DistrictOffice,
-                             FieldOffice,
-                             #County,
                              FieldEvalDate,
-                             LatWGS = Latitude,
-                             LongWGS = Longitude,
-                             Elevation = ElevationCtr)
+                             LatitudeWGS84,
+                             LongitudeWGS84,
+                             Elevation_m)
   finalfieldnames <- sapply(finalfields, rlang::quo_text)
 
   # Identify the fields to remove.
   removefields <- numeric()
   for (i in 1:length(finalfieldnames)){
-    test <- finalfieldnames[i] %in% colnames(header)
+    test <- finalfieldnames[i] %in% colnames(plotchar)
     if(!test){removefields <- append(removefields, i)}
   }
 
-  finalfields <- finalfields[!finalfields %in% c(removefields)]
+  if(length(removefields) > 0){
+    finalfields <- finalfields[-removefields]
+  }
 
-  header<- header%>%
+
+  header<- plotchar%>%
     dplyr::select(!!!finalfields)
+
+  if(!missing(annualuse_tall)){
+    annualusevisits <- annualuse_tall%>%
+      dplyr::select(PlotID,
+                    EvaluationID)%>%
+      dplyr::distinct(EvaluationID, .keep_all = T)%>%
+      dplyr::filter(!(EvaluationID %in% header$EvaluationID))%>%
+      dplyr::mutate(VisitType = "Annual Use Visit",
+                    FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")) + lubridate::hours(12))%>%
+      dplyr::left_join(.,
+                       header%>%dplyr::select(PlotID,
+                                              SiteName,
+                                              SamplingApproach,
+                                              State,
+                                              AdminState,
+                                              SpeciesState,
+                                              WetlandIndicatorRegion,
+                                              LatitudeWGS84,
+                                              LongitudeWGS84)%>%
+                         dplyr::distinct(PlotID, .keep_all = T),
+                       by = c("PlotID"))
+
+    header <- header%>%
+      bind_rows(., annualusevisits)
+  }
 
   # Return the header file
   return(header)

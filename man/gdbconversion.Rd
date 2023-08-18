@@ -4,18 +4,15 @@
 \alias{gdbconversion}
 \title{Convert FGDB into separate .csv files}
 \usage{
-gdbconversion(dsn, RawDataFolder)
+gdbconversion(dsn, RawDataFolder, source = "SDE")
 }
 \arguments{
 \item{dsn}{location of the File Geodatabase}
 
 \item{RawDataFolder}{location where all csvs will be stored.}
-}
-\value{
-Dataframe of specified perce cover of different categories by plot.
+
+\item{source}{String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".}
 }
 \description{
-Function converts all separate tables found in a FGDB into separate csv files to be
-more accessible to others. Some schema changes are accomplished to ensure output is
-interpretable outside of a relational geodatabase format.
+Function converts all separate tables found in a FGDB into separate csv files to be more accessible to others. Some schema changes are accomplished to ensure output is interpretable outside of a relational geodatabase format.
 }

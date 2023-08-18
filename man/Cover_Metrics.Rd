@@ -10,6 +10,8 @@
 \alias{pct_HydroFACCover}
 \alias{pct_GrowthHabitCover}
 \alias{pct_DurationCover}
+\alias{pct_DurationGrowthHabitCover}
+\alias{pct_PreferredForbCover}
 \alias{pct_NonPlantGroundCover}
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
@@ -20,7 +22,7 @@ pct_BasalCover(lpi_tall)
 
 pct_TotalAbsoluteCover(lpi_tall)
 
-pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative")
+pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
 
 pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
 
@@ -28,26 +30,35 @@ pct_HydrophyteCover(
   header,
   lpi_tall,
   masterspecieslist,
-  covertype = "relative"
+  covertype = "absolute"
 )
 
-pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
 
 pct_GrowthHabitCover(
   lpi_tall,
   masterspecieslist,
-  covertype = "relative",
+  covertype = "absolute",
   unknowncodes
 )
 
 pct_DurationCover(
   lpi_tall,
   masterspecieslist,
-  covertype = "relative",
+  covertype = "absolute",
   unknowncodes
 )
 
-pct_NonPlantGroundCover(lpi_tall, hit = "any")
+pct_DurationGrowthHabitCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes
+)
+
+pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+
+pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)
 
 pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
 }
@@ -56,45 +67,25 @@ pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
-\item{covertype}{Character string. "relative" or "absolute". Specifies the kind of cover calculation.
-Relative cover is only used for calculations on vascular plant species and specifies the percent of
-overall hits made up of a particular species or group. Absolute cover is the percent of the pin
-drops made up by a particular species or group.}
+\item{covertype}{Character string. "relative" or "absolute". Specifies the kind of cover calculation. Relative cover is only used for calculations on vascular plant species and specifies the percent of overall hits made up of a particular species or group. Absolute cover is the percent of the pin drops made up by a particular species or group.}
 
-\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-Wetland Indicator calculations to specify the plot region or state.}
+\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.}
 
-\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output.
-Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration
-and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument
-is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed
-on to \code{pct_cover_lentic()}.}
+\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
 
-\item{hit}{Character string. "any", "first" or "basal". Only used in \code{pct_NonPlantGroundCover()}, where relative
-cover is not calculated. If "any" is used, any layer will be used to calculate non-plant cover. If "first" is used, only
-\code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Defaults to "any".}
+\item{hit}{Character string. "any", "first" or "basal". Only used in \code{pct_NonPlantGroundCover()}, where relative cover is not calculated. If "any" is used, any layer will be used to calculate non-plant cover. If "first" is used, only \code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Defaults to "any".}
 }
 \value{
 Wide data frame of percent cover by plot of different categories.
 }
 \description{
-Metric calculation functions for specific grouping variables. These functions perform various modifications to
-the \code{lpi_tall} data frame in preparation for the \code{pct_cover_lentic()} function, then filtering the
-resulting data frame to the categories of interest.
+Metric calculation functions for specific grouping variables. These functions perform various modifications to the \code{lpi_tall} data frame in preparation for the \code{pct_cover_lentic()} function, then filters the resulting data frame to the categories of interest.
 
-Some functions pull information from a variety of tables from the field season data used to categorize variables. Region-
-or state-specific categorization requires joining the header data frame to the lpi_tall data frame. Growth Form and Duration
-calculations can optionally pull in data for unknowns entered by crews in the Unknown Plant form. Wetland Indicator Status
-and Noxious species group categories together before pushing to the \code{pct_cover_lentic()} function.
+Some functions pull information from a variety of tables from the field season data used to categorize variables. Region- or state-specific categorization requires joining the header data frame to the lpi_tall data frame. Growth Form and Duration calculations can optionally pull in data for unknowns entered by crews in the Unknown Plant form. Wetland Indicator Status and Noxious species group categories together before pushing to the \code{pct_cover_lentic()} function.
 
-Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic
-or plant groupings due to the way the percent denominators are calculated. Relative cover requires all species without
-relevant categorization to be removed to ensure only plant hits with a given category are included in calculations. (Example:
-In calculating relative native cover, plant hits of Elymus species should not be included in either numerator or denominator.)
-In contrast, absolute cover requires that all hits be submitted to the \code{pct_cover_lentic()} function, as these will
-be used to calculate the number of pin drops (i.e. the denominator). Absolute cover filters out uncategorized hits after
-cover has been calculated.
+Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic or plant groupings due to the way the percent denominators are calculated. Relative cover requires all species without relevant categorization to be removed to ensure only plant hits with a given category are included in calculations. (Example: In calculating relative native cover, plant hits of Elymus species should not be included in either numerator or denominator.)
 
-Absolute and Relative cover metrics can be calculated all at once using \code{CombineRelativeCoverMetrics} and
-\code{CombineAbsoluteCoverMetrics}.
+In contrast, absolute cover requires that all hits be submitted to the \code{pct_cover_lentic()} function, as these will be used to calculate the number of pin drops (i.e. the denominator). Absolute cover filters out uncategorized hits after cover has been calculated.
+
+Absolute and Relative cover metrics can be calculated all at once using \code{CombineRelativeCoverMetrics} and \code{CombineAbsoluteCoverMetrics}.
 }

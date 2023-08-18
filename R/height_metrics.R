@@ -2,24 +2,20 @@
 #'
 #'@param height_tall Data frame. Use the data frame from the \code{gather_height_lentic()} output.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
-#'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum
-#'height on the plot or \code{"mean"} which yields the mean height.
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey.
-#'Defaults to FALSE.
-#'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations.
-#'Defaults to TRUE.
-#'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level.
-#'Defaults to FALSE.
-#'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, woody, or woody2 categories.
+#'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.
+#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
+#'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.
+#'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level. Defaults to FALSE.
+#'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, or woody categories.
 
 
 #'@export height_metrics
 height_metrics <- function(height_tall,
                            masterspecieslist,
-                             method = "mean",
-                             by_line = FALSE,
-                             omit_zero = TRUE,
-                             by_species = FALSE){
+                           method = "mean",
+                           by_line = FALSE,
+                           omit_zero = TRUE,
+                           by_species = FALSE){
 
   if(!(method %in% c("mean", "max"))){
     stop("Method must be either 'mean' or 'max'.")
@@ -57,15 +53,15 @@ height_metrics <- function(height_tall,
 
     height_summary <- height_tall%>%
       dplyr::group_by(!!!level, !!!category)%>%
-      dplyr::summarize(Hgt_AvgHeight = round(mean(Height, na.omit = T), digits = 2),
-                       Hgt_Count = n())
+      dplyr::summarize(Avg = round(mean(Height, na.omit = T), digits = 2),
+                       Cnt = n())
 
     if(by_species == F){
       height_litter <- height_tall%>%
-        dplyr::filter(GrowthHabit_measured == "LitterThatch", !is.na(type))%>%
+        dplyr::filter(GrowthHabit_measured == "LitterThatch", !(type %in% c(NA, "")))%>%
         dplyr::group_by(!!!level, type)%>%
-        dplyr::summarize(Hgt_AvgHeight = round(mean(Height, na.omit = T), digits = 2),
-                         Hgt_Count = n())%>%
+        dplyr::summarize(Avg = round(mean(Height, na.omit = T), digits = 2),
+                         Cnt = n())%>%
         dplyr::mutate(type = case_when(type == "HL" ~"HerbLitter",
                                        type == "WL" ~"WoodyLitter",
                                        type == "DL" ~"DecidLitter",
@@ -75,11 +71,13 @@ height_metrics <- function(height_tall,
       height_summary <- rbind(height_summary, height_litter)%>%
         dplyr::mutate(GrowthHabit_measured = ifelse(GrowthHabit_measured=="LitterThatch", "AllLitterThatch", GrowthHabit_measured))%>%
         dplyr::arrange(match(GrowthHabit_measured, c("Herbaceous", "Woody", "Water", "AllLitterThatch", "HerbLitter", "WoodyLitter", "DecidLitter")))%>%
-        tidyr::pivot_longer(cols = c(Hgt_AvgHeight, Hgt_Count))%>%
-        dplyr::mutate(name = ifelse(GrowthHabit_measured %in% c("Water", "AllLitterThatch", "HerbLitter", "WoodyLitter", "DecidLitter"),
-                                    str_replace(name, "Height", "Depth"),
-                                    name))%>%
-        tidyr::unite(GrowthHabit_measured, name, GrowthHabit_measured)
+        tidyr::pivot_longer(cols = c(Avg, Cnt))%>%
+        tidyr::unite(GrowthHabit_measured, GrowthHabit_measured, name, sep = "_")%>%
+        dplyr::mutate(GrowthHabit_measured = paste("Hgt_", GrowthHabit_measured, sep = ""))
+    } else{
+      height_summary <- height_summary%>%
+        rename(Hgt_Species_Avg = Avg,
+               Hgt_Species_Cnt = Cnt)
     }
   }
 
@@ -87,15 +85,15 @@ height_metrics <- function(height_tall,
 
     height_summary <- height_tall%>%
       dplyr::group_by(!!!level, !!!category)%>%
-      dplyr::summarize(Hgt_MaxHeight = max(Height, na.omit = T),
-                       Hgt_Count = n())
+      dplyr::summarize(MaxHgt = max(Height, na.omit = T),
+                       Cnt = n())
 
     if(by_species == F){
       height_litter <- height_tall%>%
-        dplyr::filter(GrowthHabit_measured == "LitterThatch", !is.na(type))%>%
+        dplyr::filter(GrowthHabit_measured == "LitterThatch", !(type %in% c(NA, "")))%>%
         dplyr::group_by(!!!level, type)%>%
-        dplyr::summarize(Hgt_MaxHeight = max(Height, na.omit = T),
-                         Hgt_Count = n())%>%
+        dplyr::summarize(MaxHgt = max(Height, na.omit = T),
+                         Cnt = n())%>%
         dplyr::mutate(type = case_when(type == "HL" ~"HerbLitter",
                                        type == "WL" ~"WoodyLitter",
                                        type == "DL" ~"DecidLitter",
@@ -105,11 +103,9 @@ height_metrics <- function(height_tall,
       height_summary <- rbind(height_summary, height_litter)%>%
         dplyr::mutate(GrowthHabit_measured = ifelse(GrowthHabit_measured=="LitterThatch", "AllLitterThatch", GrowthHabit_measured))%>%
         dplyr::arrange(match(GrowthHabit_measured, c("Herbaceous", "Woody", "Water", "LitterThatch", "HerbLitter", "WoodyLitter", "DecidLitter")))%>%
-        tidyr::pivot_longer(cols = c(Hgt_AvgHeight, Hgt_Count))%>%
-        dplyr::mutate(name = ifelse(GrowthHabit_measured %in% c("Water", "AllLitterThatch", "HerbLitter", "WoodyLitter", "DecidLitter"),
-                                    str_replace(name, "Height", "Depth"),
-                                    name))%>%
-        tidyr::unite(GrowthHabit_measured, name, GrowthHabit_measured)
+        tidyr::pivot_longer(cols = c(MaxHgt, Cnt))%>%
+        tidyr::unite(GrowthHabit_measured, GrowthHabit_measured, name)%>%
+        dplyr::mutate(GrowthHabit_measured = paste("Hgt_", GrowthHabit_measured, sep = ""))
     }
 
   }
@@ -120,7 +116,8 @@ height_metrics <- function(height_tall,
   }else{
     height_summary <-
       tidyr::pivot_wider(height_summary, names_from = rlang::quo_get_expr(category[[1]]), values_from = value)%>%
-      dplyr::select(-c(Hgt_Count_Herbaceous, Hgt_Count_Woody, Hgt_Count_Water))
+      dplyr::mutate(dplyr::across(dplyr::ends_with("_Cnt"), ~tidyr::replace_na(., 0)))
+
   }
 
   return(height_summary)

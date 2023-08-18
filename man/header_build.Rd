@@ -5,10 +5,14 @@
 \alias{header_build_lentic}
 \title{Build AIM Indicators Tables and Feature Classes}
 \usage{
-header_build_lentic(dsn, ...)
+header_build_lentic(dsn, source = "SDE", annualuse_tall, ...)
 }
 \arguments{
 \item{dsn}{String File path to a Riparian and Wetland File Geodatabase.}
+
+\item{source}{String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".}
+
+\item{annualuse_tall}{data.frame. Optional. Tall table exported from \code{gather_annualuse} used to create entries in header for annual use only visits. Without the table, header will only include visits in Plot Characterization.}
 
 \item{...}{Query in grepl format that subsets plots.}
 }

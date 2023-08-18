@@ -4,11 +4,10 @@
 \alias{dominance_test}
 \title{Calculate whether each site passes the Dominance Test and Prevalence Test}
 \usage{
-dominance_test(header, lpi_tall, masterspecieslist, test)
+dominance_test(header, lpi_tall, masterspecieslist, bystrata = F)
 }
 \arguments{
-\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-Wetland Indicator calculations to specify the plot region or state.}
+\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.}
 
 \item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
@@ -20,5 +19,5 @@ Wetland Indicator calculations to specify the plot region or state.}
 Dataframe showing site scores on several ways to classify dominance of hydrophytic species.
 }
 \description{
-
+Calculate metrics at the plot level to determine whether species data collected passes the dominance or prevalence tests.
 }

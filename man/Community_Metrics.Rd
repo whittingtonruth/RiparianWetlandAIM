@@ -7,6 +7,7 @@
 \alias{Community_NoxiousCount}
 \alias{Community_Hydrophytes}
 \alias{Community_HydroFAC}
+\alias{Community_PreferredForb}
 \alias{Community_GrowthHabit}
 \alias{Community_Duration}
 \title{Summarize community composition for specified grouping variables.}
@@ -54,6 +55,13 @@ Community_HydroFAC(
   method = "percent"
 )
 
+Community_PreferredForb(
+  SpeciesList,
+  masterspecieslist,
+  listtype = "speciesinventory",
+  method = "percent"
+)
+
 Community_GrowthHabit(
   SpeciesList,
   masterspecieslist,
@@ -69,26 +77,21 @@ Community_Duration(
 )
 }
 \arguments{
-\item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall
-produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
+\item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
-\item{listtype}{Character string. Indicates the source of the SpeciesList provided. Can either be
-"speciesinventory" or"lpi". Defaults to "speciesinventory".}
+\item{listtype}{Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".}
 
-\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.}
+\item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.}
 
-\item{method}{character string. The method used for the produced summary table. Can
-be "percent", "mean", or "count". Included in functions where applicable.}
+\item{method}{character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.}
 }
 \value{
 Data frame of summary metrics by plot.
 }
 \description{
-This group of functions prepares a species list to be used in the embedded
-\code{community_composition()}. This can involve filtering duplicate species, combining
-grouping variable categories, and pulling plot information from plot headers to inform
-species classification. Analogous to \code{cover_metrics} functions.
+This group of functions prepares a species list which is then used in the \code{community_composition()} function. This can involve filtering duplicate species, combining grouping variable categories, and pulling plot information from plot headers to inform species classification. Analogous to \code{cover_metrics} functions.
+
+Similarly to relative cover calculations, all species with unknown traits (e.g. an unknown plant identified only as Elymus sp.) must be filtered out prior to calculating community metrics. All community metric calculations may be calculated using \code{Community_Metrics()}
 }

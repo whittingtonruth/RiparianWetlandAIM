@@ -1,9 +1,8 @@
 #'Calculate whether each site passes the Dominance Test and Prevalence Test
 #'
-#'@description
+#'@description Calculate metrics at the plot level to determine whether species data collected passes the dominance or prevalence tests.
 #'
-#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and
-#'Wetland Indicator calculations to specify the plot region or state.
+#'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param bystrata logical. Indicates whether Dominance Test should be performed by strata, as is recommended by the USACE.
@@ -20,7 +19,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   AbsoluteSpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)%>%
     #join to header to get wetland indicator region
-    dplyr::left_join(header, ., by = c("EvaluationID"))%>%
+    dplyr::left_join(header, ., by = c("EvaluationID"), multiple = 'all')%>%
 
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
@@ -31,7 +30,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
   UnknownCover <- AbsoluteSpeciesCover%>%
     dplyr::filter(Species==""|is.na(Species))%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(AbsoluteUnknownCover = sum(SpeciesCover))
+    dplyr::summarize(AbsoluteUnknownCover = sum(AH_SpeciesCover))
 
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
@@ -49,20 +48,20 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   Totals <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    summarise(TotalCover = sum(SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
+    summarise(TotalCover = sum(AH_SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
 
   Dominants <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    arrange(!!!level, desc(SpeciesCover))%>%
+    arrange(!!!level, desc(AH_SpeciesCover))%>%
     left_join(Totals)%>%
-    dplyr::mutate(PreviousCumulativeCover = cumsum(SpeciesCover)-SpeciesCover,
-                  Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(SpeciesCover > TwentyPercent, "20", "N")),
+    dplyr::mutate(PreviousCumulativeCover = cumsum(AH_SpeciesCover)-AH_SpeciesCover,
+                  Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(AH_SpeciesCover > TwentyPercent, "20", "N")),
                   HydroDominant = ifelse(HydroFAC %in% c("FAC", "FACW","OBL"), Dominant, "N"),
-                  WeightedPrevalence = case_when(HydroFAC == "UPL" ~ SpeciesCover * 5,
-                                         HydroFAC == "FACU" ~ SpeciesCover * 4,
-                                         HydroFAC == "FAC" ~ SpeciesCover * 3,
-                                         HydroFAC == "FACW" ~ SpeciesCover * 2,
-                                         HydroFAC == "OBL" ~ SpeciesCover * 1))
+                  WeightedPrevalence = case_when(HydroFAC == "UPL" ~ AH_SpeciesCover * 5,
+                                         HydroFAC == "FACU" ~ AH_SpeciesCover * 4,
+                                         HydroFAC == "FAC" ~ AH_SpeciesCover * 3,
+                                         HydroFAC == "FACW" ~ AH_SpeciesCover * 2,
+                                         HydroFAC == "OBL" ~ AH_SpeciesCover * 1))
 
   PlotDominanceTest <- Dominants%>%
     dplyr::group_by(EvaluationID)%>%
@@ -79,9 +78,9 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
   PlotPrevalenceTest <- Dominants %>%
     dplyr::filter(HydroFAC != "")%>%
     dplyr::group_by(EvaluationID)%>%
-    dplyr::summarize(TotalCover = sum(SpeciesCover),
+    dplyr::summarize(TotalCover = sum(AH_SpeciesCover),
                      TotalPrevalence = sum(WeightedPrevalence, na.rm = T),
-                     PrevalenceIndex = sum(WeightedPrevalence)/sum(SpeciesCover))%>%
+                     PrevalenceIndex = sum(WeightedPrevalence)/sum(AH_SpeciesCover))%>%
     dplyr::mutate(PrevalenceTest = ifelse(PrevalenceIndex <= 3, "Y", "N"))
 
   AllDominanceTests <- dplyr::left_join(PlotDominanceTest,
