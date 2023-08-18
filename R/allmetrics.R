@@ -198,7 +198,8 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                                                       PlotID,
                                                       Species,
                                                       UnknownCodeKey),
-                     by = c("EvaluationID", "PlotID"))
+                     by = c("EvaluationID", "PlotID"),
+                     multiple = 'all')
 
   # Create a species list of all species in species inventory for which there is
   # a matching plot in the header.
@@ -365,7 +366,7 @@ allmetrics_byplot <- function(header,
     waterqualcount <- waterqualdet%>%
       sf::st_drop_geometry()%>%
       group_by(EvaluationID)%>%
-      dplyr::summarize(WQ_Cnt = n())
+      dplyr::summarize(WQ_SampleCnt = n())
 
     allmetrics <- allmetrics%>%
       dplyr::left_join(., waterqualcount, by = c("EvaluationID"))
