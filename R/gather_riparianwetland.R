@@ -278,11 +278,13 @@ gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
         "Family",
         "Genus",
         "ScientificName",
-        "IdentificationStatus"
+        "IdentificationStatus",
+        "parentglobalid"
       )%>%
-      right_join(x = UnknownPlants_header%>%dplyr::select("PlotID":"VisitDate"),
+      right_join(x = UnknownPlants_header%>%dplyr::select("globalid","PlotID":"VisitDate"),
                  y = .,
-                 by = c("EvaluationID" = "UnknownCodesEvaluationID"))
+                 by = c("globalid" = "parentglobalid"))%>%
+      select(-globalid)
 
     UnknownPlants_tall <- UnknownPlants_tall%>%
       filter(!is.na(UnknownCodeKey))%>%
