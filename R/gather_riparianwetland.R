@@ -76,8 +76,7 @@ gather_lpi_lentic <- function(dsn, source = "SDE"){
       values_to = "code") %>%
 
     #remove all rows with NA values
-    dplyr::filter(
-      !is.na(code))
+    dplyr::filter(!(code %in% c("", NA)))
 
   #Make a tall table of checkbox data and remove all NAs
   lpi_chkbox_tall <- lpi_detail %>%
@@ -167,10 +166,12 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
     species_inventory_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SpeciesInventory")], sep = "/"))))%>%
-      sf::st_drop_geometry()
+      sf::st_drop_geometry()%>%
+      filter(Calibration %in% c("Production"))
 
     species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "SpecRichDetail")], sep = "/")))%>%
-      dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")
+      dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")%>%
+      filter(is.na(RecKey)|!str_detect(RecKey, "CALIBRATION"))
 
     message("Downloading and gathering Species Inventory from ArcGIS Online live feature service.")
   }
