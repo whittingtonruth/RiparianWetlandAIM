@@ -19,7 +19,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   AbsoluteSpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)%>%
     #join to header to get wetland indicator region
-    dplyr::left_join(header, ., by = c("EvaluationID"))%>%
+    dplyr::left_join(header, ., by = c("EvaluationID"), multiple = 'all')%>%
 
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
