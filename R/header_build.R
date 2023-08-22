@@ -111,6 +111,10 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
       bind_rows(., annualusevisits)
   }
 
+  if(nrow(header%>%filter(duplicated(EvaluationID)))>0){
+    warning("EvaluationIDs in header are not unique! There may be multiple Plot Characterization forms for one or more site visits. ")
+  }
+
   # Return the header file
   return(header)
 }
