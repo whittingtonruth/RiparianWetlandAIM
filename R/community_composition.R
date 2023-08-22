@@ -60,7 +60,7 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
 
     totals <- AllSiteMetrics %>%
       dplyr::left_join(., totals, by = c("EvaluationID", "metric"))%>%
-      dplyr::mutate(across(.fns = ~replace(., is.na(.), 0)))%>%
+      dplyr::mutate(across(.cols = where(is.numeric), .fns = ~replace(., is.na(.), 0)))%>%
       dplyr::mutate(metric =
                       {ifelse(rep(method == "percent", nrow(.)),
                               paste(metric, "Pct", sep = "_"),

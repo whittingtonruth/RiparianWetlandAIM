@@ -52,8 +52,8 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   Dominants <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    arrange(!!!level, desc(AH_SpeciesCover))%>%
-    left_join(Totals)%>%
+    dplyr::arrange(!!!level, desc(AH_SpeciesCover))%>%
+    dplyr::left_join(Totals, by =  names(select(., !!!level)))%>%
     dplyr::mutate(PreviousCumulativeCover = cumsum(AH_SpeciesCover)-AH_SpeciesCover,
                   Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(AH_SpeciesCover > TwentyPercent, "20", "N")),
                   HydroDominant = ifelse(HydroFAC %in% c("FAC", "FACW","OBL"), Dominant, "N"),
@@ -69,7 +69,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
                   DominantCount = ifelse(Dominant %in% c("50", "20"), 1, 0))%>%
     dplyr::summarize(TotalHydroDominants = sum(HydroDominantCount),
                      TotalDominants = sum(DominantCount))%>%
-    dplyr::left_join(UnknownCover)%>%
+    dplyr::left_join(UnknownCover,  by = "EvaluationID")%>%
     dplyr::relocate(AbsoluteUnknownCover, .before = TotalHydroDominants)%>%
     dplyr::mutate(PercentHydroDominants = TotalHydroDominants/TotalDominants,
                   DominanceTest = ifelse(PercentHydroDominants >= 0.5, "Y", "N"))
@@ -84,9 +84,9 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
     dplyr::mutate(PrevalenceTest = ifelse(PrevalenceIndex <= 3, "Y", "N"))
 
   AllDominanceTests <- dplyr::left_join(PlotDominanceTest,
-                   PlotPrevalenceTest)%>%
-    dplyr::left_join(., pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative"))%>%
-    dplyr::left_join(pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute"))
+                   PlotPrevalenceTest, by = "EvaluationID")%>%
+    dplyr::left_join(., pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative"), by = "EvaluationID")%>%
+    dplyr::left_join(pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute"), by = c("EvaluationID", "PlotID"))
 
   return(AllDominanceTests)
 
