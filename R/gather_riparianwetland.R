@@ -87,7 +87,7 @@ gather_lpi_lentic <- function(dsn, source = "SDE"){
     tidyr::pivot_longer(
       cols = -c(RecKey, PointNbr, PointLoc),
       names_to = c(".value", "layer"),
-      names_pattern = "(code|Chkbox|UnknownCodeKey)(TopCanopy|Layer1|Layer2|Layer3|Layer4|Layer5|Layer6|Layer7|SoilSurface)$",
+      names_pattern = "(code|Chkbox|UnknownCodeKey)(TopCanopy|Lower1|Lower2|Lower3|Lower4|Lower5|Lower6|Lower7|SoilSurface)$",
       values_to = c("code"))%>%
     dplyr::filter(!(code %in% c("", NA)))
 
