@@ -62,78 +62,41 @@ gather_lpi_lentic <- function(dsn, source = "SDE"){
     stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
-  #Make a tall table of the hit and all point identifying information
+  #Structure LPI to be tall instead of wide. First need to create standard
+  #structure in the column names to fit with a pivot_wider function.
   lpi_hits_tall <- lpi_detail %>%
-    dplyr::mutate_if(is.factor, as.character) %>%
+    dplyr::mutate_if(is.factor, as.character)%>%
+    dplyr::mutate(SoilSurface = ifelse(SoilSurface=="P", codebasal, SoilSurface))%>%
+    dplyr::rename(ChkboxTopCanopy = ChkboxTop,
+                  UnknownCodeTopCanopyKey = UnknownCodeTopKey,
+                  ChkboxSoilSurface = ChkboxBasal,
+                  UnknownCodeSoilSurfaceKey = UnknownCodeBasalKey)%>%
+    #rename code fields to be consistent
+    dplyr::rename_with(.,
+                       .fn = ~paste("code", ., sep = ""),
+                       c("TopCanopy", dplyr::matches("^Lower"), SoilSurface))%>%
+    #rename unknowncodekey fields to match pattern.
+    dplyr::rename_with(.,
+                       .fn = ~paste("UnknownCodeKey", str_extract(., "(?<=^UnknownCode)(.+)(?=Key$)"), sep = ""),
+                       .cols = matches("^[UnknownCode](.+)Key$"))%>%
     dplyr::select(RecKey,
                   PointNbr,
                   PointLoc,
-                  TopCanopy, dplyr::matches("^Lower"), SoilSurface) %>%
-
+                  dplyr::starts_with("code"),
+                  dplyr::starts_with("Chkbox"), dplyr::starts_with("UnknownCodeKey")) %>%
     tidyr::pivot_longer(
       cols = -c(RecKey, PointNbr, PointLoc),
-      names_to = "layer",
-      values_to = "code") %>%
-
-    #remove all rows with NA values
+      names_to = c(".value", "layer"),
+      names_pattern = "(code|Chkbox|UnknownCodeKey)(TopCanopy|Layer1|Layer2|Layer3|Layer4|Layer5|Layer6|Layer7|SoilSurface)$",
+      values_to = c("code"))%>%
     dplyr::filter(!(code %in% c("", NA)))
 
-  #Make a tall table of checkbox data and remove all NAs
-  lpi_chkbox_tall <- lpi_detail %>%
-    dplyr::select(RecKey,
-                  PointNbr,
-                  PointLoc,
-                  dplyr::matches("^Chkbox")) %>%
-    tidyr::pivot_longer(
-      cols = -c(RecKey, PointNbr, PointLoc),
-      names_to = "layer",
-      values_to = "Chkbox")
-
-  #Remove Woody, Woody2, and Herbaceous from chkbox data
-  lpi_chkbox_tall <- lpi_chkbox_tall%>%
-    dplyr::filter(
-      !(layer %in% c("ChkboxWoody",
-                     "ChkboxWoody2", #used in 2020 but not in 2021, won't hurt to keep it in.
-                     "ChkboxHerbaceous")))
-
-  #Rename the checkbox layer names so they match
-  lpi_chkbox_tall$layer <- gsub(lpi_chkbox_tall$layer,
-                                pattern = "^Chkbox",
-                                replacement = "")
-
-  lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Top"] <- "TopCanopy"
-  lpi_chkbox_tall$layer[lpi_chkbox_tall$layer == "Basal"] <- "SoilSurface"
-
-  #Make a tall table of unknown code key data and remove all NAs
-  lpi_unknowncode_tall <- lpi_detail %>%
-    dplyr::select(RecKey,
-                  PointNbr,
-                  PointLoc,
-                  dplyr::matches("^UnknownCode.*Key$|^UnknownCode.*Key2$")) %>%
-    tidyr::pivot_longer(
-      cols = -c(RecKey, PointNbr, PointLoc),
-      names_to = "layer",
-      values_to = "UnknownCodeKey")%>%
-    dplyr::filter(
-      !layer %in% c("UnknownCodeWoodyKey",
-                    "UnknownCodeWoodyKey2", #used in 2020 but not in 2021, won't hurt to keep it in.
-                    "UnknownCodeHerbaceousKey",
-                    "UnknownCodeStubbleKey")) #used in 2020 but not in 2021, won't hurt to keep it in.
-
-  #replace layer names so they match
-  lpi_unknowncode_tall$layer <- gsub(lpi_unknowncode_tall$layer,
-                               pattern = "^UnknownCode|Key$",
-                               replacement = "")
-
-  lpi_unknowncode_tall$layer[lpi_unknowncode_tall$layer == "Top"] <- "TopCanopy"
-  lpi_unknowncode_tall$layer[lpi_unknowncode_tall$layer == "Basal"] <- "SoilSurface"
-
-  #join all three tables
-  lpi_tall <- suppressWarnings(dplyr::left_join(lpi_hits_tall,
-                                                lpi_chkbox_tall) %>%
-                                 dplyr::left_join(., lpi_unknowncode_tall)%>%
-                                 dplyr::left_join(x = dplyr::select(lpi_header, "PlotID", "EvaluationID", "LineKey":"LineLengthCM"),
-                                                  by = c("LineKey"= "RecKey")))
+  #join tall table to the header
+  lpi_tall <- lpi_header%>%
+    dplyr::select("PlotID", "EvaluationID", "LineKey":"LineLengthCM")%>%
+    dplyr::left_join(.,
+                     y = lpi_hits_tall,
+                     by = c("LineKey"= "RecKey"))
 
   return(lpi_tall)
 }
