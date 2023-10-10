@@ -11,6 +11,7 @@
 \alias{pct_GrowthHabitCover}
 \alias{pct_DurationCover}
 \alias{pct_DurationGrowthHabitCover}
+\alias{pct_NativeGrowthHabitCover}
 \alias{pct_NativeDurationGrowthHabitCover}
 \alias{pct_PreferredForbCover}
 \alias{pct_NonPlantGroundCover}
@@ -51,6 +52,13 @@ pct_DurationCover(
 )
 
 pct_DurationGrowthHabitCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes
+)
+
+pct_NativeGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
