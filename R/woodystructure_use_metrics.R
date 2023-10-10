@@ -142,8 +142,8 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
   quadcalc <-
     woody_tall%>%
     dplyr::filter(WoodySpeciesPresent=="No")%>%
-    dplyr::distinct(!!!level, LineKey, interval)%>%
-    dplyr::mutate(n = ifelse(interval == 500, 5, 17))
+    dplyr::distinct(!!!level, LineKey, LineLengthCM, interval)%>%
+    dplyr::mutate(n = round(LineLengthCM/interval, digits = 0))
 
   # Calculate the number of quadrats for all lines with woody species present.
   #This will use the points in Annual Use Points Repeat to count by line.
@@ -160,18 +160,25 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
   #Calculate metrics by plot
   if (!by_species){
     ageclass_sum <- woody_tall%>%
-      dplyr::filter(OverhangingOrRooted == "Rooted-in", !is.na(AgeClass), AgeClass != "")%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                       by = c("RiparianWoodySpecies" = "Symbol"))%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", RipWoodList == "Y")%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(WS_Rhizomatous_Cnt = sum(ifelse(AgeClass == "Rhizomatous", 1, 0)),
-                       WS_Seedling_Cnt = sum(ifelse(AgeClass == "Seedling", 1, 0)),
-                       WS_Young_Cnt = sum(ifelse(AgeClass == "Young", 1, 0)),
-                       WS_Mature_Cnt = sum(ifelse(AgeClass == "Mature", 1, 0)))%>%
+      dplyr::summarize(WS_Rhizomatous_Cnt = sum(ifelse(GrowthHabit == "Rhizomatous or Dwarf Shrub", 1, 0)),
+                       WS_Seedling_Cnt = sum(SeedlingCount, na.rm = T),
+                       WS_Young_Cnt = sum(YoungCount, na.rm = T),
+                       WS_Mature_Cnt = sum(MatureCount, na.rm = T),
+                       WS_Dead_Cnt = sum(DeadCount, na.rm = T))%>%
       dplyr::mutate(WS_Seedling_Pct = round(WS_Seedling_Cnt/sum(WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, na.rm = T)*100, digits = 2),
                     WS_Young_Pct = round(WS_Young_Cnt/sum(WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, na.rm = T)*100, digits = 2),
                     WS_Mature_Pct = round(WS_Mature_Cnt/sum(WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, na.rm = T)*100, digits = 2))
 
     rhiz_byquad <- woody_tall%>%
-      dplyr::filter(OverhangingOrRooted == "Rooted-in", AgeClass == "Rhizomatous")%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                       by = c("RiparianWoodySpecies" = "Symbol"))%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", GrowthHabit == "Rhizomatous or Dwarf Shrub", RipWoodList == "Y")%>%
       dplyr::distinct(!!!level, LineKey, PointNbr)%>%
       dplyr::group_by(!!!level)%>%
       dplyr::count()%>%
@@ -187,7 +194,8 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::distinct(!!!level, LineKey, PointNbr, HeightClass)%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(HeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+      dplyr::summarize(HeightClass0 = sum(ifelse(HeightClass == 0, 1, 0)),
+                       HeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
                        HeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
                        HeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
                        HeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
@@ -196,7 +204,8 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::full_join(.,
                        quadcount,
                        by = c("PlotID","EvaluationID"))%>%
-      dplyr::mutate(WS_HgtClass1_PctQdrts = round(HeightClass1/nquads * 100, digits = 2),
+      dplyr::mutate(WS_HgtClass0_PctQdrts = round(HeightClass0/nquads * 100, digits = 2),
+                    WS_HgtClass1_PctQdrts = round(HeightClass1/nquads * 100, digits = 2),
                     WS_HgtClass2_PctQdrts = round(HeightClass2/nquads * 100, digits = 2),
                     WS_HgtClass3_PctQdrts = round(HeightClass3/nquads * 100, digits = 2),
                     WS_HgtClass4_PctQdrts = round(HeightClass4/nquads * 100, digits = 2),
@@ -223,13 +232,14 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::group_by(!!!level)%>%
       dplyr::summarize(WS_DominantHgtClass = paste("Height Class ",
-                                                      which.max(tabulate(HeightClass)),
-                                                      case_when(which.max(tabulate(HeightClass))==1~" (0.0 - 0.5 m)",
-                                                                which.max(tabulate(HeightClass))==2~" (>0.5 - 1.0 m)",
-                                                                which.max(tabulate(HeightClass))==3~" (>1.0 - 2.0 m)",
-                                                                which.max(tabulate(HeightClass))==4~" (>2.0 - 4.0 m)",
-                                                                which.max(tabulate(HeightClass))==5~" (>4.0 - 8.0 m)",
-                                                                which.max(tabulate(HeightClass))==6~" (>8.0 m)",
+                                                      names(which.max(table(HeightClass))),
+                                                      case_when(names(which.max(table(HeightClass)))==0~" (0.0 - 0.2 m)",
+                                                                names(which.max(table(HeightClass)))==1~" (0.2 - 0.5 m)",
+                                                                names(which.max(table(HeightClass)))==2~" (>0.5 - 1.0 m)",
+                                                                names(which.max(table(HeightClass)))==3~" (>1.0 - 2.0 m)",
+                                                                names(which.max(table(HeightClass)))==4~" (>2.0 - 4.0 m)",
+                                                                names(which.max(table(HeightClass)))==5~" (>4.0 - 8.0 m)",
+                                                                names(which.max(table(HeightClass)))==6~" (>8.0 m)",
                                                                 TRUE~""),
                                                       sep = ""),
                        WS_WoodyHgtClass_Cnt = n())
@@ -239,7 +249,7 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::left_join(., allwoodyheight, by = level_colnames)%>%
       dplyr::left_join(., ageclass_sum, by = level_colnames)%>%
       dplyr::left_join(., rhiz_byquad, by = level_colnames)%>%
-      dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt,
+      dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                         WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),
                       .after = WS_WoodyHgtClass_Cnt)%>%
       dplyr::mutate(dplyr::across(dplyr::ends_with(c("Cnt","PctQdrts")), ~tidyr::replace_na(., 0)))
@@ -257,12 +267,16 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
 
     #Calculate metrics on known species
     ageclass_sum <- woody_tall%>%
-      dplyr::filter(OverhangingOrRooted == "Rooted-in", !is.na(AgeClass), AgeClass != "")%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                       by = c("RiparianWoodySpecies" = "Symbol"))%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", RipWoodList == "Y")%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
-      dplyr::summarize(WS_Rhizomatous_Cnt = sum(ifelse(AgeClass == "Rhizomatous", 1, 0)),
-                       WS_Seedling_Cnt = sum(ifelse(AgeClass == "Seedling", 1, 0)),
-                       WS_Young_Cnt = sum(ifelse(AgeClass == "Young", 1, 0)),
-                       WS_Mature_Cnt = sum(ifelse(AgeClass == "Mature", 1, 0)))%>%
+      dplyr::summarize(WS_Rhizomatous_Cnt = sum(ifelse(GrowthHabit == "Rhizomatous or Dwarf Shrub", 1, 0)),
+                       WS_Seedling_Cnt = sum(SeedlingCount, na.rm = T),
+                       WS_Young_Cnt = sum(YoungCount, na.rm = T),
+                       WS_Mature_Cnt = sum(MatureCount, na.rm = T),
+                       WS_Dead_Cnt = sum(DeadCount, na.rm = T))%>%
       dplyr::mutate(WS_Seedling_Pct = round(WS_Seedling_Cnt/sum(WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, na.rm = T)*100,
                                             digits = 2),
                     WS_Young_Pct = round(WS_Young_Cnt/sum(WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, na.rm = T)*100,
@@ -271,7 +285,10 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
                                           digits = 2))
 
     rhiz_byquad <- woody_tall%>%
-      dplyr::filter(OverhangingOrRooted == "Rooted-in", AgeClass == "Rhizomatous")%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                       by = c("RiparianWoodySpecies" = "Symbol"))%>%
+      dplyr::filter(OverhangingOrRooted == "Rooted-in", RipWoodList =="Y", GrowthHabit == "Rhizomatous or Dwarf Shrub")%>%
       dplyr::distinct(!!!level, LineKey, PointNbr, RiparianWoodySpecies, UnknownCodeKey)%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
       dplyr::count()%>%
@@ -287,7 +304,8 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::distinct(!!!level, LineKey, PointNbr, RiparianWoodySpecies, UnknownCodeKey, HeightClass)%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
-      dplyr::summarize(HeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
+      dplyr::summarize(HeightClass0 = sum(ifelse(HeightClass == 0, 1, 0)),
+                       HeightClass1 = sum(ifelse(HeightClass == 1, 1, 0)),
                        HeightClass2 = sum(ifelse(HeightClass == 2, 1, 0)),
                        HeightClass3 = sum(ifelse(HeightClass == 3, 1, 0)),
                        HeightClass4 = sum(ifelse(HeightClass == 4, 1, 0)),
@@ -296,7 +314,8 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::left_join(.,
                        quadcount,
                        by = c("PlotID","EvaluationID"))%>%
-      dplyr::mutate(WS_HgtClass1_PctQdrts = round(HeightClass1/nquads * 100, digits = 2),
+      dplyr::mutate(WS_HgtClass0_PctQdrts = round(HeightClass0/nquads * 100, digits = 2),
+                    WS_HgtClass1_PctQdrts = round(HeightClass1/nquads * 100, digits = 2),
                     WS_HgtClass2_PctQdrts = round(HeightClass2/nquads * 100, digits = 2),
                     WS_HgtClass3_PctQdrts = round(HeightClass3/nquads * 100, digits = 2),
                     WS_HgtClass4_PctQdrts = round(HeightClass4/nquads * 100, digits = 2),
@@ -322,13 +341,14 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
       dplyr::summarize(WS_DominantHgtClass = paste("Height Class ",
-                                                      which.max(tabulate(HeightClass)),
-                                                      case_when(which.max(tabulate(HeightClass))==1~" (0.0 - 0.5 m)",
-                                                                which.max(tabulate(HeightClass))==2~" (>0.5 - 1.0 m)",
-                                                                which.max(tabulate(HeightClass))==3~" (>1.0 - 2.0 m)",
-                                                                which.max(tabulate(HeightClass))==4~" (>2.0 - 4.0 m)",
-                                                                which.max(tabulate(HeightClass))==5~" (>4.0 - 8.0 m)",
-                                                                which.max(tabulate(HeightClass))==6~" (>8.0 m)",
+                                                   names(which.max(table(HeightClass))),
+                                                   case_when(names(which.max(table(HeightClass)))==0~" (0.0 - 0.2 m)",
+                                                             names(which.max(table(HeightClass)))==1~" (0.2 - 0.5 m)",
+                                                             names(which.max(table(HeightClass)))==2~" (>0.5 - 1.0 m)",
+                                                             names(which.max(table(HeightClass)))==3~" (>1.0 - 2.0 m)",
+                                                             names(which.max(table(HeightClass)))==4~" (>2.0 - 4.0 m)",
+                                                             names(which.max(table(HeightClass)))==5~" (>4.0 - 8.0 m)",
+                                                             names(which.max(table(HeightClass)))==6~" (>8.0 m)",
                                                                 TRUE~""),
                                                       sep = ""),
                        WS_WoodyHgtClass_Cnt = n())
@@ -339,7 +359,7 @@ ageclass_metrics <- function(header, woody_tall, masterspecieslist, by_line = F,
       dplyr::left_join(., ageclass_sum, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
       dplyr::left_join(., rhiz_byquad, by = c(level_colnames, "RiparianWoodySpecies", "UnknownCodeKey"))%>%
       dplyr::rename(Species = RiparianWoodySpecies)%>%
-      dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt,
+      dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                         WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),
                       .after = WS_WoodyHgtClass_Cnt)
 

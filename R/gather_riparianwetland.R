@@ -601,8 +601,7 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
   woody_tall <- woody_header%>%
     dplyr::select(PlotID,
                   EvaluationID,
-                  LineKey:WoodyStructureCollected,
-                  interval,
+                  LineKey:interval,
                   WoodySpeciesPresent)%>%
     dplyr::left_join(., woody_detail,
                      by = c("EvaluationID", "LineKey" = "RecKey")

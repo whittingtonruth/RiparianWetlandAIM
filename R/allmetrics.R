@@ -207,10 +207,13 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                                      sf::st_drop_geometry(),
                                    spp_inventory, by = c("PlotID", "EvaluationID"))%>%
     # Add back annual use species since these will not have a species inventory
-    dplyr::bind_rows(.,
-                     AnnualUseSpeciesHeader%>%
+    {if(nrow(AnnualUseSpeciesHeader)>0)
+      dplyr::bind_rows(.,
+                       AnnualUseSpeciesHeader%>%
                        sf::st_drop_geometry()%>%
-                       dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))%>%
+                       dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
+      else .
+      }%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::group_by(EvaluationID)%>%
