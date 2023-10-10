@@ -27,10 +27,10 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "FieldVisits")], sep = "/"))))%>%
+    fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "FieldVisits")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))
+    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "PlotCharacterization")], sep = "/"))))
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
