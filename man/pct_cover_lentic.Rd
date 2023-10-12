@@ -4,7 +4,7 @@
 \alias{pct_cover_lentic}
 \title{Calculate percent cover of grouping variables categories.}
 \usage{
-pct_cover_lentic(lpi_tall, tall = FALSE, hit = "any", by_line = FALSE, ...)
+pct_cover_lentic(lpi_tall, tall = FALSE, hit = "any", unit = "by_plot", ...)
 }
 \arguments{
 \item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output, or a modified version of the \code{lpi_tall} table that adds categorical information columns used in cover calculations.}
@@ -13,7 +13,7 @@ pct_cover_lentic(lpi_tall, tall = FALSE, hit = "any", by_line = FALSE, ...)
 
 \item{hit}{Character string. Absolute cover can be calculated from "any", "first", or "basal" hits. This will count all pin drops with hits fitting into \code{grouping_variable} categories in specified layers and calculate their cover relative to total pin drops. If "first" is used, only \code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Relative cover can be calculated from "all" hits, counting all hits of vascular species within \code{grouping_variable} categories. Defaults to "any".}
 
-\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using '\code{"LineKey"}. Defaults to FALSE.}
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{...}{Optional character strings. One or more variable name to calculate percent cover for, i.e. "GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".}
 }

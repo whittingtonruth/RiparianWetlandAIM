@@ -9,7 +9,7 @@
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output, or a modified version of the \code{lpi_tall} table that adds categorical information columns used in cover calculations.
 #'@param tall Logical. If TRUE then the returned data frame will be tall rather than wide and will not have observations for groups not observed in a given plot. Defaults to FALSE.
 #'@param hit Character string. Absolute cover can be calculated from "any", "first", or "basal" hits. This will count all pin drops with hits fitting into `grouping_variable` categories in specified layers and calculate their cover relative to total pin drops. If "first" is used, only \code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Relative cover can be calculated from "all" hits, counting all hits of vascular species within `grouping_variable` categories. Defaults to "any".
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using '\code{"LineKey"}. Defaults to FALSE.
+#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
 #'@param ... Optional character strings. One or more variable name to calculate percent cover for, i.e. "GrowthHabit", "Duration", "Nativity", or "WetlandIndicatorStatus".
 #'@returns Data frame of the percent cover by plot of each category combination of the grouping variables provided.
 
@@ -20,7 +20,7 @@ pct_cover_lentic <- function(lpi_tall,
                              #masterspecieslist,
                              tall = FALSE,
                              hit = "any",
-                             by_line = FALSE,
+                             unit = "by_plot",
                              ...){
 
   #Grouping variable specification
@@ -36,9 +36,14 @@ pct_cover_lentic <- function(lpi_tall,
   }
 
   #Specify how to group calculations
-  if (by_line) {
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  } else if (unit == "by_line") {
     level <- rlang::quos(PlotID, EvaluationID, LineKey)
     level_colnames <- c("PlotID", "EvaluationID", "LineKey")
+  } else if(unit == "by_geosurface") {
+    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
+    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
   } else {
     level <- rlang::quos(PlotID, EvaluationID)
     level_colnames <- c("PlotID", "EvaluationID")
@@ -95,13 +100,16 @@ pct_cover_lentic <- function(lpi_tall,
 
     lpi_tall <- merge(
       x = dplyr::distinct(dplyr::select(lpi_tall,
-                                        "PlotID",
-                                        "EvaluationID",
-                                        "LineKey",
-                                        "PointNbr",
-                                        "layer",
-                                        "code",
-                                        !!!grouping_variables)),
+                                        any_of(c(
+                                          "PlotID",
+                                          "EvaluationID",
+                                          "LineKey",
+                                          "PointNbr",
+                                          "GeoSurface",
+                                          "layer",
+                                          "code",
+                                          unlist(lapply(grouping_variables, rlang::as_name))))
+                                        )),
       y = firsthits,
       all.y = TRUE
       )%>%
@@ -138,18 +146,27 @@ pct_cover_lentic <- function(lpi_tall,
 
   #Based on whether grouping was at the plot- or transect-level, expand.grid is used to
     #add columns for empty metrics across all level cases, whether level be EvaluationID or linekey.
-  allsitemetrics <- if(length(level) == 2){
+  allsitemetrics <- if(unit == "by_plot"){
       expand.grid(EvaluationID= unique(lpi_tall%>%dplyr::pull(.,!!level[[2]])),
                   metric = unique(summary$metric), stringsAsFactors = F)%>%
-      right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID),
-                 .,
-                 by = "EvaluationID")
-    } else{
+      dplyr::right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID),
+                        .,
+                        by = "EvaluationID")
+    } else if (unit == "by_line"){
       expand.grid(LineKey = unique(lpi_tall%>%dplyr::pull(.,!!level[[3]])),
                 metric = unique(summary$metric), stringsAsFactors = F)%>%
-        right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID, LineKey),
-                   .,
-                   by = "LineKey")}
+        dplyr::right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID, LineKey),
+                          .,
+                          by = "LineKey")
+    } else if (unit == "by_geosurface"){
+      expand.grid(GeoSurface = unique(lpi_tall%>%dplyr::pull(.,!!level[[3]])),
+                  metric = unique(summary$metric), stringsAsFactors = F)%>%
+
+        dplyr::right_join(lpi_tall%>%dplyr::distinct(PlotID, EvaluationID, GeoSurface),
+                          .,
+                          by = "GeoSurface",
+                          relationship = "many-to-many")
+      }
 
   #Now join summary to full metric table.
   summary <- suppressWarnings(allsitemetrics%>%

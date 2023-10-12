@@ -14,26 +14,27 @@
 #'@param waterqualdet Optional data frame. Use the data frame from the file geodatabase. Must have EvaluationID as the identifying column.
 #'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
 #'@returns Data frame of indicator data calculated by EvaluationID.
 
 
 #'@export CombineRelativeCoverMetrics
 #'@rdname allmetrics
-CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes){
+CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes, unit = "by_plot"){
 
-  TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall)
+  TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall, unit = unit)
 
-  RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
+  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes, unit = unit)
 
-  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
+  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes, unit = unit)
 
   LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                                      EvaluationID,
@@ -55,40 +56,50 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
 #'@export CombineAbsoluteCoverMetrics
 #'@rdname allmetrics
-CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes){
+CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes, unit = "by_plot"){
 
-  Foliar <- pct_FoliarCover(lpi_tall)
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  } else if (unit == "by_line") {
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
+  } else if(unit == "by_geosurface") {
+    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
+    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
+  } else {
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
+  }
 
-  Basal <- pct_BasalCover(lpi_tall)
+  Foliar <- pct_FoliarCover(lpi_tall, unit = unit)
 
-  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
+  Basal <- pct_BasalCover(lpi_tall, unit = unit)
 
-  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)%>%
-    dplyr::select(PlotID,
-                  EvaluationID,
+  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
+
+  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
                   dplyr::any_of(c("AH_ForbCover",
                                   "AH_GraminoidCover",
                                   "AH_ShrubCover",
                                   "AH_TreeCover")))
 
-  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)
+  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)
 
-  AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)%>%
-    dplyr::select(PlotID,
-                  EvaluationID,
+  AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
                   dplyr::any_of(c("AH_AnnualGraminoidCover")))
 
-  AbsolutePreferredForbs <- pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsolutePreferredForbs <- pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)%>%
-                               dplyr::select(PlotID,
-                                             EvaluationID,
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist, unit = unit)%>%
+                               dplyr::select(!!!level,
                                              dplyr::any_of(c("AH_TotalLitterThatchCover" = "AH_LitterThatchCover",
                                                              "AH_MossCover",
                                                              "AH_AlgaeCover",
@@ -96,9 +107,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                              "AH_RockCover",
                                                              "AH_WaterCover",
                                                              "AH_SaltCrustCover"))),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist)%>%
-                               dplyr::select(PlotID,
-                                             EvaluationID,
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist, unit = unit)%>%
+                               dplyr::select(!!!level,
                                              dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
                                                              "FH_MossCover",
                                                              "FH_AlgaeCover",
@@ -108,7 +118,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                              "FH_SaltCrustCover",
                                                              "BareSoilCover" = "FH_SoilCover",
                                                              "BareOrganicMaterialCover" = "FH_OrganicMaterialCover"))),
-                             by = c("PlotID", "EvaluationID")
+                             by = level_colnames
   )
 
   LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -119,16 +129,16 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                    FieldEvalDate),
                                                             .,
                                                             by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., Basal, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteNative, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteNoxious, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteHydro, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteHydroFAC, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteGrowthHabit, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteDuration, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteDurationGrowth, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsolutePreferredForbs, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., NonPlantCover, by = c("PlotID", "EvaluationID"))
+    dplyr::left_join(., Basal, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNative, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNoxious, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydro, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydroFAC, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteGrowthHabit, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
+    dplyr::left_join(., AbsolutePreferredForbs, by = level_colnames)%>%
+    dplyr::left_join(., NonPlantCover, by = level_colnames)
 
   return(LPI_AbsoluteCover_Metrics)
 }

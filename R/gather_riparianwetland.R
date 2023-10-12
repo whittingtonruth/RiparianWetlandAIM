@@ -3,9 +3,8 @@
 #' @description This group of functions transforms data from varied formats into one uniform structure. It contains functions for transforming data from species inventory, unknown plants, LPI, LPI heights from LPI, Woody Structure, Annual Use, Hummocks, Gap, and Soil Stability tables. For LPI, gathering pivots the data from wide to long format. Gathering Unknown Plants also corrects field season data from online data. Most other transformations merely combine data from parent and child tables into a single table to be used in analysis and ensure consistent column names across sources.
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.For the AGOL source, a URL can be used.
 #' @param source Character string. The source and schema of the data being analyzed. Default is SDE, but other options are AGOL and GDB. AGOL anticipates loading data from a feature service URL from online, while GDB anticipates a structure identical to the Survey123 project but from a local File Geodatabase.
-#' @param familygenuslist data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.
-#' an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level
-#' ('Level'), i.e. "Family" or "Genus".
+#' @param lr Logical. Only used for LR integration data from LPI, where Geomorphic surface field should come with the data. Defaults to FALSE.
+#' @param familygenuslist data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level ('Level'), i.e. "Family" or "Genus".
 #' @importFrom magrittr %>%
 #' @name gather_RiparianWetland
 #' @return tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.
@@ -14,7 +13,7 @@
 #' @export gather_lpi_lentic
 #' @rdname gather_riparianwetland
 ## Function to transform LPI data into tall format.
-gather_lpi_lentic <- function(dsn, source = "SDE"){
+gather_lpi_lentic <- function(dsn, source = "SDE", lr = FALSE){
 
   #read in LPI header and detail tables
   if(source == "GDB"){
@@ -62,6 +61,14 @@ gather_lpi_lentic <- function(dsn, source = "SDE"){
     stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
+  if (lr) {
+    level <- rlang::quos(RecKey, PointNbr, PointLoc, GeoSurface)
+    level_colnames <- c("RecKey", "PointNbr", "PointLoc", "GeoSurface")
+  } else {
+    level <- rlang::quos(RecKey, PointNbr, PointLoc)
+    level_colnames <- c("RecKey", "PointNbr", "PointLoc")
+  }
+
   #Structure LPI to be tall instead of wide. First need to create standard
   #structure in the column names to fit with a pivot_wider function.
   lpi_hits_tall <- lpi_detail %>%
@@ -77,15 +84,13 @@ gather_lpi_lentic <- function(dsn, source = "SDE"){
                        c("TopCanopy", dplyr::matches("^Lower"), SoilSurface))%>%
     #rename unknowncodekey fields to match pattern.
     dplyr::rename_with(.,
-                       .fn = ~paste("UnknownCodeKey", str_extract(., "(?<=^UnknownCode)(.+)(?=Key$)"), sep = ""),
+                       .fn = ~paste("UnknownCodeKey", stringr::str_extract(., "(?<=^UnknownCode)(.+)(?=Key$)"), sep = ""),
                        .cols = matches("^[UnknownCode](.+)Key$"))%>%
-    dplyr::select(RecKey,
-                  PointNbr,
-                  PointLoc,
+    dplyr::select(!!!level,
                   dplyr::starts_with("code"),
                   dplyr::starts_with("Chkbox"), dplyr::starts_with("UnknownCodeKey")) %>%
     tidyr::pivot_longer(
-      cols = -c(RecKey, PointNbr, PointLoc),
+      cols = -c(!!!level),
       names_to = c(".value", "layer"),
       names_pattern = "(code|Chkbox|UnknownCodeKey)(TopCanopy|Lower1|Lower2|Lower3|Lower4|Lower5|Lower6|Lower7|SoilSurface)$",
       values_to = c("code"))%>%
@@ -319,7 +324,7 @@ gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
 
 #' @export gather_height_lentic
 #' @rdname gather_riparianwetland
-gather_height_lentic <- function(dsn, source = "SDE"){
+gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
   # Read in LPI files from geodatabase
   if(source == "GDB"){
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
@@ -365,6 +370,14 @@ gather_height_lentic <- function(dsn, source = "SDE"){
     stop("source must be 'SDE', 'GDB' or 'AGOL'.")
   }
 
+  if (lr) {
+    level <- rlang::quos(RecKey, PointNbr, PointLoc, GeoSurface)
+    level_colnames <- c("RecKey", "PointNbr", "PointLoc", "GeoSurface")
+  } else {
+    level <- rlang::quos(RecKey, PointNbr, PointLoc)
+    level_colnames <- c("RecKey", "PointNbr", "PointLoc")
+  }
+
   # We only want to carry a subset of the lpi_header fields forward
   lpi_header <- dplyr::select(lpi_header,
                               PlotID,
@@ -373,9 +386,7 @@ gather_height_lentic <- function(dsn, source = "SDE"){
 
   lpi_height_tall_woody <- dplyr::select(
     .data = lpi_detail,
-    RecKey,
-    PointLoc,
-    PointNbr,
+    !!!level,
     dplyr::matches("Woody$|WoodyKey$|^WoodyHeightClass$")
   ) %>% dplyr::mutate(type = "Woody", GrowthHabit_measured = "Woody")
   # Strip out the extra name stuff so woody and herbaceous variable names match
@@ -387,9 +398,7 @@ gather_height_lentic <- function(dsn, source = "SDE"){
 
   lpi_height_tall_herb <- dplyr::select(
     .data = lpi_detail,
-    PointLoc,
-    PointNbr,
-    RecKey,
+    !!!level,
     dplyr::matches("Herbaceous$|HerbaceousKey$")
   ) %>% dplyr::mutate(type = "Herbaceous", GrowthHabit_measured = "Herbaceous")
   names(lpi_height_tall_herb) <- stringr::str_replace_all(
@@ -399,9 +408,7 @@ gather_height_lentic <- function(dsn, source = "SDE"){
   )
 
   lpi_depth_litter <- lpi_detail %>%
-    dplyr::select(PointLoc,
-                  PointNbr,
-                  RecKey,
+    dplyr::select(!!!level,
                   LitterOrThatchDepth,
                   LitterType)%>%
     dplyr::mutate(GrowthHabit_measured = "LitterThatch")%>%
@@ -409,9 +416,7 @@ gather_height_lentic <- function(dsn, source = "SDE"){
                   Height = LitterOrThatchDepth)
 
   lpi_depth_water <- lpi_detail %>%
-    dplyr::select(PointLoc,
-                  PointNbr,
-                  RecKey,
+    dplyr::select(!!!level,
                   WaterDepth)%>%
     dplyr::mutate(type = "Water",
                   GrowthHabit_measured = "Water")%>%

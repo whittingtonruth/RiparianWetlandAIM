@@ -13,13 +13,13 @@
 \alias{gather_soilstab}
 \title{Transform raw datatables from multiple sources into standard format}
 \usage{
-gather_lpi_lentic(dsn, source = "SDE")
+gather_lpi_lentic(dsn, source = "SDE", lr = FALSE)
 
 gather_species_inventory_lentic(dsn, source = "SDE")
 
 gather_unknowns_lentic(dsn, familygenuslist, source = "SDE")
 
-gather_height_lentic(dsn, source = "SDE")
+gather_height_lentic(dsn, source = "SDE", lr = FALSE)
 
 gather_annualuse(dsn, source = "SDE")
 
@@ -36,9 +36,9 @@ gather_soilstab(dsn, source = "SDE")
 
 \item{source}{Character string. The source and schema of the data being analyzed. Default is SDE, but other options are AGOL and GDB. AGOL anticipates loading data from a feature service URL from online, while GDB anticipates a structure identical to the Survey123 project but from a local File Geodatabase.}
 
-\item{familygenuslist}{data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.
-an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level
-('Level'), i.e. "Family" or "Genus".}
+\item{lr}{Logical. Only used for LR integration data from LPI, where Geomorphic surface field should come with the data. Defaults to FALSE.}
+
+\item{familygenuslist}{data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level ('Level'), i.e. "Family" or "Genus".}
 }
 \value{
 tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.

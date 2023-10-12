@@ -18,68 +18,102 @@
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
-pct_FoliarCover(lpi_tall)
+pct_FoliarCover(lpi_tall, unit = "by_plot")
 
-pct_BasalCover(lpi_tall)
+pct_BasalCover(lpi_tall, unit = "by_plot")
 
-pct_TotalAbsoluteCover(lpi_tall)
+pct_TotalAbsoluteCover(lpi_tall, unit = "by_plot")
 
-pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
+pct_NativeCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
-pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+pct_NoxiousCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
 pct_HydrophyteCover(
   header,
   lpi_tall,
   masterspecieslist,
-  covertype = "absolute"
+  covertype = "absolute",
+  unit = "by_plot"
 )
 
-pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+pct_HydroFACCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
 pct_GrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_DurationCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_DurationGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_NativeGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_NativeDurationGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
-pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+pct_PreferredForbCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
-pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)
+pct_NonPlantGroundCover(
+  lpi_tall,
+  hit = "any",
+  masterspecieslist,
+  unit = "by_plot"
+)
 
-pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
+pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
 }
 \arguments{
-\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
+\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
+#'@param unit String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
