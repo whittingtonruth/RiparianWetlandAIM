@@ -618,8 +618,7 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
                   PreferredForb
     )
 
-  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
-  #These plant hits would be included in the denominator of the calculation if left in.
+  #join lpi_tall to species list.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
     mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
 
@@ -632,8 +631,7 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
                     GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit,GrowthHabitSub))
   }
 
-  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
-  #cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute cover, I can't remove empty values, because it'll throw off the number of pindrops.
   lpispeciesjoin <- lpispeciesjoin%>%
     {if(covertype == "relative") dplyr::filter(., Duration !=""&!is.na(Duration)&GrowthHabitSub !=""&!is.na(GrowthHabitSub)&NativeStatus!=""&!is.na(NativeStatus)) else .}
 
@@ -646,7 +644,7 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
                                                        "relative" = "all",
                                                        "absolute" = "any"),
                                           unit = unit,
-                                          NativeStatus, Duration,GrowthHabitSub)%>%
+                                          NativeStatus, Duration, GrowthHabitSub)%>%
     dplyr::mutate(metric = paste(fieldname,
                                  stringr::str_replace_all(
                                    stringr::str_to_title(
@@ -657,6 +655,51 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationGrowthCover)
+}
+
+#'@export pct_StabilityClassCover
+#'@rdname Cover_Metrics
+pct_StabilityClassCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  StabilityName)
+
+  #join lpi_tall to species list. Fill in species with no stability class as "Unknown"
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    mutate(StabilityName = ifelse(StabilityName == "", "Unknown", StabilityName))
+
+  #Then filter out any blank values where StabilityName == "". This is only necessary for relative cover calculations. For Absolute cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., StabilityName !=""&!is.na(StabilityName)) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #pivot to show in wide format by EvaluationID
+  StabilityCover <- pct_cover_lentic(lpispeciesjoin,
+                                          tall = TRUE,
+                                          hit = switch(covertype,
+                                                       "relative" = "all",
+                                                       "absolute" = "any"),
+                                          unit = unit,
+                                          StabilityName)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""),
+                                 "StabilityCover", sep = ""))%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(StabilityCover)
 }
 
 #'@export pct_PreferredForbCover
@@ -775,6 +818,14 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist, unit = "by_plo
   #select necessary columns in species list
   masterspecieslist <- masterspecieslist %>%
     dplyr::select(Symbol, Scientific.Name,Common.Name, Species)
+
+  #check that all codes in lpi tall are accounted for.
+  nmissspp <- lpi_tall%>%
+    dplyr::filter(!code %in% c(masterspecieslist$Symbol, nonplantcodes$code), !stringr::str_detect(code, "XXXX"))%>%
+    dplyr::distinct(code)%>%dplyr::count()
+  if(nmissspp > 0){
+    warning(paste(as.character(nmissspp), " code(s) is in the LPI table that is missing from the species list or the list of non-plant codes. ", sep = ""))
+  }
 
   #Remove all unknowncodekeys for species that were identified to species. Use this
   #datatable to calculate cover for unknowns.
