@@ -795,6 +795,45 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", masterspecieslist, un
   return(NonPlantCover)
 }
 
+#'@export pct_UnknownCover
+#'@rdname Cover_Metrics
+pct_UnknownCover <- function(lpi_tall, masterspecieslist, covertype = "relative", unit = "by_plot"){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  GenusSpecies
+    )
+
+  masterspecieslist$GenusSpecies[masterspecieslist$GenusSpecies==""] <- "Unknown"
+
+  #join lpi_tall to species list then filter out species that were not classified as either native or nonnative.
+  ##Only filter out plants not classified as native or nonnative for relative cover.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    {if(covertype == "relative") dplyr::filter(., !is.na(GenusSpecies)) else .}
+
+  UnknownCover <- pct_cover_lentic(lpispeciesjoin,
+                                  tall = TRUE,
+                                  hit = switch(covertype,
+                                               "relative" = "all",
+                                               "absolute" = "any"),
+                                  unit = unit,
+                                  GenusSpecies)%>%
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    dplyr::filter(grepl("Unknown", metric))%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(UnknownCover)
+}
+
 #'@export pct_AbsoluteSpeciesCover
 #'@rdname Cover_Metrics
 pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist, unit = "by_plot"){
