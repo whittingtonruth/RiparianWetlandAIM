@@ -20,7 +20,6 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                             stringsAsFactors = FALSE)
 
     message("File Geodatabase data type is being downloaded and gathered into header table used to select sites for analysis. ")
-
   }
 
   else if(source == "AGOL"){
@@ -47,7 +46,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   plotchar <- plotchar%>%
     mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
-           VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
+           #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
            StateCode = SpeciesState)
 
   # Create a list of fields to keep, then test whether they are present in the header table.
@@ -109,6 +108,8 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
 
     header <- header%>%
       bind_rows(., annualusevisits)
+  } else {
+    warning("annualuse_tall table was not used to create header. All Annual Use Only visits will be excluded from analysis. ")
   }
 
   if(nrow(header%>%filter(duplicated(EvaluationID)))>0){
