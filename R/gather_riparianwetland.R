@@ -135,11 +135,11 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
     species_inventory_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SpeciesInventory")], sep = "/"))))%>%
       sf::st_drop_geometry()%>%
-      filter(Calibration %in% c("Production"))
+      dplyr::filter(Calibration %in% c("Production"))
 
     species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "SpecRichDetail")], sep = "/")))%>%
       dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")%>%
-      filter(is.na(RecKey)|!str_detect(RecKey, "CALIBRATION"))
+      dplyr::filter(is.na(RecKey)|!stringr::str_detect(RecKey, "CALIBRATION"))
 
     message("Downloading and gathering Species Inventory from ArcGIS Online live feature service.")
   }
@@ -249,13 +249,13 @@ gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
         "IdentificationStatus",
         "parentglobalid"
       )%>%
-      right_join(x = UnknownPlants_header%>%dplyr::select("globalid","PlotID":"VisitDate"),
+      dplyr::right_join(x = UnknownPlants_header%>%dplyr::select("globalid","PlotID":"VisitDate"),
                  y = .,
                  by = c("globalid" = "parentglobalid"))%>%
-      select(-globalid)
+      dplyr::select(-globalid)
 
     UnknownPlants_tall <- UnknownPlants_tall%>%
-      filter(!is.na(UnknownCodeKey))%>%
+      dplyr::filter(!is.na(UnknownCodeKey))%>%
       dplyr::left_join(.,
                        familygenuslist%>%dplyr::filter(Level=="Genus")%>%dplyr::select(GenusCode = Code, ScientificName),
                        by = c("Genus" = "ScientificName"))%>%
@@ -423,7 +423,7 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
     dplyr::rename(Height = WaterDepth)
 
   #Merge all three plant height tables together
-  lpi_height <- dplyr::bind_rows(
+  height_tall <- dplyr::bind_rows(
     lpi_height_tall_woody,
     lpi_height_tall_herb,
     lpi_depth_litter,
@@ -434,7 +434,7 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
     subset(., !is.na(Height))
 
   # Output the woody/herbaceous level data
-  return(lpi_height)
+  return(height_tall)
 }
 
 #' @export gather_annualuse
@@ -690,31 +690,30 @@ gather_gap <- function(dsn, source = "SDE"){
                   layer = "Gap",
                   stringsAsFactors = F)%>%
         sf::st_drop_geometry())%>%
-      dplyr::select(PlotID:LineKey,
-                    HummocksPresentLine)
+      dplyr::select(PlotID:Direction)
 
     gap_detail <- suppressWarnings(
       sf::st_read(dsn = dsn,
                   layer = "GapDetail",
                   stringsAsFactors = F))%>%
-      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
-                    RecKey:VegCover)
+      dplyr::select("EvaluationID"="GapEvaluationID",
+                    RecKey:Gap)
 
-    message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into a gap tall table. ")
     }
   else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    gap_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Hummocks")], sep = "/"))))%>%
+    gap_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Gap")], sep = "/"))))%>%
       sf::st_drop_geometry()%>%
-      dplyr::select(PlotID:LineKey, HummocksPresentLine)
+      dplyr::select(PlotID:Direction)
 
-    gap_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "HummockDetail")], sep = "/")))%>%
-      dplyr::select("EvaluationID"="HummockDetailEvaluationID",
-                    RecKey:VegCover)
+    gap_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "GapDetail")], sep = "/")))%>%
+      dplyr::select("EvaluationID"="GapEvaluationID",
+                    RecKey:Gap)
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into a gap tall table. ")
     }
   else if(source == "SDE"){
     gap_header <- suppressWarnings(
@@ -727,7 +726,7 @@ gather_gap <- function(dsn, source = "SDE"){
                   layer = "F_GapDetail",
                   stringsAsFactors = F, quiet = T))
 
-    message("Gathering tables from the SDE into woody structure tall table. ")
+    message("Gathering tables from the SDE into gap tall table. ")
   }
 
   # Join the detail table to the header.
@@ -752,13 +751,13 @@ gather_gap <- function(dsn, source = "SDE"){
 gather_soilstab <- function(dsn, source = "SDE"){
 
   if(source == "GDB"){
-    gap_header <- suppressWarnings(
+    soilstab <- suppressWarnings(
       sf::st_read(dsn = dsn,
                   layer = "SoilStability",
                   stringsAsFactors = F)%>%
         sf::st_drop_geometry())
 
-    message("File Geodatabase data type is being downloaded and gathered into a hummock tall table. ")
+    message("File Geodatabase data type is being downloaded and gathered into a soil stability table. ")
   }
   else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
@@ -766,7 +765,7 @@ gather_soilstab <- function(dsn, source = "SDE"){
     soilstab <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SoilStability")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into a soil stability table. ")
   }
   else if(source == "SDE"){
     soilstab <- suppressWarnings(
@@ -774,13 +773,13 @@ gather_soilstab <- function(dsn, source = "SDE"){
                   layer = "F_SoilStability",
                   stringsAsFactors = F, quiet = T))
 
-    message("Gathering tables from the SDE into woody structure tall table. ")
+    message("Gathering tables from the SDE into soil stability tall table. ")
   }
 
-  gathered <- soilstab%>%
+  soil_stability <- soilstab%>%
     dplyr::select(-c(PlotID, AdminState, FormDate, Observer, Notes))%>%
     tidyr::pivot_longer(.,c(Veg1:Hydro18))%>%
-    filter(value!="")%>%
+    dplyr::filter(value!="")%>%
     dplyr::mutate(key = stringr::str_extract(string = name,
                                              pattern = "^[A-z]+"),
                   Position = stringr::str_extract(string = name,
@@ -792,6 +791,110 @@ gather_soilstab <- function(dsn, source = "SDE"){
     # Change all Unsampleable points to NA instead of 0
     dplyr::mutate(Rating = ifelse(Veg == "U", NA, Rating))
 
-  return(gathered)
+  return(soil_stability)
 
 }
+
+#' @export gather_all_riparianwetland
+#' @rdname gather_riparianwetland
+gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE", lr = FALSE, familygenuslist,
+                                       AKmethods = TRUE, covariates = TRUE){
+
+  tableList <- list()
+
+  lpi_tall <- gather_lpi_lentic(dsn = dsn, source = source, lr = lr)
+  tableList$lpi_tall <- lpi_tall
+
+  species_inventory_tall <- gather_species_inventory_lentic(dsn = dsn, source = source)
+  tableList$species_inventory_tall <- species_inventory_tall
+
+  unknowncodes <- gather_unknowns_lentic(dsn = dsn, source = source, familygenuslist = familygenuslist)
+  tableList$unknowncodes <- lpi_tall
+
+  height_tall <- gather_height_lentic(dsn = dsn, source = source, lr = lr)
+  tableList$height_tall <- height_tall
+
+  woody_tall <- gather_woodyspecies(dsn = dsn, source = source)
+  tableList$woody_tall <- woody_tall
+
+  annualuse_tall <- gather_annualuse(dsn = dsn, source = source)
+  tableList$annualuse_tall <- annualuse_tall
+
+  hummocks <- gather_hummocks(dsn = dsn, source = source)
+  tableList$hummocks <- hummocks
+
+  if(AKmethods == T){
+    gap_tall <- gather_gap(dsn = dsn, source = source)
+    tableList$gap_tall <- gap_tall
+
+    soil_stability <- gather_soilstab(dsn = dsn, source = source)
+    tableList$soil_stability <- soil_stability
+  }
+
+  if(covariates == T){
+
+    if(source == "GDB"){
+      hydrology <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "Hydrology",
+                    stringsAsFactors = F)%>%
+          sf::st_drop_geometry())
+
+      soils <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "Soils",
+                    stringsAsFactors = F)%>%
+          sf::st_drop_geometry())
+
+      disturbances <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "DisturbancesDetail",
+                    stringsAsFactors = F)%>%
+          dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID))
+
+      message("Hydrology, Soils, and Disturbances data is being formatted from the file geodatabase format. ")
+    }
+    else if(source == "AGOL"){
+      fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+      rs <- arcgisbinding::arc.open(dsn)@children$Table
+
+      hydrology <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Hydrology")], sep = "/"))))%>%
+        sf::st_drop_geometry()
+
+      soils <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Soils")], sep = "/"))))%>%
+        sf::st_drop_geometry()
+
+      disturbances <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "DisturbancesDetail")], sep = "/")))%>%
+        dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID)
+
+      message("Hydrology, Soils, and Disturbances data is being downloaded and formatted from AGOL. ")
+    }
+    else if(source == "SDE"){
+      hydrology <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "F_Hydrology",
+                    stringsAsFactors = F))
+
+      soils <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "F_Soils",
+                    stringsAsFactors = F)%>%
+          sf::st_drop_geometry())
+
+      disturbances <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "F_DisturbancesDetail",
+                    stringsAsFactors = F))
+
+      message("Hydrology, Soils, and Disturbances data is being formatted from the SDE. ")
+    }
+
+    tableList$hydrology <- hydrology
+    tableList$soils <- soils
+    tableList$disturbances <- disturbances
+
+  }
+
+  return(tableList)
+
+  }
