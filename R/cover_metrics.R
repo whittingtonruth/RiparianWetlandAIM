@@ -704,7 +704,7 @@ pct_StabilityClassCover <- function(header, lpi_tall, masterspecieslist, coverty
 
 #'@export pct_PreferredForbCover
 #'@rdname Cover_Metrics
-pct_PreferredForbCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
+pct_SGGroupCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -716,29 +716,34 @@ pct_PreferredForbCover <- function(lpi_tall, masterspecieslist, covertype = "abs
     dplyr::select(Symbol,
                   Scientific.Name,
                   Species,
-                  PreferredForb
+                  SG_Group
     )
 
-  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
+  #join lpi_tall to species list. Remove plant hits with no SG_Group which are not ID'd to species. This is only necessary for relative cover.
   #These plant hits would be included in the denominator of the calculation if left in.
-  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    {if(covertype == "relative") dplyr::filter(.,Species !=""|is.na(Species)|SG_Group !="") else .}
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
-  PreferredForbCover <- pct_cover_lentic(lpispeciesjoin,
+  SGGroupCover <- pct_cover_lentic(lpispeciesjoin,
                                     tall = TRUE,
                                     hit = switch(covertype,
                                                  "relative" = "all",
                                                  "absolute" = "any"),
                                     unit = unit,
-                                    PreferredForb)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = "", "Y" = "PreferredForb")), "Cover", sep = ""))%>%
-    dplyr::filter(grepl("PreferredForb", metric))%>%
+                                    SG_Group)%>%
+    dplyr::mutate(metric = paste(fieldname, "SG",
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""), "Cover", sep = ""))%>%
+    dplyr::filter(grepl("PreferredForb|Conifer|InvasiveAnnualGrass", metric))%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
-  return(PreferredForbCover)
+  return(SGGroupCover)
 }
 
 #'@export pct_NonPlantGroundCover
