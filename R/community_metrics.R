@@ -5,7 +5,7 @@
 #'Similarly to relative cover calculations, all species with unknown traits (e.g. an unknown plant identified only as Elymus sp.) must be filtered out prior to calculating community metrics. All community metric calculations may be calculated using \code{Community_Metrics()}
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.
-#'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
+#'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param listtype Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".
 #'@param method character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.
