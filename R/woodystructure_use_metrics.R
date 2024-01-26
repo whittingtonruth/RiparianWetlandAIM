@@ -57,7 +57,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
     #Next calculate AnnualUse metrics
     annualusemetrics <- annualuse_tall%>%
       dplyr::group_by(!!!level)%>%
-      dplyr::summarize(AU_SoilAlteration_Avg = round(mean(as.numeric(SoilAlteration), na.rm = T), digits = 2),
+      dplyr::summarize(AU_SoilAlteration_Avg = round(mean(as.numeric(SoilAlteration), na.rm = T)/5, digits = 4),
                        AU_StubbleHgt_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
                        AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0), na.rm = T)/sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
                        AU_StubbleHgt_Cnt = sum(ifelse(StubbleHeightDominantSpecies != "N", 1, 0)), .groups = "keep")%>%
