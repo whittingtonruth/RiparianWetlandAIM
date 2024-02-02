@@ -13,8 +13,10 @@
 \alias{pct_DurationGrowthHabitCover}
 \alias{pct_NativeGrowthHabitCover}
 \alias{pct_NativeDurationGrowthHabitCover}
-\alias{pct_PreferredForbCover}
+\alias{pct_StabilityClassCover}
+\alias{pct_SGGroupCover}
 \alias{pct_NonPlantGroundCover}
+\alias{pct_UnknownCover}
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
@@ -95,7 +97,15 @@ pct_NativeDurationGrowthHabitCover(
   unit = "by_plot"
 )
 
-pct_PreferredForbCover(
+pct_StabilityClassCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
+
+pct_SGGroupCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
@@ -106,6 +116,13 @@ pct_NonPlantGroundCover(
   lpi_tall,
   hit = "any",
   masterspecieslist,
+  unit = "by_plot"
+)
+
+pct_UnknownCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "relative",
   unit = "by_plot"
 )
 

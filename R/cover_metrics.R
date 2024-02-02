@@ -702,7 +702,7 @@ pct_StabilityClassCover <- function(header, lpi_tall, masterspecieslist, coverty
   return(StabilityCover)
 }
 
-#'@export pct_PreferredForbCover
+#'@export pct_SGGroupCover
 #'@rdname Cover_Metrics
 pct_SGGroupCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
 
