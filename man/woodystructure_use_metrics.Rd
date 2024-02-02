@@ -18,6 +18,7 @@ use_metrics(
 ageclass_metrics(
   header,
   woody_tall,
+  tree_tall,
   masterspecieslist,
   by_line = F,
   by_species = F
@@ -35,6 +36,8 @@ hummocks_metrics(hummocks, by_line = F)
 \item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.}
 
 \item{by_species}{Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.}
+
+\item{tree_tall}{Data frame. Use the data frame from the \code{gather_tree()} output.}
 
 \item{hummocks}{Data frame. Use the data frame from the \code{gather_hummocks()} output.}
 }
