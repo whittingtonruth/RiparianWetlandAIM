@@ -7,6 +7,7 @@
 height_metrics(
   height_tall,
   masterspecieslist,
+  unknowncodes,
   method = "mean",
   by_line = FALSE,
   omit_zero = TRUE,
@@ -17,6 +18,8 @@ height_metrics(
 \item{height_tall}{Data frame. Use the data frame from the \code{gather_height_lentic()} output.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+
+\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in growth habit for plants in LPI never identified to a species or genus with those fields specified. This information is used to filter out herbaceous height measurements of non-herbaceous species and woody height measurements of non-woody species. If not included, unknown growth habit measurements will be maintained in the final height calculations.}
 
 \item{method}{Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.}
 
