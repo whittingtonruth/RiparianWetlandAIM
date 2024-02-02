@@ -331,9 +331,9 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
   return(totals)
 }
 
-#'@export Community_PreferredForb
+#'@export Community_SGGroup
 #'@rdname Community_Metrics
-Community_PreferredForb <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_SGGroup <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
     stop("listtype must be 'speciesinventory' or 'lpi'.")
