@@ -8,16 +8,18 @@
 \alias{gather_height_lentic}
 \alias{gather_annualuse}
 \alias{gather_woodyspecies}
+\alias{gather_tree}
 \alias{gather_hummocks}
 \alias{gather_gap}
 \alias{gather_soilstab}
+\alias{gather_all_riparianwetland}
 \title{Transform raw datatables from multiple sources into standard format}
 \usage{
 gather_lpi_lentic(dsn, source = "SDE", lr = FALSE)
 
 gather_species_inventory_lentic(dsn, source = "SDE")
 
-gather_unknowns_lentic(dsn, familygenuslist, source = "SDE")
+gather_unknowns_lentic(dsn, source = "SDE", familygenuslist = NULL)
 
 gather_height_lentic(dsn, source = "SDE", lr = FALSE)
 
@@ -25,11 +27,21 @@ gather_annualuse(dsn, source = "SDE")
 
 gather_woodyspecies(dsn, source = "SDE")
 
+gather_tree(dsn, source = "SDE")
+
 gather_hummocks(dsn, source = "SDE")
 
 gather_gap(dsn, source = "SDE")
 
 gather_soilstab(dsn, source = "SDE")
+
+gather_all_riparianwetland(
+  dsn,
+  source = "SDE",
+  lr = FALSE,
+  familygenuslist = NULL,
+  covariates = TRUE
+)
 }
 \arguments{
 \item{dsn}{Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.For the AGOL source, a URL can be used.}

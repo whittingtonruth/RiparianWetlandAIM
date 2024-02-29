@@ -186,7 +186,7 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
 #' @export gather_unknowns_lentic
 #' @rdname gather_riparianwetland
-gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
+gather_unknowns_lentic <- function(dsn, source = "SDE", familygenuslist = NULL) {
 
   # Read in the files from the geodatabase
   if(source == "GDB"){
@@ -225,7 +225,7 @@ gather_unknowns_lentic <- function(dsn, familygenuslist, source = "SDE") {
   else if(source == "AGOL"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into unknown table. All unknown species will be maintained in the list for use in correcting uningested data. ")
 
-    if(missing(familygenuslist)){
+    if(is.null(familygenuslist)){
       stop("If loading during-season data, the unknown species list must be corrected with a provided genus and family code list. ")
     }
 
@@ -350,7 +350,7 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
 
     lpi_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "LPI")], sep = "/")))
 
-    message("Gathering LPI data from ArcGIS Online live feature service into LPI tall table. ")
+    message("Gathering LPI data from ArcGIS Online live feature service into LPI Heights table. ")
   }
   else if(source == "SDE"){
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
@@ -363,7 +363,7 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
                                                stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
-    message("Gathering LPI data from the SDE into LPI tall table. ")
+    message("Gathering LPI data from the SDE into LPI Heights table. ")
   }
   #Check that the source is one of the appropriate options
   else{
@@ -606,7 +606,7 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
   woody_tall <- woody_header%>%
     dplyr::select(PlotID,
                   EvaluationID,
-                  LineKey:interval,
+                  LineKey, Observer, Recorder, FormDate, AnnualUseCollected, WoodyStructureCollected, LineLengthCM, interval,
                   WoodySpeciesPresent)%>%
     dplyr::left_join(., woody_detail,
                      by = c("EvaluationID", "LineKey" = "RecKey")
@@ -614,6 +614,110 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
     dplyr::filter(WoodyStructureCollected == "Yes")
 
   return(woody_tall)
+}
+
+#' @export gather_tree
+#' @rdname gather_riparianwetland
+gather_tree <- function(dsn, source = "SDE"){
+
+  #read in woody header and detail tables
+  if(source == "GDB"){
+    woody_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "WoodyStructureAnnualUse",
+                  stringsAsFactors = F))%>%
+      sf::st_drop_geometry()
+
+    points_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "AnnualUsePointsRepeat",
+                  stringsAsFactors = F))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
+
+    tree_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "TreeRepeat",
+      stringsAsFactors = F
+    ))%>%
+      dplyr::rename("EvaluationID" = "TreeEvaluationID",
+                    "RecKey" = "TreeRecKey",
+                    "PointNbr" = "TreePointNbr")%>%
+      dplyr::mutate(PointNbr = as.numeric(PointNbr))
+
+    message("File Geodatabase data type is being downloaded and gathered into tree table. ")
+  }
+
+  else if(source == "AGOL"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+
+    woody_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WoodyStructureAnnualUse")], sep = "/"))))%>%
+      sf::st_drop_geometry()
+
+    points_header <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "AnnualUsePointsRepeat")], sep = "/")))%>%
+      dplyr::rename("EvaluationID" = "AnnualUsePointsEvaluationID")
+
+    tree_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "TreeRepeat")], sep = "/")))%>%
+      dplyr::rename("EvaluationID" = "TreeEvaluationID",
+                    "RecKey" = "TreeRecKey",
+                    "PointNbr" = "TreePointNbr")%>%
+      dplyr::mutate(PointNbr = as.numeric(PointNbr))
+
+    message("ArcGIS Online live feature service data type is being downloaded and gathered into tree table. ")
+  }
+  else if(source == "SDE"){
+    woody_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_WoodyStructureAnnualUse",
+                  stringsAsFactors = F))
+
+    points_header <- suppressWarnings(
+      sf::st_read(dsn = dsn,
+                  layer = "F_AnnualUsePointsRepeat",
+                  stringsAsFactors = F))
+
+    tree_detail <- suppressWarnings(sf::st_read(
+      dsn = dsn,
+      layer = "F_TreeRepeat",
+      stringsAsFactors = F
+    ))%>%
+      #Finalize this once new SDE structure is available.
+      dplyr::mutate(TreeSpecies = Species,
+             TreeUnknownCodeKey = UnknownCodeKey,
+             TreeIndivLiveDead = IndivLiveDead)%>%
+      dplyr::select(-c(Species, UnknownCodeKey))
+
+    message("Gathering tables from the SDE into tree table. ")
+  }
+  #Check that the source is one of the appropriate options
+  else{
+    stop("source must be 'SDE', 'GDB' or 'AGOL'.")
+  }
+
+  woody_detail <- tree_detail%>%
+    # dplyr::select(EvaluationID,
+    #               RecKey,
+    #               PointNbr,
+    #               RiparianWoodySpecies,
+    #               UnknownCodeKey:AgeClass)%>%
+    dplyr::left_join(points_header%>%
+                       dplyr::select(EvaluationID,
+                                     RecKey,
+                                     PointNbr),
+                     .,
+                     by = c("EvaluationID", "RecKey", "PointNbr"))
+
+  tree_tall <- woody_header%>%
+    dplyr::select(PlotID,
+                  EvaluationID,
+                  LineKey:interval,
+                  WoodySpeciesPresent)%>%
+    dplyr::left_join(., tree_detail,
+                     by = c("EvaluationID", "LineKey" = "RecKey")
+    )%>%
+    dplyr::filter(WoodyStructureCollected == "Yes")
+
+  return(tree_tall)
 }
 
 #' @export gather_hummocks
@@ -776,7 +880,7 @@ gather_soilstab <- function(dsn, source = "SDE"){
     message("Gathering tables from the SDE into soil stability tall table. ")
   }
 
-  soil_stability <- soilstab%>%
+  soil_stability_tall <- soilstab%>%
     dplyr::select(-c(PlotID, AdminState, FormDate, Observer, Notes))%>%
     tidyr::pivot_longer(.,c(Veg1:Hydro18))%>%
     dplyr::filter(value!="")%>%
@@ -791,25 +895,30 @@ gather_soilstab <- function(dsn, source = "SDE"){
     # Change all Unsampleable points to NA instead of 0
     dplyr::mutate(Rating = ifelse(Veg == "U", NA, Rating))
 
-  return(soil_stability)
+  return(soil_stability_tall)
 
 }
 
 #' @export gather_all_riparianwetland
 #' @rdname gather_riparianwetland
-gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE", lr = FALSE, familygenuslist,
-                                       AKmethods = TRUE, covariates = TRUE){
+gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, familygenuslist = NULL, covariates = TRUE){
 
+  #Create list variable in which all tables will be stored.
   tableList <- list()
+
+  #create a list of all the tables found in the dsn specified. This will be used to determine whether specific gathering functions should be completed.
+  alltables <- c(arcgisbinding::arc.open(dsn)@children$FeatureClass, arcgisbinding::arc.open(dsn)@children$Table)
+  #create string to which I'll print list of tables not found
+  missingtables <- c()
 
   lpi_tall <- gather_lpi_lentic(dsn = dsn, source = source, lr = lr)
   tableList$lpi_tall <- lpi_tall
 
-  species_inventory_tall <- gather_species_inventory_lentic(dsn = dsn, source = source)
-  tableList$species_inventory_tall <- species_inventory_tall
+  spp_inventory_tall <- gather_species_inventory_lentic(dsn = dsn, source = source)
+  tableList$spp_inventory_tall <- spp_inventory_tall
 
   unknowncodes <- gather_unknowns_lentic(dsn = dsn, source = source, familygenuslist = familygenuslist)
-  tableList$unknowncodes <- lpi_tall
+  tableList$unknowncodes <- unknowncodes
 
   height_tall <- gather_height_lentic(dsn = dsn, source = source, lr = lr)
   tableList$height_tall <- height_tall
@@ -817,19 +926,33 @@ gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE
   woody_tall <- gather_woodyspecies(dsn = dsn, source = source)
   tableList$woody_tall <- woody_tall
 
+  #load tree tall if present
+  if(any(grepl("TreeRepeat", alltables))){
+    tree_tall <- gather_tree(dsn = dsn, source = source)
+    tableList$tree_tall <- tree_tall
+  } else {missingtables <- c(missingtables, "Tree Repeat")}
+
   annualuse_tall <- gather_annualuse(dsn = dsn, source = source)
   tableList$annualuse_tall <- annualuse_tall
 
-  hummocks <- gather_hummocks(dsn = dsn, source = source)
-  tableList$hummocks <- hummocks
+  #Load hummocks if present.
+  if(any(grepl("Hummocks", alltables))){
+    hummocks <- gather_hummocks(dsn = dsn, source = source)
+    tableList$hummocks <- hummocks
+  } else{missingtables <- c(missingtables, "Hummocks")}
 
-  if(AKmethods == T){
+  header <- header_build_lentic(dsn = dsn, source = source, annualuse_tall = annualuse_tall)
+  tableList$header <- header
+
+  if(any(grepl("Gap", alltables))){
     gap_tall <- gather_gap(dsn = dsn, source = source)
     tableList$gap_tall <- gap_tall
+  } else {missingtables <- c(missingtables, "Gap")}
 
-    soil_stability <- gather_soilstab(dsn = dsn, source = source)
-    tableList$soil_stability <- soil_stability
-  }
+  if(any(grepl("SoilStability", alltables))){
+    soil_stability_tall <- gather_soilstab(dsn = dsn, source = source)
+    tableList$soil_stability_tall <- soil_stability_tall
+  } else {missingtables <- c(missingtables, "Soil Stability")}
 
   if(covariates == T){
 
@@ -846,13 +969,22 @@ gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE
                     stringsAsFactors = F)%>%
           sf::st_drop_geometry())
 
-      disturbances <- suppressWarnings(
-        sf::st_read(dsn = dsn,
-                    layer = "DisturbancesDetail",
-                    stringsAsFactors = F)%>%
-          dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID))
+      if(any(grepl("Disturbance", alltables))){
+        disturbances <- suppressWarnings(
+          sf::st_read(dsn = dsn,
+                      layer = "DisturbancesDetail",
+                      stringsAsFactors = F)%>%
+            dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID))
+      } else {missingtables <- c(missingtables, "Disturbances")}
 
-      message("Hydrology, Soils, and Disturbances data is being formatted from the file geodatabase format. ")
+
+      waterqualdet <- suppressWarnings(
+        sf::st_read(dsn = dsn,
+                    layer = "WaterQualityDetail",
+                    stringsAsFactors = F)%>%
+          dplyr::rename(EvaluationID  = WaterQualityDetailEvaluationID))
+
+      message("Hydrology, Soils, Disturbances, and Water Quality data is being formatted from the file geodatabase format. ")
     }
     else if(source == "AGOL"){
       fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
@@ -864,10 +996,15 @@ gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE
       soils <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "Soils")], sep = "/"))))%>%
         sf::st_drop_geometry()
 
-      disturbances <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "DisturbancesDetail")], sep = "/")))%>%
-        dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID)
+      if(any(grepl("Disturbance", alltables))){
+        disturbances <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "DisturbancesDetail")], sep = "/")))%>%
+          dplyr::rename(EvaluationID  = DisturbancesDetailEvaluationID)
+      } else {missingtables <- c(missingtables, "Disturbances")}
 
-      message("Hydrology, Soils, and Disturbances data is being downloaded and formatted from AGOL. ")
+      waterqualdet <- arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "WaterQualityDetail")], sep = "/")))%>%
+        dplyr::rename(EvaluationID  = WaterQualityDetailEvaluationID)
+
+      message("Hydrology, Soils, Disturbances, and Water Quality data is being downloaded and formatted from AGOL. ")
     }
     else if(source == "SDE"){
       hydrology <- suppressWarnings(
@@ -881,18 +1018,34 @@ gather_all_riparianwetland <- function(assignmentsuffix = "", dsn, source = "SDE
                     stringsAsFactors = F)%>%
           sf::st_drop_geometry())
 
-      disturbances <- suppressWarnings(
+      if(any(grepl("Disturbance", alltables))){
+        disturbances <- suppressWarnings(
+          sf::st_read(dsn = dsn,
+                      layer = "F_DisturbancesDetail",
+                      stringsAsFactors = F))
+      } else {missingtables <- c(missingtables, "Disturbances")}
+
+      waterqualdet <- suppressWarnings(
         sf::st_read(dsn = dsn,
-                    layer = "F_DisturbancesDetail",
+                    layer = "F_WaterQualityDetail",
                     stringsAsFactors = F))
 
-      message("Hydrology, Soils, and Disturbances data is being formatted from the SDE. ")
+      message("Hydrology, Soils, Disturbances, and Water Quality data is being formatted from the SDE. ")
     }
 
     tableList$hydrology <- hydrology
     tableList$soils <- soils
-    tableList$disturbances <- disturbances
+    if(any(grepl("Disturbance", alltables))){
+      tableList$disturbances <- disturbances
+    }
+    tableList$waterqualdet <- waterqualdet
 
+  }
+
+  #If some tables weren't found, print these out as a message.
+  if(length(missingtables) > 0){
+    message("The following tables were not found in the dsn. These will be excluded from the output: ")
+    cat(missingtables, sep = "\n")
   }
 
   return(tableList)
