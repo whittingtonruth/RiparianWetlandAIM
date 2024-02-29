@@ -3,10 +3,10 @@
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output.
 #'@param annualuse_tall Data frame. Use the data frame from the \code{gather_annualuse()} output.
 #'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
-#'@param tree_tall Data frame. Use the data frame from the \code{gather_tree()} output.
 #'@param hummocks Data frame. Use the data frame from the \code{gather_hummocks()} output.
 #'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
 #'@param by_species Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.
+#'@param tree_tall Optional data frame. Use the data frame from the \code{gather_tree()} output. For data from years prior to 2023, this data.frame will not exist.
 #'@returns Data.frame of the summarized woody and annual use data by plot.
 
 #' @export use_metrics
@@ -128,7 +128,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
 
 #' @export ageclass_metrics
 #' @rdname woodystructure_use_metrics
-ageclass_metrics <- function(header, woody_tall, tree_tall, masterspecieslist, by_line = F, by_species = F){
+ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspecieslist, by_line = F, by_species = F){
 
   #allow metrics to be calculated at the plot level, line level, or species level.
   level <- rlang::quos(PlotID, EvaluationID)
@@ -171,47 +171,83 @@ ageclass_metrics <- function(header, woody_tall, tree_tall, masterspecieslist, b
                      by = c("RiparianWoodySpecies"="Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))
 
-  tree_tall <- tree_tall%>%
-    dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, Species),
-                     by = c("TreeSpecies"="Symbol"))%>%
-    dplyr::filter(!is.na(TreeSpecies))%>%
-    dplyr::mutate(RiparianWoodySpecies = TreeSpecies,
-                  UnknownCodeKey = ifelse(Species %in% c(NA, ""), TreeUnknownCodeKey, NA),
-                  OverhangingOrRooted = "Rooted-in",
-                  AgeClass = dplyr::case_when(TreeIndivLiveDead == "D"~"Dead",
-                                              (TreeMaxHeightClass %in% c("Height Class 0",
-                                                                         "Height Class 1",
-                                                                         "Height Class 2") &
-                                                 DBHcm < 2.5) |
-                                                (TreeMaxHeightClassAK <= 1 & DBHcm < 2.5)~"Seedling",
-                                              (TreeMaxHeightClass %in% c("Height Class 3",
-                                                                         "Height Class 4",
-                                                                         "Height Class 5",
-                                                                         "Height Class 6") &
-                                                 DBHcm > 7.6) |
-                                                (TreeMaxHeightClassAK > 1 & DBHcm > 7.6)~"Mature",
-                                              TreeMaxHeightClass %in% c("Height Class 3",
-                                                                        "Height Class 4",
-                                                                        "Height Class 5",
-                                                                        "Height Class 6") |
-                                                TreeMaxHeightClassAK > 1 |
-                                                (DBHcm >= 2.5 & DBHcm <= 7.6)~"Young"))
+  if(!is.null(tree_tall)){
+    tree_tall <- tree_tall%>%
+      dplyr::left_join(.,
+                       masterspecieslist%>%dplyr::select(Symbol, Species),
+                       by = c("TreeSpecies"="Symbol"))%>%
+      dplyr::filter(!is.na(TreeSpecies))%>%
+      dplyr::mutate(RiparianWoodySpecies = TreeSpecies,
+                    UnknownCodeKey = ifelse(Species %in% c(NA, ""), TreeUnknownCodeKey, NA),
+                    OverhangingOrRooted = "Rooted-in",
+                    AgeClass = dplyr::case_when(TreeIndivLiveDead == "D"~"Dead",
+                                                (TreeMaxHeightClass %in% c("Height Class 0",
+                                                                           "Height Class 1",
+                                                                           "Height Class 2") &
+                                                   DBHcm < 2.5) |
+                                                  (TreeMaxHeightClassAK <= 1 & DBHcm < 2.5)~"Seedling",
+                                                (TreeMaxHeightClass %in% c("Height Class 3",
+                                                                           "Height Class 4",
+                                                                           "Height Class 5",
+                                                                           "Height Class 6") &
+                                                   DBHcm > 7.6) |
+                                                  (TreeMaxHeightClassAK > 1 & DBHcm > 7.6)~"Mature",
+                                                TreeMaxHeightClass %in% c("Height Class 3",
+                                                                          "Height Class 4",
+                                                                          "Height Class 5",
+                                                                          "Height Class 6") |
+                                                  TreeMaxHeightClassAK > 1 |
+                                                  (DBHcm >= 2.5 & DBHcm <= 7.6)~"Young"))
 
-  #Tree age class counts to incorporate below.
-  ageclass_trees <- tree_tall%>%
-    dplyr::group_by(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted, AgeClass)%>%
-    dplyr::summarize(Count = n())%>%
-    #pivot into a wider format to match ageclass_sum table below.
-    tidyr::pivot_wider(.,
-                       id_cols = c(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted),
-                       names_from = AgeClass, names_glue = "{AgeClass}Count",
-                       values_from = Count)
+    #Tree age class counts to incorporate below.
+    ageclass_trees <- tree_tall%>%
+      dplyr::group_by(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted, AgeClass)%>%
+      dplyr::summarize(Count = n())%>%
+      #pivot into a wider format to match ageclass_sum table below.
+      tidyr::pivot_wider(.,
+                         id_cols = c(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted),
+                         names_from = AgeClass, names_glue = "{AgeClass}Count",
+                         values_from = Count)
+
+    #Tree Max heights
+    treemetrics <- tree_tall%>%
+      #Reformat height classes to look like eventual metric names. AK heights need to be converted to classes.
+      dplyr::mutate(TreeMaxHeightClass = dplyr::case_when(stringr::str_detect(TreeMaxHeightClass, "^Height Class")~stringr::str_replace_all(TreeMaxHeightClass, c(" "="", "Height" = "Hgt")),
+                                                          TreeMaxHeightClassAK<=1~"HgtClass2",
+                                                          TreeMaxHeightClassAK<=2~"HgtClass3",
+                                                          TreeMaxHeightClassAK<=4~"HgtClass4",
+                                                          TreeMaxHeightClassAK<=8~"HgtClass5",
+                                                          TreeMaxHeightClassAK>8~"HgtClass6"),
+                    TreeBasalArea = DBHcm^2 * 0.00007854)%>%
+      dplyr::filter(!is.na(TreeMaxHeightClass), AgeClass != "Seedling")%>%
+      dplyr::group_by(!!!level, TreeMaxHeightClass)%>%
+      dplyr::summarise(Cnt = n(),
+                       LiveCnt = sum(ifelse(TreeIndivLiveDead == "L", 1, 0)),
+                       DeadCnt = sum(ifelse(TreeIndivLiveDead == "D", 1, 0)),
+                       LiveBasalSum = sum(ifelse(TreeIndivLiveDead == "L", TreeBasalArea, 0)),
+                       DeadBasalSum = sum(ifelse(TreeIndivLiveDead == "D", TreeBasalArea, 0)))%>%
+      tidyr::pivot_wider(id_cols = all_of(level_colnames),
+                         names_from = TreeMaxHeightClass, names_glue = "WS_TreeMax{TreeMaxHeightClass}_{.value}", names_sort = T,
+                         values_from = c(Cnt, LiveCnt, DeadCnt, LiveBasalSum, DeadBasalSum))%>%
+      dplyr::left_join(., quadcount, by = c(level_colnames[!level_colnames%in%c("RiparianWoodySpecies", "UnknownCodeKey")]))%>%
+      dplyr::mutate(WS_Tree_Cnt = rowSums(dplyr::across(dplyr::ends_with("_Cnt")), na.rm = T),
+                    #Basal area calcs
+                    WS_TreeBasalAreaPerHectareLive = round(rowSums(dplyr::across(dplyr::ends_with("_LiveBasalSum")), na.rm = T)/(nquads *  0.0002),2),
+                    WS_TreeBasalAreaPerHectareDead = round(
+                      rowSums(dplyr::across(dplyr::ends_with("_DeadBasalSum")), na.rm = T)/(nquads *  0.0002),2),
+                    #stem density calcs
+                    WS_TreeStemDensityLive = round(
+                      rowSums(dplyr::across(dplyr::ends_with("_LiveCnt")), na.rm = T)/(nquads *  0.0002),2),
+                    WS_TreeStemDensityDead = round(
+                      rowSums(dplyr::across(dplyr::ends_with("_DeadCnt")), na.rm = T)/(nquads *  0.0002),2),)%>%
+      dplyr::select(-c(matches("_LiveCnt$|_DeadCnt$|_LiveBasalSum$|_DeadBasalSum$"), nquads))
+  } else {
+    message("No tree table was provided. Tree metrics will be excluded from output table. ")}
 
   #Next calculate age class totals for non rhizomatous species.
   ageclass_sum <- woody_tall%>%
     #bind tree species rows to add to age class counts
-    dplyr::bind_rows(., ageclass_trees)%>%
+    {if(!is.null(tree_tall)) dplyr::bind_rows(., ageclass_trees) else .}%>%
     #join to master species list to remove any species that are not riparian.
     dplyr::left_join(.,
                      masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
@@ -293,45 +329,12 @@ ageclass_metrics <- function(header, woody_tall, tree_tall, masterspecieslist, b
                                                  sep = ""),
                      WS_WoodyHgtClass_Cnt = n())
 
-  #Tree Max heights
-  treemetrics <- tree_tall%>%
-    #Reformat height classes to look like eventual metric names. AK heights need to be converted to classes.
-    dplyr::mutate(TreeMaxHeightClass = dplyr::case_when(stringr::str_detect(TreeMaxHeightClass, "^Height Class")~stringr::str_replace_all(TreeMaxHeightClass, c(" "="", "Height" = "Hgt")),
-                                                        TreeMaxHeightClassAK<=1~"HgtClass2",
-                                                        TreeMaxHeightClassAK<=2~"HgtClass3",
-                                                        TreeMaxHeightClassAK<=4~"HgtClass4",
-                                                        TreeMaxHeightClassAK<=8~"HgtClass5",
-                                                        TreeMaxHeightClassAK>8~"HgtClass6"),
-                  TreeBasalArea = DBHcm^2 * 0.00007854)%>%
-    dplyr::filter(!is.na(TreeMaxHeightClass), AgeClass != "Seedling")%>%
-    dplyr::group_by(!!!level, TreeMaxHeightClass)%>%
-    dplyr::summarise(Cnt = n(),
-                     LiveCnt = sum(ifelse(TreeIndivLiveDead == "L", 1, 0)),
-                     DeadCnt = sum(ifelse(TreeIndivLiveDead == "D", 1, 0)),
-                     LiveBasalSum = sum(ifelse(TreeIndivLiveDead == "L", TreeBasalArea, 0)),
-                     DeadBasalSum = sum(ifelse(TreeIndivLiveDead == "D", TreeBasalArea, 0)))%>%
-    tidyr::pivot_wider(id_cols = all_of(level_colnames),
-                       names_from = TreeMaxHeightClass, names_glue = "WS_TreeMax{TreeMaxHeightClass}_{.value}", names_sort = T,
-                       values_from = c(Cnt, LiveCnt, DeadCnt, LiveBasalSum, DeadBasalSum))%>%
-    dplyr::left_join(., quadcount, by = c(level_colnames[!level_colnames%in%c("RiparianWoodySpecies", "UnknownCodeKey")]))%>%
-    dplyr::mutate(WS_Tree_Cnt = rowSums(dplyr::across(dplyr::ends_with("_Cnt")), na.rm = T),
-                  #Basal area calcs
-                  WS_TreeBasalAreaPerHectareLive = round(rowSums(dplyr::across(dplyr::ends_with("_LiveBasalSum")), na.rm = T)/(nquads *  0.0002),2),
-                  WS_TreeBasalAreaPerHectareDead = round(
-                    rowSums(dplyr::across(dplyr::ends_with("_DeadBasalSum")), na.rm = T)/(nquads *  0.0002),2),
-                  #stem density calcs
-                  WS_TreeStemDensityLive = round(
-                    rowSums(dplyr::across(dplyr::ends_with("_LiveCnt")), na.rm = T)/(nquads *  0.0002),2),
-                  WS_TreeStemDensityDead = round(
-                    rowSums(dplyr::across(dplyr::ends_with("_DeadCnt")), na.rm = T)/(nquads *  0.0002),2),)%>%
-    dplyr::select(-c(matches("_LiveCnt$|_DeadCnt$|_LiveBasalSum$|_DeadBasalSum$"), nquads))
-
   #Join all the woody structure metrics
   WoodyStructureMetrics <- woodyheightclass_byquad%>%
     dplyr::left_join(., allwoodyheight, by = level_colnames)%>%
     dplyr::left_join(., ageclass_sum, by = level_colnames)%>%
     dplyr::left_join(., rhiz_byquad, by = level_colnames)%>%
-    dplyr::left_join(., treemetrics, by = level_colnames)%>%
+    {if(!is.null(tree_tall)) dplyr::left_join(., treemetrics, by = level_colnames) else .}%>%
     {if(by_species) dplyr::rename(., Species = RiparianWoodySpecies) else .} %>%
     dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                       WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),
@@ -340,6 +343,44 @@ ageclass_metrics <- function(header, woody_tall, tree_tall, masterspecieslist, b
   dplyr::mutate(dplyr::across(dplyr::ends_with(c("Cnt","PctQdrts")), ~tidyr::replace_na(., 0)))
 
   return(WoodyStructureMetrics)
+}
+
+#' @export SGConifer_metrics
+#' @rdname woodystructure_use_metrics
+SGConifer_metrics <- function(tree_tall, masterspecieslist, by_line = F){
+
+  #allow metrics to be calculated at the plot level, line level, or species level.
+  level <- rlang::quos(PlotID, EvaluationID)
+  level_colnames <- c("PlotID", "EvaluationID")
+  if(by_line){
+    level <- c(level, rlang::quos(LineKey))
+    level_colnames <- c(level_colnames, "LineKey")
+  }
+
+  sgconifermetrics <- tree_tall%>%
+    dplyr::left_join(.,
+                     masterspecieslist%>%dplyr::select(Symbol, Species, SG_Group),
+                     by = c("TreeSpecies"="Symbol"))%>%
+    dplyr::filter(!is.na(TreeSpecies), SG_Group == "Conifer")%>%
+    dplyr::mutate(RiparianWoodySpecies = TreeSpecies,
+                  UnknownCodeKey = ifelse(Species %in% c(NA, ""), TreeUnknownCodeKey, NA),
+                  TreeMaxHeightClass = dplyr::case_when(stringr::str_detect(TreeMaxHeightClass, "^Height Class")~stringr::str_replace_all(TreeMaxHeightClass, c(" "="", "Height" = "Hgt")),
+                                                        TreeMaxHeightClassAK<=1~"HgtClass2",
+                                                        TreeMaxHeightClassAK<=2~"HgtClass3",
+                                                        TreeMaxHeightClassAK<=4~"HgtClass4",
+                                                        TreeMaxHeightClassAK<=8~"HgtClass5",
+                                                        TreeMaxHeightClassAK>8~"HgtClass6"))%>%
+    dplyr::filter(!is.na(RiparianWoodySpecies),
+                  SG_Group == "Conifer",
+                  !is.na(TreeMaxHeightClass),
+                  TreeMaxHeightClass %in%c("HgtClass4", "HgtClass5", "HgtClass6"))%>%
+    dplyr::group_by(!!!level, TreeMaxHeightClass)%>%
+    dplyr::summarise(Cnt = n())%>%
+    tidyr::pivot_wider(id_cols = all_of(level_colnames),
+                       names_from = TreeMaxHeightClass, names_glue = "WS_Max{TreeMaxHeightClass}SGConifer_{.value}", names_sort = T,
+                       values_from = c(Cnt))
+
+  return(sgconifermetrics)
 }
 
 #' @export hummocks_metrics

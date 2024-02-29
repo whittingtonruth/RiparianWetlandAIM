@@ -3,6 +3,7 @@
 \name{use_metrics}
 \alias{use_metrics}
 \alias{ageclass_metrics}
+\alias{SGConifer_metrics}
 \alias{hummocks_metrics}
 \title{Calculate use metrics from stubble height and woody data.}
 \usage{
@@ -18,11 +19,13 @@ use_metrics(
 ageclass_metrics(
   header,
   woody_tall,
-  tree_tall,
+  tree_tall = NULL,
   masterspecieslist,
   by_line = F,
   by_species = F
 )
+
+SGConifer_metrics(tree_tall, masterspecieslist, by_line = F)
 
 hummocks_metrics(hummocks, by_line = F)
 }
@@ -37,7 +40,7 @@ hummocks_metrics(hummocks, by_line = F)
 
 \item{by_species}{Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.}
 
-\item{tree_tall}{Data frame. Use the data frame from the \code{gather_tree()} output.}
+\item{tree_tall}{Optional data frame. Use the data frame from the \code{gather_tree()} output. For data from years prior to 2023, this data.frame will not exist.}
 
 \item{hummocks}{Data frame. Use the data frame from the \code{gather_hummocks()} output.}
 }
