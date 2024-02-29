@@ -33,10 +33,11 @@ Community_Metrics(
 
 allmetrics_byspecies(
   header,
-  spp_inventory,
+  spp_inventory_tall,
   lpi_tall,
   height_tall,
   woody_tall,
+  tree_tall = NULL,
   annualuse_tall,
   masterspecieslist,
   unknowncodes
@@ -44,15 +45,19 @@ allmetrics_byspecies(
 
 allmetrics_byplot(
   header,
-  spp_inventory,
+  spp_inventory_tall,
   lpi_tall,
   height_tall,
   woody_tall,
+  tree_tall = NULL,
   annualuse_tall,
-  hummocks,
-  gap_tall,
-  soil_stability_tall,
-  waterqualdet,
+  hummocks = NULL,
+  hydrology = NULL,
+  disturbances = NULL,
+  soils = NULL,
+  gap_tall = NULL,
+  soil_stability_tall = NULL,
+  waterqualdet = NULL,
   unknowncodes,
   masterspecieslist
 )
@@ -67,7 +72,7 @@ allmetrics_byplot(
 
 \item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
 
-\item{spp_inventory}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
+\item{spp_inventory_tall}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
 
 \item{height_tall}{Data frame. Use the data frame from the \code{gather_heights_lentic()} output.}
 
