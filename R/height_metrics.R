@@ -2,6 +2,7 @@
 #'
 #'@param height_tall Data frame. Use the data frame from the \code{gather_height_lentic()} output.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in growth habit for plants in LPI never identified to a species or genus with those fields specified. This information is used to filter out herbaceous height measurements of non-herbaceous species and woody height measurements of non-woody species. If not included, unknown growth habit measurements will be maintained in the final height calculations.
 #'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.
 #'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
 #'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.
@@ -12,6 +13,7 @@
 #'@export height_metrics
 height_metrics <- function(height_tall,
                            masterspecieslist,
+                           unknowncodes,
                            method = "mean",
                            by_line = FALSE,
                            omit_zero = TRUE,
@@ -42,12 +44,26 @@ height_metrics <- function(height_tall,
   }
 
   #Edit UnknownCodeKey to NA if id'd to species. This will only effect by_species calculations
+  #I'll also filter out woody herbaceous measurements and nonwoody woody measurements.
   height_tall<- height_tall%>%
     dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, ListSpecies = Species),
-                     by = c("Species"="Symbol"))%>%
+                     masterspecieslist%>%dplyr::select(Symbol, ListSpecies = Species, WoodyNonWoody = type),
+                     by = c("Species"="Symbol"))
+
+  #connect to unknown plants to get a growth habit for plants not identified to species.
+  if(!missing(unknowncodes))
+    height_tall <- height_tall%>%
+    dplyr::left_join(., unknowncodes%>%dplyr::select(UnknownCodeKey, GrowthHabit), by = c("UnknownCodeKey"))%>%
+    dplyr::mutate(type = case_when(type == "" & GrowthHabit %in% c("Forb", "Graminoid")~"NonWoody",
+                                   type == "" & GrowthHabit %in% c("Tree", "Shrub")~"Woody",
+                                   TRUE~type))
+
+  #filter out all mismatched plant measurements.
+  height_tall <- height_tall%>%
+    dplyr::filter(!(WoodyNonWoody == "Woody" & GrowthHabit_measured == "Herbaceous") &
+                    !(WoodyNonWoody == "NonWoody" & GrowthHabit_measured == "Woody"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(ListSpecies %in% c(NA, ""), UnknownCodeKey, NA))%>%
-    dplyr::select(-ListSpecies)
+    dplyr::select(-ListSpecies, WoodyNonWoody)
 
   if(method == "mean"){
 

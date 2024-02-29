@@ -3,7 +3,7 @@
 #'Functions starting with tall table outputs from gather functions to calculate all metrics. \code{CombineRelativeCoverMetrics()} and \code{CombineRelativeCoverMetrics()} focus on cover metrics. Together with \code{Community_Metrics()}, these functions feed into final wrapping functions to create two indicator tables ready to be incorporated into the final data set, Indicators and Species Indicators. These data tables are created with \code{allmetrics_byplot()} and \code{allmetrics_byspecies()}.
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output.
-#'@param spp_inventory Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.
+#'@param spp_inventory_tall Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.
 #'@param lpi_tall Data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
 #'@param height_tall Data frame. Use the data frame from the \code{gather_heights_lentic()} output.
 #'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
@@ -14,26 +14,27 @@
 #'@param waterqualdet Optional data frame. Use the data frame from the file geodatabase. Must have EvaluationID as the identifying column.
 #'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
 #'@returns Data frame of indicator data calculated by EvaluationID.
 
 
 #'@export CombineRelativeCoverMetrics
 #'@rdname allmetrics
-CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes){
+CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes, unit = "by_plot"){
 
-  TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall)
+  TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall, unit = unit)
 
-  RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative")
+  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
+  RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes, unit = unit)
 
-  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes)
+  RelativeDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes, unit = unit)
 
   LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                                      EvaluationID,
@@ -55,40 +56,58 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
 #'@export CombineAbsoluteCoverMetrics
 #'@rdname allmetrics
-CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes){
+CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes, unit = "by_plot"){
 
-  Foliar <- pct_FoliarCover(lpi_tall)
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  } else if (unit == "by_line") {
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
+  } else if(unit == "by_geosurface") {
+    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
+    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
+  } else {
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
+  }
 
-  Basal <- pct_BasalCover(lpi_tall)
+  Foliar <- pct_FoliarCover(lpi_tall, unit = unit)
 
-  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
+  Basal <- pct_BasalCover(lpi_tall, unit = unit)
 
-  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)%>%
-    dplyr::select(PlotID,
-                  EvaluationID,
+  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
+
+  AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
                   dplyr::any_of(c("AH_ForbCover",
                                   "AH_GraminoidCover",
                                   "AH_ShrubCover",
                                   "AH_TreeCover")))
 
-  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)
+  AbsoluteDuration <- pct_DurationCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)
 
-  AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes)%>%
-    dplyr::select(PlotID,
-                  EvaluationID,
+  AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
                   dplyr::any_of(c("AH_AnnualGraminoidCover")))
 
-  AbsolutePreferredForbs <- pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+  AbsoluteNativeGrowth <- pct_NativeGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("AH_NativeGraminoidCover", "AH_NativeShrubCover")))
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)%>%
-                               dplyr::select(PlotID,
-                                             EvaluationID,
+  if(any(grepl("SG_Group", colnames(masterspecieslist)))){
+    AbsoluteSGGroup <- pct_SGGroupCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)%>%
+      dplyr::select(!!!level,
+                    dplyr::any_of(c("AH_SGPreferredForbCover", "AH_SGInvasiveAnnualGrassCover")))
+  } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
+
+  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist, unit = unit)%>%
+                               dplyr::select(!!!level,
                                              dplyr::any_of(c("AH_TotalLitterThatchCover" = "AH_LitterThatchCover",
                                                              "AH_MossCover",
                                                              "AH_AlgaeCover",
@@ -96,9 +115,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                              "AH_RockCover",
                                                              "AH_WaterCover",
                                                              "AH_SaltCrustCover"))),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist)%>%
-                               dplyr::select(PlotID,
-                                             EvaluationID,
+                             pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist, unit = unit)%>%
+                               dplyr::select(!!!level,
                                              dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
                                                              "FH_MossCover",
                                                              "FH_AlgaeCover",
@@ -108,7 +126,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                              "FH_SaltCrustCover",
                                                              "BareSoilCover" = "FH_SoilCover",
                                                              "BareOrganicMaterialCover" = "FH_OrganicMaterialCover"))),
-                             by = c("PlotID", "EvaluationID")
+                             by = level_colnames
   )
 
   LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -119,16 +137,17 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                    FieldEvalDate),
                                                             .,
                                                             by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., Basal, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteNative, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteNoxious, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteHydro, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteHydroFAC, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteGrowthHabit, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteDuration, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsoluteDurationGrowth, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., AbsolutePreferredForbs, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., NonPlantCover, by = c("PlotID", "EvaluationID"))
+    dplyr::left_join(., Basal, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNative, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNoxious, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydro, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydroFAC, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteGrowthHabit, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNativeGrowth, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteSGGroup, by = level_colnames)%>%
+    dplyr::left_join(., NonPlantCover, by = level_colnames)
 
   return(LPI_AbsoluteCover_Metrics)
 }
@@ -150,8 +169,12 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
   HydroFAC <- Community_HydroFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
   GrowthForm <- Community_GrowthHabit(SpeciesList, masterspecieslist, listtype = listtype)
   Duration <- Community_Duration(SpeciesList, masterspecieslist, listtype = listtype)
-  PreferredForb <- Community_PreferredForb(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
-    dplyr::rename("NumSpp_PreferredForb" = "SppInv_PreferredForb_Cnt")
+  SGgroup <- Community_SGGroup(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
+    dplyr::rename("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")
+  stability <- Community_StabilityGrowthHabit(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
+    dplyr::select(EvaluationID,
+                  any_of(c("SppInv_HerbaceousHighStability_Cnt",
+                           "SppInv_WoodyHighStability_Cnt")))
 
   #Join all metrics into one table with PlotID, Name and AdminState.
   AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -168,18 +191,19 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
     dplyr::left_join(., HydroFAC, by = "EvaluationID")%>%
     dplyr::left_join(., GrowthForm, by = "EvaluationID")%>%
     dplyr::left_join(., Duration, by = "EvaluationID")%>%
-    dplyr::left_join(., PreferredForb, by = "EvaluationID")
+    dplyr::left_join(., SGgroup, by = "EvaluationID")%>%
+    dplyr::left_join(., stability, by = "EvaluationID")
 
   return(AllCommunityMetrics)
 }
 
 #'@export allmetrics_byspecies
 #'@rdname allmetrics
-allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, woody_tall, annualuse_tall, masterspecieslist, unknowncodes){
+allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_tall, woody_tall, tree_tall = NULL, annualuse_tall, masterspecieslist, unknowncodes){
 
   SpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
 
-  SpeciesHeight <- height_metrics(height_tall, masterspecieslist, method = "mean", by_species = T)
+  SpeciesHeight <- height_metrics(height_tall, masterspecieslist, unknowncodes, method = "mean", by_species = T)
 
   SpeciesAnnualUse <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_species = T)
 
@@ -189,7 +213,7 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
     dplyr::distinct(EvaluationID)%>%
     dplyr::pull(EvaluationID)
 
-  SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T)
+  SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T, tree_tall = tree_tall)
 
   AnnualUseSpeciesHeader <- header%>%
     dplyr::filter(VisitType == "Annual Use Visit")%>%
@@ -205,12 +229,15 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
   # a matching plot in the header.
   SpeciesList <- dplyr::inner_join(header%>%
                                      sf::st_drop_geometry(),
-                                   spp_inventory, by = c("PlotID", "EvaluationID"))%>%
+                                   spp_inventory_tall, by = c("PlotID", "EvaluationID"))%>%
     # Add back annual use species since these will not have a species inventory
-    dplyr::bind_rows(.,
-                     AnnualUseSpeciesHeader%>%
+    {if(nrow(AnnualUseSpeciesHeader)>0)
+      dplyr::bind_rows(.,
+                       AnnualUseSpeciesHeader%>%
                        sf::st_drop_geometry()%>%
-                       dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))%>%
+                       dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
+      else .
+      }%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::group_by(EvaluationID)%>%
@@ -232,11 +259,15 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                            "Species",
                            "UnknownCodeKey",
                            "ScientificName" = "Scientific.Name",
+                           "GenusSpecies",
                            "CommonName" = "Common.Name",
                            "Species.y",
                            "GrowthHabit" = "type",
                            "GrowthHabitSub",
                            "Duration",
+                           "NativeStatus",
+                           "StabilityRating" = "StabilityNum",
+                           "SG_Group",
                            "PreferredForb",
                            "abundance")),
                   ends_with("_NOX"),
@@ -248,16 +279,20 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 
   #Add a C-Value based on AdminState.
   for (i in 1:nrow(SpeciesList)){
-    C.Valuelist <- paste(SpeciesList$SpeciesState[i], "_C.Value", sep = "")
-    StateC.Value <- SpeciesList[[i,C.Valuelist]]
-    SpeciesList$StateCValue[i] <- StateC.Value
+    if(!is.na(SpeciesList$SpeciesState[i])){
+      C.Valuelist <- paste(SpeciesList$SpeciesState[i], "_C.Value", sep = "")
+      StateC.Value <- SpeciesList[[i,C.Valuelist]]
+      SpeciesList$StateCValue[i] <- StateC.Value
+    }
   }
 
   #Add a Noxious designation by state.
   for (i in 1:nrow(SpeciesList)){
-    noxiouslist <- paste(SpeciesList$SpeciesState[i], "_NOX", sep = "")
-    statenoxious <- SpeciesList[[i,noxiouslist]]
-    SpeciesList$StateNoxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
+    if(!is.na(SpeciesList$SpeciesState[i])){
+      noxiouslist <- paste(SpeciesList$SpeciesState[i], "_NOX", sep = "")
+      statenoxious <- SpeciesList[[i,noxiouslist]]
+      SpeciesList$StateNoxious[i] <- ifelse(statenoxious != "" & !is.na(statenoxious), "Noxious", "")
+    }
   }
 
   if(!missing(unknowncodes)){
@@ -286,6 +321,17 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
                                         WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
                                         TRUE ~ "REGIONMISSING"))%>%
     dplyr::select(-c(ends_with("_NOX"), ends_with("_C.Value"), ends_with("_WetStatus"), Species.y))
+
+  #Ensure that all species in these other tables are already included in the species list, provide a warning if not. This is particularly problematic if it happens with LPI.
+  if(nrow(dplyr::anti_join(SpeciesCover, SpeciesList, by = c("PlotID", "EvaluationID", "Code" = "Species", "Scientific.Name" = "ScientificName", "Common.Name" = "CommonName", "UnknownCodeKey")))>0){
+    warning("Some plant codes used in LPI are not found in Species Inventory. These species will be excluded. For more information, try `anti_join(abscover, spp_inventory_tall, by = c('EvaluationID', 'Code' = 'Species'))` where abscover is the dataframe produced from the `pct_AbsoluteSpeciesCover` function. ")
+  }
+  if(nrow(dplyr::anti_join(SpeciesAgeClass, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
+    warning("Some plant codes used in age class metrics are not found in Species Inventory. These species will be excluded.")
+  }
+  if(nrow(dplyr::anti_join(SpeciesAnnualUse, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
+    warning("Some plant codes used in annual use metrics are not found in Species Inventory. These species will be excluded.")
+  }
 
   SpeciesList <- SpeciesList%>%
     dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "ScientificName" = "Scientific.Name", "CommonName" = "Common.Name", "UnknownCodeKey"))%>%
@@ -320,49 +366,72 @@ allmetrics_byspecies <- function(header, spp_inventory, lpi_tall, height_tall, w
 #'@export allmetrics_byplot
 #'@rdname allmetrics
 allmetrics_byplot <- function(header,
-                              spp_inventory,
+                              spp_inventory_tall,
                               lpi_tall,
                               height_tall,
                               woody_tall,
+                              tree_tall = NULL,
                               annualuse_tall,
-                              hummocks,
-                              gap_tall,
-                              soil_stability_tall,
-                              waterqualdet,
+                              hummocks = NULL,
+                              hydrology = NULL,
+                              disturbances = NULL,
+                              soils = NULL,
+                              gap_tall = NULL,
+                              soil_stability_tall = NULL,
+                              waterqualdet = NULL,
                               unknowncodes,
                               masterspecieslist){
 
+  #create vector in which to store missing indicator sets.
+  missingindicators <- c()
+
   print("Calculating cover metrics...")
   absolutecovermetrics <- CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)%>%
-    dplyr::rename_with(stringr::str_replace,matches("Absolute"), "Absolute", "")%>%
+    dplyr::rename_with(., .fn = ~stringr::str_replace(.x, "Absolute", ""), .cols = matches("Absolute"))%>%
     sf::st_drop_geometry()
 
+  abscover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
+  cwmmetrics <- cwm_metrics(abscover, header, masterspecieslist)
+
   print("Calculating community metrics...")
-  communitymetrics <- Community_Metrics(header = header, SpeciesList = spp_inventory, masterspecieslist = masterspecieslist, listtype = "speciesinventory")%>%
+  communitymetrics <- Community_Metrics(header = header, SpeciesList = spp_inventory_tall, masterspecieslist = masterspecieslist, listtype = "speciesinventory")%>%
     sf::st_drop_geometry()
 
   print("Calculating height metrics...")
   heightmetrics <- height_metrics(height_tall, masterspecieslist, method = "mean")
 
   print("Calculating woody and annual use metrics...")
-  ageclassmetrics <- ageclass_metrics(header, woody_tall)
+  ageclassmetrics <- ageclass_metrics(header, woody_tall, tree_tall = tree_tall, masterspecieslist = masterspecieslist)%>%
+    dplyr::select(-dplyr::starts_with("WS_TreeMaxHgtClass"))
+
+  if(!is.null(tree_tall)){
+    sgconifermetrics <- SGConifer_metrics(tree_tall, masterspecieslist = masterspecieslist, by_line = F)
+  }  else{missingindicators <- c(missingindicators, "Tree Repeat")}
 
   usemetrics <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist)
 
-  hummocksmetrics <- hummocks_metrics(hummocks)
+  if(!is.null(hummocks)){
+    hummocksmetrics <- hummocks_metrics(hummocks)
+  } else{missingindicators <- c(missingindicators, "Hummocks")}
+
 
   print("Joining all metrics...")
   allmetrics <- dplyr::left_join(header, communitymetrics,
                                  by = c("PlotID", "EvaluationID", "SiteName", "AdminState", "SpeciesState", "FieldEvalDate"))%>%
     dplyr::left_join(., absolutecovermetrics,
                      by = c("PlotID", "EvaluationID", "SiteName", "AdminState", "SpeciesState", "FieldEvalDate"))%>%
+    dplyr::left_join(.,
+                     cwmmetrics%>%
+                       dplyr::select(-dplyr::any_of(c("LPI_CValue_CWM"))),
+                     by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., heightmetrics, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., ageclassmetrics, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., hummocksmetrics, by = c("PlotID", "EvaluationID"))%>%
+    {if(!is.null(tree_tall)) dplyr::left_join(., sgconifermetrics, by = c("PlotID", "EvaluationID")) else .}%>%
+    {if(!is.null(hummocks)) dplyr::left_join(., hummocksmetrics, by = c("PlotID", "EvaluationID")) else .}%>%
     dplyr::left_join(., usemetrics, by = c("PlotID", "EvaluationID"))
 
   #optionally add water quality sample counts.
-  if(!missing(waterqualdet)){
+  if(!is.null(waterqualdet)){
     waterqualcount <- waterqualdet%>%
       sf::st_drop_geometry()%>%
       group_by(EvaluationID)%>%
@@ -370,10 +439,10 @@ allmetrics_byplot <- function(header,
 
     allmetrics <- allmetrics%>%
       dplyr::left_join(., waterqualcount, by = c("EvaluationID"))
-  }
+  } else{missingindicators <- c(missingindicators, "Water Quality")}
 
   #optionally calculate and join gap
-  if(!missing(gap_tall)){
+  if(!is.null(gap_tall)){
     gapmetrics <- gap_cover(gap_tall)$percent%>%
       dplyr::select(EvaluationID,
                     GapCover_25_50 = `25-51`,
@@ -384,15 +453,52 @@ allmetrics_byplot <- function(header,
 
     allmetrics <- allmetrics %>%
       dplyr::left_join(., gapmetrics, by = "EvaluationID")
-  }
+  } else{missingindicators <- c(missingindicators, "Gap")}
 
   #optionally calculate and join soil stability
-  if(!missing(soil_stability_tall)){
+  if(!is.null(soil_stability_tall)){
 
     soilstabmetrics <- soil_stability(soil_stability_tall, all_cover_types = F)
 
     allmetrics <- allmetrics %>%
       dplyr::left_join(., soilstabmetrics, by = "EvaluationID")
+  } else{missingindicators <- c(missingindicators, "Soil Stability")}
+
+  #optionally add hydrology data
+  if(!is.null(hydrology)){
+
+    hydrometrics <- hydrology%>%
+      dplyr::select(EvaluationID, Co_ChannelsPresent = DominantChannelPresent)
+
+    allmetrics <- allmetrics %>%
+      dplyr::left_join(., hydrometrics, by = "EvaluationID")
+  } else{missingindicators <- c(missingindicators, "Hydrology")}
+
+  #optionally add soil data
+  if(!is.null(soils)){
+
+    soilmetrics <- soils%>%
+      dplyr::select(EvaluationID, Co_PrimaryHydricSoilIndicator = HydricIndicatorPrimary)
+
+    allmetrics <- allmetrics %>%
+      dplyr::left_join(., soilmetrics, by = "EvaluationID")
+  } else{missingindicators <- c(missingindicators, "Soils")}
+
+  #optionally add disturbances data
+  if(!is.null(disturbances)){
+
+    disturbmetrics <- disturbances%>%
+      dplyr::group_by(EvaluationID)%>%
+      dplyr::summarize(Co_Disturbances_Cnt = dplyr::n())
+
+    allmetrics <- allmetrics %>%
+      dplyr::left_join(., disturbmetrics, by = "EvaluationID")
+  } else{missingindicators <- c(missingindicators, "Disturbances")}
+
+  #If some tables weren't found, print these out as a message.
+  if(length(missingindicators) > 0){
+    message("The following tables were not included in the specified arguments. Indicators associated with these tables will not be included in the output: ")
+    cat(missingindicators, sep = "\n")
   }
 
   return(allmetrics)

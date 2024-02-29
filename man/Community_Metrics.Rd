@@ -7,9 +7,10 @@
 \alias{Community_NoxiousCount}
 \alias{Community_Hydrophytes}
 \alias{Community_HydroFAC}
-\alias{Community_PreferredForb}
+\alias{Community_SGGroup}
 \alias{Community_GrowthHabit}
 \alias{Community_Duration}
+\alias{Community_StabilityGrowthHabit}
 \title{Summarize community composition for specified grouping variables.}
 \usage{
 Community_Richness(
@@ -55,7 +56,7 @@ Community_HydroFAC(
   method = "percent"
 )
 
-Community_PreferredForb(
+Community_SGGroup(
   SpeciesList,
   masterspecieslist,
   listtype = "speciesinventory",
@@ -75,9 +76,16 @@ Community_Duration(
   listtype = "speciesinventory",
   method = "percent"
 )
+
+Community_StabilityGrowthHabit(
+  SpeciesList,
+  masterspecieslist,
+  listtype = "speciesinventory",
+  method = "percent"
+)
 }
 \arguments{
-\item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
+\item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 

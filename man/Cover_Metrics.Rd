@@ -11,67 +11,126 @@
 \alias{pct_GrowthHabitCover}
 \alias{pct_DurationCover}
 \alias{pct_DurationGrowthHabitCover}
+\alias{pct_NativeGrowthHabitCover}
 \alias{pct_NativeDurationGrowthHabitCover}
-\alias{pct_PreferredForbCover}
+\alias{pct_StabilityClassCover}
+\alias{pct_SGGroupCover}
 \alias{pct_NonPlantGroundCover}
+\alias{pct_UnknownCover}
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
-pct_FoliarCover(lpi_tall)
+pct_FoliarCover(lpi_tall, unit = "by_plot")
 
-pct_BasalCover(lpi_tall)
+pct_BasalCover(lpi_tall, unit = "by_plot")
 
-pct_TotalAbsoluteCover(lpi_tall)
+pct_TotalAbsoluteCover(lpi_tall, unit = "by_plot")
 
-pct_NativeCover(lpi_tall, masterspecieslist, covertype = "absolute")
+pct_NativeCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
-pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+pct_NoxiousCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
 pct_HydrophyteCover(
   header,
   lpi_tall,
   masterspecieslist,
-  covertype = "absolute"
+  covertype = "absolute",
+  unit = "by_plot"
 )
 
-pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute")
+pct_HydroFACCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
 pct_GrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_DurationCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_DurationGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
+)
+
+pct_NativeGrowthHabitCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
 )
 
 pct_NativeDurationGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
-  unknowncodes
+  unknowncodes,
+  unit = "by_plot"
 )
 
-pct_PreferredForbCover(lpi_tall, masterspecieslist, covertype = "absolute")
+pct_StabilityClassCover(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
-pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist)
+pct_SGGroupCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
-pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)
+pct_NonPlantGroundCover(
+  lpi_tall,
+  hit = "any",
+  masterspecieslist,
+  unit = "by_plot"
+)
+
+pct_UnknownCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "relative",
+  unit = "by_plot"
+)
+
+pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
 }
 \arguments{
-\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
+\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
+#'@param unit String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
@@ -91,9 +150,9 @@ Metric calculation functions for specific grouping variables. These functions pe
 
 Some functions pull information from a variety of tables from the field season data used to categorize variables. Region- or state-specific categorization requires joining the header data frame to the lpi_tall data frame. Growth Form and Duration calculations can optionally pull in data for unknowns entered by crews in the Unknown Plant form. Wetland Indicator Status and Noxious species group categories together before pushing to the \code{pct_cover_lentic()} function.
 
-Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic or plant groupings due to the way the percent denominators are calculated. Relative cover requires all species without relevant categorization to be removed to ensure only plant hits with a given category are included in calculations. (Example: In calculating relative native cover, plant hits of Elymus species should not be included in either numerator or denominator.)
+Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic or plant groupings due to the way the percent denominators are calculated. Relative cover calculations remove all species without relevant categorization to ensure only plant hits with an assigned trait are included in calculations. (Example: In calculating relative native cover, plant hits of Elymus species are filtered out of the dataset before using the \code{pct_cover_lentic()} function.)
 
-In contrast, absolute cover requires that all hits be submitted to the \code{pct_cover_lentic()} function, as these will be used to calculate the number of pin drops (i.e. the denominator). Absolute cover filters out uncategorized hits after cover has been calculated.
+In contrast, absolute cover calculations submit all hits to the \code{pct_cover_lentic()} function, as these will be used to calculate the number of pin drops (i.e. the denominator). Absolute cover calculations filter out uncategorized hits after cover has been calculated.
 
 Absolute and Relative cover metrics can be calculated all at once using \code{CombineRelativeCoverMetrics} and \code{CombineAbsoluteCoverMetrics}.
 }

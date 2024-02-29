@@ -8,9 +8,21 @@
 \alias{allmetrics_byplot}
 \title{Combine species-level and plot-level indicator information into one data.frame.}
 \usage{
-CombineRelativeCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)
+CombineRelativeCoverMetrics(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  unknowncodes,
+  unit = "by_plot"
+)
 
-CombineAbsoluteCoverMetrics(header, lpi_tall, masterspecieslist, unknowncodes)
+CombineAbsoluteCoverMetrics(
+  header,
+  lpi_tall,
+  masterspecieslist,
+  unknowncodes,
+  unit = "by_plot"
+)
 
 Community_Metrics(
   header,
@@ -21,10 +33,11 @@ Community_Metrics(
 
 allmetrics_byspecies(
   header,
-  spp_inventory,
+  spp_inventory_tall,
   lpi_tall,
   height_tall,
   woody_tall,
+  tree_tall = NULL,
   annualuse_tall,
   masterspecieslist,
   unknowncodes
@@ -32,15 +45,19 @@ allmetrics_byspecies(
 
 allmetrics_byplot(
   header,
-  spp_inventory,
+  spp_inventory_tall,
   lpi_tall,
   height_tall,
   woody_tall,
+  tree_tall = NULL,
   annualuse_tall,
-  hummocks,
-  gap_tall,
-  soil_stability_tall,
-  waterqualdet,
+  hummocks = NULL,
+  hydrology = NULL,
+  disturbances = NULL,
+  soils = NULL,
+  gap_tall = NULL,
+  soil_stability_tall = NULL,
+  waterqualdet = NULL,
   unknowncodes,
   masterspecieslist
 )
@@ -50,11 +67,12 @@ allmetrics_byplot(
 
 \item{lpi_tall}{Data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.
+#'@param unit String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
 
-\item{spp_inventory}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
+\item{spp_inventory_tall}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
 
 \item{height_tall}{Data frame. Use the data frame from the \code{gather_heights_lentic()} output.}
 

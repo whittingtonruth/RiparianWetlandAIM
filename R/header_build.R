@@ -20,17 +20,16 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                             stringsAsFactors = FALSE)
 
     message("File Geodatabase data type is being downloaded and gathered into header table used to select sites for analysis. ")
-
   }
 
   else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
 
-    fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "FieldVisits")], sep = "/"))))%>%
+    fieldvisits <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "FieldVisits")], sep = "/"))))%>%
       sf::st_drop_geometry()
 
-    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[str_which(fc, "PlotCharacterization")], sep = "/"))))
+    plotchar <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "PlotCharacterization")], sep = "/"))))
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
@@ -47,8 +46,11 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   plotchar <- plotchar%>%
     mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
-           VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
-           StateCode = SpeciesState)
+           #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
+           StateCode = SpeciesState,
+           PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
+                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*ActualPlotLength,
+                                          PlotLayout == "Mixed Layout"~NA))
 
   # Create a list of fields to keep, then test whether they are present in the header table.
   finalfields <- rlang::quos(PlotID,
@@ -57,6 +59,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                              VisitType,
                              SamplingApproach,
                              PlotLayout,
+                             PlotArea_m2,
                              CowardinAttribute,
                              HGMClass,
                              WetlandType,
@@ -109,6 +112,8 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
 
     header <- header%>%
       bind_rows(., annualusevisits)
+  } else {
+    warning("annualuse_tall table was not used to create header. All Annual Use Only visits will be excluded from analysis. ")
   }
 
   if(nrow(header%>%filter(duplicated(EvaluationID)))>0){

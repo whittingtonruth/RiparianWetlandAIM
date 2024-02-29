@@ -5,7 +5,7 @@
 #'Similarly to relative cover calculations, all species with unknown traits (e.g. an unknown plant identified only as Elymus sp.) must be filtered out prior to calculating community metrics. All community metric calculations may be calculated using \code{Community_Metrics()}
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.
-#'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either spp_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
+#'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param listtype Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".
 #'@param method character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.
@@ -331,9 +331,9 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
   return(totals)
 }
 
-#'@export Community_PreferredForb
+#'@export Community_SGGroup
 #'@rdname Community_Metrics
-Community_PreferredForb <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_SGGroup <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
     stop("listtype must be 'speciesinventory' or 'lpi'.")
@@ -360,19 +360,20 @@ Community_PreferredForb <- function(SpeciesList, masterspecieslist, listtype = "
     dplyr::filter(!(duplicated(UnknownCodeKey) & Species.y %in% c(NA, "")) &
                     !(duplicated(Species) & !(Species.y %in% c(NA, ""))),
                   Duration != "Nonvascular")%>%
-    dplyr::select(EvaluationID, Species, PreferredForb)
+    dplyr::select(EvaluationID, Species, SG_Group)
 
   spplist <- SpeciesList%>%
-    dplyr::filter(PreferredForb=="Y")%>%
+    dplyr::filter(SG_Group=="Preferred Forb")%>%
     dplyr::group_by(EvaluationID)%>%
     dplyr::mutate(Spp_PreferredForb = paste0(Species, collapse = "; "))%>%
     dplyr::distinct(EvaluationID, .keep_all = T)
 
   #Calculate community metrics and rename columns.
-  totals <- Community_Composition(SpeciesList, method = method, tall = T, PreferredForb)%>%
-    dplyr::filter(grepl("Y_", metric))%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace(metric, "Y", "PreferredForb"), sep = "_"))%>%
+  totals <- Community_Composition(SpeciesList, method = method, tall = T, SG_Group)%>%
+    dplyr::filter(!grepl("^_", metric))%>%
+    dplyr::mutate(metric = paste0(fieldname, "_SG",
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(metric),c(" "="", "cnt" = "Cnt", "pct" = "Pct"))))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
@@ -460,6 +461,54 @@ Community_Duration <- function(SpeciesList, masterspecieslist, listtype = "speci
   totals <- Community_Composition(SpeciesList, method = method, tall = T, Duration)%>%
     dplyr::mutate(metric = paste(fieldname,
                                  stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
+    dplyr::group_by(EvaluationID)%>%
+    tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
+                                                                  expr(Pct),
+                                                                  expr(Cnt))})
+
+  return(totals)
+}
+
+#'@export Community_StabilityGrowthHabit
+#'@rdname Community_Metrics
+Community_StabilityGrowthHabit <- function(SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
+
+  if(!(method %in% c("percent", "count"))){
+    stop("Method must be 'percent' or 'count'.")
+  }
+
+  if(!(listtype %in% c("speciesinventory", "lpi"))){
+    stop("listtype must be 'speciesinventory' or 'lpi'.")
+  }
+
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
+
+  #If using LPI, change the code column to Species, then remove all nonplant codes.
+  if(listtype == "lpi"){
+    SpeciesList <- SpeciesList %>%
+      dplyr::rename(Species = code)%>%
+      dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
+  }
+
+  #Join the SpeciesList and master species list together.
+  SpeciesList <- SpeciesList%>%
+    dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
+    dplyr::group_by(EvaluationID)%>%
+    #Filter out duplicated entries. Complicated with unknowns which may duplicate a lower level taxonomic code.
+    dplyr::filter(!(duplicated(UnknownCodeKey) & Species.y %in% c(NA, "")) &
+                    !(duplicated(Species) & !(Species.y %in% c(NA, ""))),
+                  type != "Nonvascular")%>%
+    dplyr::filter(StabilityName != "" & !is.na(StabilityName), type != "" & !is.na(type))%>%
+    dplyr::mutate(GrowthHabit = case_when(type == "Woody"~"Woody",
+                                          type == "NonWoody"~"Herbaceous"))
+
+  totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabit, StabilityName)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace(metric, "\\.", " ")),
+                                   c(" " = "", "_cnt" = "Stability_Cnt", "_pct" = "Stability_Pct")),
+                                 sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
                                                                   expr(Pct),
