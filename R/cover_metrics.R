@@ -4,9 +4,9 @@
 #'
 #'Some functions pull information from a variety of tables from the field season data used to categorize variables. Region- or state-specific categorization requires joining the header data frame to the lpi_tall data frame. Growth Form and Duration calculations can optionally pull in data for unknowns entered by crews in the Unknown Plant form. Wetland Indicator Status and Noxious species group categories together before pushing to the \code{pct_cover_lentic()} function.
 #'
-#'Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic or plant groupings due to the way the percent denominators are calculated. Relative cover requires all species without relevant categorization to be removed to ensure only plant hits with a given category are included in calculations. (Example: In calculating relative native cover, plant hits of Elymus species should not be included in either numerator or denominator.)
+#'Relative and absolute cover calculations also require different handling of plants identified to genus or higher taxonomic or plant groupings due to the way the percent denominators are calculated. Relative cover calculations remove all species without relevant categorization to ensure only plant hits with an assigned trait are included in calculations. (Example: In calculating relative native cover, plant hits of Elymus species are filtered out of the dataset before using the \code{pct_cover_lentic()} function.)
 #'
-#'In contrast, absolute cover requires that all hits be submitted to the \code{pct_cover_lentic()} function, as these will be used to calculate the number of pin drops (i.e. the denominator). Absolute cover filters out uncategorized hits after cover has been calculated.
+#'In contrast, absolute cover calculations submit all hits to the \code{pct_cover_lentic()} function, as these will be used to calculate the number of pin drops (i.e. the denominator). Absolute cover calculations filter out uncategorized hits after cover has been calculated.
 #'
 #'Absolute and Relative cover metrics can be calculated all at once using \code{CombineRelativeCoverMetrics} and \code{CombineAbsoluteCoverMetrics}.
 #'
@@ -194,12 +194,18 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
                   ends_with("_C.Value"),
                   ends_with("_Nox"))
 
+  #Check for states for which no noxious information is in species list.
+  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
+    warning("Some states in header do not have a noxious column in the species list provided. Sites in states outside of the expected set will be removed from noxious calculations. ")
+  }
+
   header <- header%>%
     dplyr::select(EvaluationID,
                   SpeciesState)%>%
+    dplyr::filter(SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))%>%
     {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
 
-  #join lpi_tall to species list then add column for checking whether the species is considered Noxious.
+  #join lpi_tall to species list then add column for checking whether the species is considered Noxious
   #Filter the list for relative cover to only include plants identified to species.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
@@ -493,9 +499,7 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype 
                   Scientific.Name,
                   Species,
                   GrowthHabitSub,
-                  Duration,
-                  PreferredForb
-    )
+                  Duration)
 
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
   #These plant hits would be included in the denominator of the calculation if left in.
