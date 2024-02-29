@@ -47,7 +47,10 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
            #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
-           StateCode = SpeciesState)
+           StateCode = SpeciesState,
+           PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
+                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*ActualPlotLength,
+                                          PlotLayout == "Mixed Layout"~NA))
 
   # Create a list of fields to keep, then test whether they are present in the header table.
   finalfields <- rlang::quos(PlotID,
@@ -56,6 +59,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                              VisitType,
                              SamplingApproach,
                              PlotLayout,
+                             PlotArea_m2,
                              CowardinAttribute,
                              HGMClass,
                              WetlandType,
