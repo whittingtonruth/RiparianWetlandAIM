@@ -146,7 +146,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNativeGrowth, by = level_colnames)%>%
-    dplyr::left_join(., AbsoluteSGGroup, by = level_colnames)%>%
+    {if(any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., AbsoluteSGGroup, by = level_colnames) else .}%>%
     dplyr::left_join(., NonPlantCover, by = level_colnames)
 
   return(LPI_AbsoluteCover_Metrics)
