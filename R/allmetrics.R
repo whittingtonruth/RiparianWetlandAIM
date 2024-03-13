@@ -207,23 +207,25 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
 
   SpeciesAnnualUse <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist, by_species = T)
 
+  SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T, tree_tall = tree_tall)
+
   #Create a list of plots where annual use was measured
   AnnualUseEvaluationIDs <- annualuse_tall%>%
     dplyr::filter(AnnualUseCollected == "Yes")%>%
     dplyr::distinct(EvaluationID)%>%
     dplyr::pull(EvaluationID)
 
-  SpeciesAgeClass <- ageclass_metrics(header, woody_tall, masterspecieslist, by_species = T, tree_tall = tree_tall)
-
+  #Create a table of species seen during annual use only visits which can be added to the full species inventory
   AnnualUseSpeciesHeader <- header%>%
     dplyr::filter(VisitType == "Annual Use Visit")%>%
-    dplyr::left_join(.,
-                     SpeciesAnnualUse%>%dplyr::select(EvaluationID,
-                                                      PlotID,
-                                                      Species,
-                                                      UnknownCodeKey),
-                     by = c("EvaluationID", "PlotID"),
-                     multiple = 'all')
+    {if(!is.null(SpeciesAnnualUse)) dplyr::left_join(.,
+                                                     SpeciesAnnualUse%>%dplyr::select(EvaluationID,
+                                                                                      PlotID,
+                                                                                      Species,
+                                                                                      UnknownCodeKey),
+                                                     by = c("EvaluationID", "PlotID"),
+                                                     multiple = 'all')
+      else .}
 
   # Create a species list of all species in species inventory for which there is
   # a matching plot in the header.
@@ -329,16 +331,21 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
   if(nrow(dplyr::anti_join(SpeciesAgeClass, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
     warning("Some plant codes used in age class metrics are not found in Species Inventory. These species will be excluded.")
   }
-  if(nrow(dplyr::anti_join(SpeciesAnnualUse, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
-    warning("Some plant codes used in annual use metrics are not found in Species Inventory. These species will be excluded.")
-  }
+  if(!is.null(SpeciesAnnualUse)){
+    if(nrow(dplyr::anti_join(SpeciesAnnualUse, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
+      warning("Some plant codes used in annual use metrics are not found in Species Inventory. These species will be excluded.")
+      }
+    }
 
   SpeciesList <- SpeciesList%>%
     dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "ScientificName" = "Scientific.Name", "CommonName" = "Common.Name", "UnknownCodeKey"))%>%
     dplyr::left_join(., SpeciesHeight, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
     dplyr::left_join(., SpeciesAgeClass, by = c("PlotID", "EvaluationID","Species", "UnknownCodeKey"))%>%
-    dplyr::left_join(., SpeciesAnnualUse, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))%>%
+    {if(!is.null(SpeciesAnnualUse))
+      dplyr::left_join(., SpeciesAnnualUse, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey"))
+      else .}%>%
     dplyr::left_join(., header%>%dplyr::select(EvaluationID), by = "EvaluationID")%>%
+    #mutate so that 0s replace NA's, where applicable
     dplyr::mutate(
       #Replace any NAs in species cover and height cnt with 0 if not an annual use visit.
       dplyr::across(.cols = c(AH_SpeciesCover, Hgt_Species_Cnt),
@@ -347,9 +354,10 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                             .)),
       #replace any NAs in woody structure counts with 0 if species is woody.
       dplyr::across(
-        .cols = dplyr::starts_with("WS") & dplyr::ends_with(c("PctQdrts", "Cnt")), ~ifelse(GrowthHabit == "Woody", tidyr::replace_na(.,0), .)),
-      #Replace any NAs in use counts with 0 if annual use was measured.
-      AU_StubbleHgt_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
+        .cols = dplyr::starts_with("WS") & dplyr::ends_with(c("PctQdrts", "Cnt")), ~ifelse(GrowthHabit == "Woody", tidyr::replace_na(.,0), .)))%>%
+    {if(!is.null(SpeciesAnnualUse))
+      #Replace any NAs in use counts with 0 if annual use was measured. This should only occur if annual use data was collected anywhere in the dataset.
+      dplyr::mutate(AU_StubbleHgt_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
                                    GrowthHabitSub == "Graminoid",
                                  tidyr::replace_na(AU_StubbleHgt_Cnt, 0),
                                  AU_StubbleHgt_Cnt),
@@ -358,6 +366,8 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                                       WetlandIndicatorStatus %in% c("FACW", "FAC", "OBL"),
                                     tidyr::replace_na(AU_WoodyUseClass_Cnt, 0),
                                     AU_WoodyUseClass_Cnt))
+      else .}
+
 
   return(SpeciesList)
 
