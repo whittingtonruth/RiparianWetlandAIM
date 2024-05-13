@@ -12,7 +12,7 @@
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
-#'#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
+#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param covertype Character string. "relative" or "absolute". Specifies the kind of cover calculation. Relative cover is only used for calculations on vascular plant species and specifies the percent of overall hits made up of a particular species or group. Absolute cover is the percent of the pin drops made up by a particular species or group.
 #'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
@@ -431,6 +431,62 @@ pct_GrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "absol
   return(GrowthHabitCover)
 }
 
+#'@export pct_TypeCover
+#'@rdname Cover_Metrics
+pct_TypeCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  type,
+                  Duration
+    )
+
+  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
+  #These plant hits would be included in the denominator of the calculation if left in.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodes)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      dplyr::mutate(GrowthHabitSub = case_when(type!=""&!is.na(type)~type,
+                                               type==""&GrowthHabit%in%c("Tree", "Shrub")~"Woody",
+                                               type==""&GrowthHabit%in%c("Graminoid", "Forb")~"NonWoody",
+                                               type==""&GrowthHabit%in%c("Liverwort", "Moss", "Lichen")~"NonVascular"))
+  }
+
+  #Then filter out any blank values where GrowthHabitSub == "". This is only necessary for relative cover calculations
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., Type !=""&!is.na(Type)&Type!=NonVascular) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #Remove AbsoluteCover from the data frame to take out nulls.
+  #pivot to show in wide format by EvaluationID
+  GrowthHabitCover <- pct_cover_lentic(lpispeciesjoin,
+                                       tall = TRUE,
+                                       hit = switch(covertype,
+                                                    "relative" = "all",
+                                                    "absolute" = "any"),
+                                       unit = unit,
+                                       type)%>%
+    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
+    filter(str_detect(metric, "Woody|Nonwoody|Nonvascular"))%>%
+    dplyr::group_by(EvaluationID)%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(GrowthHabitCover)
+}
+
 #'@export pct_DurationCover
 #'@rdname Cover_Metrics
 pct_DurationCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
@@ -714,7 +770,7 @@ pct_SGGroupCover <- function(lpi_tall, masterspecieslist, covertype = "absolute"
     stop("covertype must be 'relative' or 'absolute'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+    fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -821,11 +877,12 @@ pct_UnknownCover <- function(lpi_tall, masterspecieslist, covertype = "relative"
                   GenusSpecies
     )
 
-  masterspecieslist$GenusSpecies[masterspecieslist$GenusSpecies==""] <- "Unknown"
-
-  #join lpi_tall to species list then filter out species that were not classified as either native or nonnative.
-  ##Only filter out plants not classified as native or nonnative for relative cover.
+  #join lpi_tall to species list then filter out nonplant codes for relative cover
+  #codes not in nonplantcodes list or without a genusspecies are classified as unknown.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    mutate(GenusSpecies = case_when(code%in%nonplantcodes$code~NA,
+                                    !GenusSpecies%in%c(NA, "")~GenusSpecies,
+                                    TRUE~"Unknown"))%>%
     {if(covertype == "relative") dplyr::filter(., !is.na(GenusSpecies)) else .}
 
   UnknownCover <- pct_cover_lentic(lpispeciesjoin,
@@ -841,6 +898,59 @@ pct_UnknownCover <- function(lpi_tall, masterspecieslist, covertype = "relative"
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(UnknownCover)
+}
+
+#'@export pct_FunctionalGroupCover
+#'@rdname Cover_Metrics
+pct_FunctionalGroupCover <- function(lpi_tall, masterspecieslist, covertype = "absolute"){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  #Store lists of marsh species and genera)
+  marshspp <- c("SCAC3", "SCACA", "SCACO2", "SCTA2", "SCAM6", "SCCA11", "BORO5", "BOMA7")
+  marshgen <- c("Typha", "Callitriche", "Lemna", "Hippuris", "Stuckenia", "Potamogeton", "Nuphar", "Myriophyllum", "Ceratophyllum", "Elodea", "Najas", "Hydrocotyle", "Sparganium", "Sagittaria")
+
+  #stor lists of playa genera.
+  playagen <- c("Cressa", "Sarcocornia", "Salicornia", "Sarcobatus", "Suaeda", "Nitrophila", "Allenrolfea", "Puccinellia", "Atriplex")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Genus,
+                  Species
+    )%>%
+    dplyr::mutate(FunctionalGroup = case_when(
+      Genus %in% marshgen | Symbol %in% marshspp~"Marsh Species",
+      Genus %in% playagen ~"Playa Species",
+      Genus != ""~"No Functional Group"
+    ))
+
+  lpispeciesjoin <- lpi_tall%>%
+    dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
+    {if(covertype == "relative") dplyr::filter(.,FunctionalGroup !=""|is.na(FunctionalGroup)) else .}
+
+  FunctionalGroupCover <- pct_cover_lentic(lpispeciesjoin,
+                                      tall = TRUE,
+                                      hit = switch(covertype,
+                                                   "relative" = "all",
+                                                   "absolute" = "any"),
+                                      unit = "by_plot",
+                                      FunctionalGroup)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""),
+                                 "Cover", sep = ""),
+                  percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("MarshSpecies|PlayaSpecies", metric))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(FunctionalGroupCover)
 }
 
 #'@export pct_AbsoluteSpeciesCover
