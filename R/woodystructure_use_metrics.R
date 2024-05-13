@@ -94,35 +94,45 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
       dplyr::mutate(AU_WoodyUseClass_Cnt = ifelse(!is.na(AU_SoilAlteration_Avg), tidyr::replace_na(AU_WoodyUseClass_Cnt, 0), AU_WoodyUseClass_Cnt))
 
   } else{
-    annualuse_tall <- annualuse_tall%>%
-      dplyr::left_join(.,
-                       masterspecieslist%>%dplyr::select(Symbol, Species),
-                       by = c("StubbleHeightDominantSpecies"="Symbol"))%>%
-      dplyr::mutate(UnknownCodeStubbleKey = ifelse(Species %in% c(NA, ""), UnknownCodeStubbleKey, NA))%>%
-      dplyr::select(-Species)
 
-    #No need to calculate "dominant species" when calculating averages by species.
-    annualusemetrics <- annualuse_tall%>%
-      dplyr::group_by(!!!level, StubbleHeightDominantSpecies, UnknownCodeStubbleKey)%>%
-      dplyr::filter(StubbleHeightDominantSpecies !="N")%>%
-      dplyr::summarize(AU_StubbleHgt_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
-                       AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0), na.rm = T)/
-                                               sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
-                       AU_StubbleHgt_Cnt = n())%>%
-      dplyr::rename(Species = StubbleHeightDominantSpecies,
-                    UnknownCodeKey = UnknownCodeStubbleKey)
+    #perform calculations if there was any annual use collected on any line. Otherwise, skip and produce null table.
+    if(any(annualuse_tall$AnnualUseCollected=="Yes")){
+      annualuse_tall <- annualuse_tall%>%
+        dplyr::left_join(.,
+                         masterspecieslist%>%dplyr::select(Symbol, Species),
+                         by = c("StubbleHeightDominantSpecies"="Symbol"))%>%
+        dplyr::mutate(UnknownCodeStubbleKey = ifelse(Species %in% c(NA, ""), UnknownCodeStubbleKey, NA))%>%
+        dplyr::select(-Species)
 
-    woodymetrics <- riparianwoody%>%
-      dplyr::rowwise()%>%
-      dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
-      dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
-      dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
-                       AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
-                       AU_WoodyUseClass_Cnt = sum(TotalUseClass))%>%
-      dplyr::rename(Species = RiparianWoodySpecies)
+      #No need to calculate "dominant species" when calculating averages by species.
+      annualusemetrics <- annualuse_tall%>%
+        dplyr::group_by(!!!level, StubbleHeightDominantSpecies, UnknownCodeStubbleKey)%>%
+        dplyr::filter(StubbleHeightDominantSpecies !="N")%>%
+        dplyr::summarize(AU_StubbleHgt_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
+                         AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0), na.rm = T)/
+                                                 sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
+                         AU_StubbleHgt_Cnt = n())%>%
+        dplyr::rename(Species = StubbleHeightDominantSpecies,
+                      UnknownCodeKey = UnknownCodeStubbleKey)
 
-    #Metrics together
-    UseMetrics <- rbind(annualusemetrics, woodymetrics)
+      woodymetrics <- riparianwoody%>%
+        dplyr::rowwise()%>%
+        dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
+        dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
+        dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
+                         AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
+                         AU_WoodyUseClass_Cnt = sum(TotalUseClass))%>%
+        dplyr::rename(Species = RiparianWoodySpecies)
+
+      #Metrics together
+      UseMetrics <- rbind(annualusemetrics, woodymetrics)
+
+    } else{
+
+      UseMetrics <- NULL
+      message("No records included annual use measurements. A null table will be returned. ")
+
+    }
   }
 
   return(UseMetrics)
