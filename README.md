@@ -1,2 +1,6 @@
 # RiparianWetlandAIM
 An analogous package to Terradactyl terrestrial AIM package, which adjusts and adds functions for data collection specific to Lentic Riparian and Wetland systems.
+
+This package is used to analyze data from the Bureau of Land Management's Riparian and Wetland Assessment, Inventory and Monitoring (AIM) program. The data is first "gathered", or formatted from a variety of sources into one schema using a suite of gathering functions. Next, various calculations are handled through calculation functions for each of the R&W AIM methods, including LPI cover calculations, community metrics, heights, hummocks, woody structure and annual use, and gap and soil stability (for Alaska plots only). These calculations are wrapped into larger "all metric" functions which will calculate several indicators at once. 
+
+Raw data may be sourced from ArcGIS online, a downloaded file geodatabase, or a geodatabase structured like the R&W AIM SDE after field season processing steps have been applied. Required layers in these databases include: Plot Characterization, Species Inventory, Unknown Plants, LPI, and Woody Structure and Annual Use. Optional datasets include Soils, Hydrology, Natural and Human Disturbances, Water Quality, Soil Stability, and Gap Intercept. 
