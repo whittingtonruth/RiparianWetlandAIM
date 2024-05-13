@@ -169,8 +169,10 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
   HydroFAC <- Community_HydroFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
   GrowthForm <- Community_GrowthHabit(SpeciesList, masterspecieslist, listtype = listtype)
   Duration <- Community_Duration(SpeciesList, masterspecieslist, listtype = listtype)
-  SGgroup <- Community_SGGroup(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
-    dplyr::rename("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")
+  if(any(grepl("SG_Group", colnames(masterspecieslist)))){
+    SGgroup <- Community_SGGroup(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
+      dplyr::rename("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")
+  } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
   stability <- Community_StabilityGrowthHabit(SpeciesList, masterspecieslist, listtype = listtype, method = "count")%>%
     dplyr::select(EvaluationID,
                   any_of(c("SppInv_HerbaceousHighStability_Cnt",
@@ -191,7 +193,7 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
     dplyr::left_join(., HydroFAC, by = "EvaluationID")%>%
     dplyr::left_join(., GrowthForm, by = "EvaluationID")%>%
     dplyr::left_join(., Duration, by = "EvaluationID")%>%
-    dplyr::left_join(., SGgroup, by = "EvaluationID")%>%
+    {if(any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., SGgroup, by = "EvaluationID") else .}%>%
     dplyr::left_join(., stability, by = "EvaluationID")
 
   return(AllCommunityMetrics)
@@ -390,6 +392,9 @@ allmetrics_byplot <- function(header,
     dplyr::rename_with(., .fn = ~stringr::str_replace(.x, "Absolute", ""), .cols = matches("Absolute"))%>%
     sf::st_drop_geometry()
 
+  unknowncover <- pct_UnknownCover(lpi_tall, masterspecieslist, covertype = "relative", unit = "by_plot")%>%
+    dplyr::rename("LPI_RelativeUnknownCover" = "RelativeUnknownCover")
+
   abscover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
   cwmmetrics <- cwm_metrics(abscover, header, masterspecieslist)
 
@@ -405,7 +410,7 @@ allmetrics_byplot <- function(header,
     dplyr::select(-dplyr::starts_with("WS_TreeMaxHgtClass"))
 
   if(!is.null(tree_tall)){
-    sgconifermetrics <- SGConifer_metrics(tree_tall, masterspecieslist = masterspecieslist, by_line = F)
+    sgconifermetrics <- SGConifer_metrics(tree_tall, masterspecieslist = masterspecieslist, unit = "by_plot")
   }  else{missingindicators <- c(missingindicators, "Tree Repeat")}
 
   usemetrics <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist)
@@ -420,6 +425,7 @@ allmetrics_byplot <- function(header,
                                  by = c("PlotID", "EvaluationID", "SiteName", "AdminState", "SpeciesState", "FieldEvalDate"))%>%
     dplyr::left_join(., absolutecovermetrics,
                      by = c("PlotID", "EvaluationID", "SiteName", "AdminState", "SpeciesState", "FieldEvalDate"))%>%
+    dplyr::left_join(., unknowncover, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(.,
                      cwmmetrics%>%
                        dplyr::select(-dplyr::any_of(c("LPI_CValue_CWM"))),
@@ -478,6 +484,8 @@ allmetrics_byplot <- function(header,
   if(!is.null(soils)){
 
     soilmetrics <- soils%>%
+      dplyr::arrange(SoilPitNumber)%>%
+      dplyr::distinct(EvaluationID, .keep_all = T)%>%
       dplyr::select(EvaluationID, Co_PrimaryHydricSoilIndicator = HydricIndicatorPrimary)
 
     allmetrics <- allmetrics %>%
