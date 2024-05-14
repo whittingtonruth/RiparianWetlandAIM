@@ -4,7 +4,7 @@
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
 #'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in growth habit for plants in LPI never identified to a species or genus with those fields specified. This information is used to filter out herbaceous height measurements of non-herbaceous species and woody height measurements of non-woody species. If not included, unknown growth habit measurements will be maintained in the final height calculations.
 #'@param method Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
+#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, or `by_line`. `by_geosurface` is not an option for this calculation. Defaults to `by_plot`.
 #'@param omit_zero Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.
 #'@param by_species Logical. If TRUE, then results will  reported by species-plot rather than at the plot or transect level. Defaults to FALSE.
 #'@returns Data frame of the summarized height data by plot grouped into herbaceous, litter, water, or woody categories.
@@ -15,7 +15,7 @@ height_metrics <- function(height_tall,
                            masterspecieslist,
                            unknowncodes,
                            method = "mean",
-                           by_line = FALSE,
+                           unit = "by_plot",
                            omit_zero = TRUE,
                            by_species = FALSE){
 
@@ -24,10 +24,12 @@ height_metrics <- function(height_tall,
   }
 
   #define the level at which you are summarizing data.
-  if (by_line) {
+  if (unit == "by_line") {
     level <- rlang::quos(PlotID, EvaluationID, LineKey)
-  } else {
+  } else if (unit == "by_plot") {
     level <- rlang::quos(PlotID, EvaluationID)
+  } else {
+    stop("Incorrect unit. Height metrics can only calculated by_plot or by_line. ")
   }
 
   #group by species if desired. Otherwise group by GrowthHabit_measured.

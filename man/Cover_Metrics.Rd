@@ -9,6 +9,7 @@
 \alias{pct_HydrophyteCover}
 \alias{pct_HydroFACCover}
 \alias{pct_GrowthHabitCover}
+\alias{pct_TypeCover}
 \alias{pct_DurationCover}
 \alias{pct_DurationGrowthHabitCover}
 \alias{pct_NativeGrowthHabitCover}
@@ -17,6 +18,7 @@
 \alias{pct_SGGroupCover}
 \alias{pct_NonPlantGroundCover}
 \alias{pct_UnknownCover}
+\alias{pct_FunctionalGroupCover}
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
@@ -58,6 +60,14 @@ pct_HydroFACCover(
 )
 
 pct_GrowthHabitCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
+)
+
+pct_TypeCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
@@ -126,11 +136,14 @@ pct_UnknownCover(
   unit = "by_plot"
 )
 
+pct_FunctionalGroupCover(lpi_tall, masterspecieslist, covertype = "absolute")
+
 pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
 }
 \arguments{
-\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
-#'@param unit String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
+\item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
+
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
 
