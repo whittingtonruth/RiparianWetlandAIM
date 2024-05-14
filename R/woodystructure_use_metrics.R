@@ -11,7 +11,7 @@
 
 #' @export use_metrics
 #' @rdname woodystructure_use_metrics
-use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, by_line = F, by_species = F){
+use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, unit = "by_plot", by_species = F){
 
   #Allow to be calculated by line
   if (unit == "by_line") {
