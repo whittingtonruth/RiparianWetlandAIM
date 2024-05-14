@@ -139,7 +139,7 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
     species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "SpecRichDetail")], sep = "/")))%>%
       dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")%>%
-      dplyr::filter(is.na(RecKey)|!stringr::str_detect(RecKey, "CALIBRATION"))
+      {if("RecKey" %in% names(.)) dplyr::filter(., is.na(RecKey)|!stringr::str_detect(RecKey, "CALIBRATION")) else .}
 
     message("Downloading and gathering Species Inventory from ArcGIS Online live feature service.")
   }
@@ -495,7 +495,7 @@ gather_annualuse <- function(dsn, source = "SDE"){
   # We only want to carry a subset of the annualuse_header fields forward
   annualuse_header <- dplyr::select(annualuse_header,
                               PlotID,
-                              EvaluationID,
+                              EvaluationID, AdminState, SpeciesState,
                               LineKey:AnnualUseCollected,
                               interval)
 
@@ -603,7 +603,12 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
                      .,
                      by = c("EvaluationID", "RecKey", "PointNbr"))
 
+  if(!"LineLengthCM" %in% names(woody_header)){
+    message("No Line Length included in Woody Structure. Assuming a line length of 2500 cm. ")
+  }
+
   woody_tall <- woody_header%>%
+    {if(!"LineLengthCM" %in% names(.)) mutate(., LineLengthCM = 2500) else .}%>%
     dplyr::select(PlotID,
                   EvaluationID,
                   LineKey, Observer, Recorder, FormDate, AnnualUseCollected, WoodyStructureCollected, LineLengthCM, interval,
@@ -893,9 +898,14 @@ gather_soilstab <- function(dsn, source = "SDE"){
     tidyr::pivot_wider(., id_cols = c("EvaluationID", "Position"), names_from = key, values_from = value)%>%
 
     # Change all Unsampleable points to NA instead of 0
-    dplyr::mutate(Rating = ifelse(Veg == "U", NA, Rating))
+    {if(nrow(.) > 0) dplyr::mutate(., Rating = ifelse(Veg == "U", NA, Rating)) else .}
 
-  return(soil_stability_tall)
+  if(nrow(soil_stability_tall)>0){
+    return(soil_stability_tall)
+  }else{
+    message("Soil stability table is available but empty. A null table was produced. ")
+    return(NULL)
+  }
 
 }
 
@@ -907,7 +917,7 @@ gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, familyge
   tableList <- list()
 
   #create a list of all the tables found in the dsn specified. This will be used to determine whether specific gathering functions should be completed.
-  alltables <- c(arcgisbinding::arc.open(dsn)@children$FeatureClass, arcgisbinding::arc.open(dsn)@children$Table)
+  alltables <- c(arcgisbinding::arc.open(path = dsn)@children$FeatureClass, arcgisbinding::arc.open(dsn)@children$Table)
   #create string to which I'll print list of tables not found
   missingtables <- c()
 

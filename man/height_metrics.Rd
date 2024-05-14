@@ -9,7 +9,7 @@ height_metrics(
   masterspecieslist,
   unknowncodes,
   method = "mean",
-  by_line = FALSE,
+  unit = "by_plot",
   omit_zero = TRUE,
   by_species = FALSE
 )
@@ -23,7 +23,7 @@ height_metrics(
 
 \item{method}{Character string.  Indicates the type of summary to calculate, \code{"max"}, which yields the average maximum height on the plot or \code{"mean"} which yields the mean height.}
 
-\item{by_line}{Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.}
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, or \code{by_line}. \code{by_geosurface} is not an option for this calculation. Defaults to \code{by_plot}.}
 
 \item{omit_zero}{Logical. Indicates whether zeros should be included in average height and depth calculations. Defaults to TRUE.}
 

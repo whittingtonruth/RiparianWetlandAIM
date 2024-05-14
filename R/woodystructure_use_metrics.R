@@ -4,7 +4,7 @@
 #'@param annualuse_tall Data frame. Use the data frame from the \code{gather_annualuse()} output.
 #'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
 #'@param hummocks Data frame. Use the data frame from the \code{gather_hummocks()} output.
-#'@param by_line Logical. If TRUE then results will be reported further grouped by line using 'LineKey. Defaults to FALSE.
+#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, or `by_line`. `by_geosurface` is not an option for this calculation. Defaults to `by_plot`.
 #'@param by_species Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.
 #'@param tree_tall Optional data frame. Use the data frame from the \code{gather_tree()} output. For data from years prior to 2023, this data.frame will not exist.
 #'@returns Data.frame of the summarized woody and annual use data by plot.
@@ -14,12 +14,14 @@
 use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, by_line = F, by_species = F){
 
   #Allow to be calculated by line
-  if (by_line) {
+  if (unit == "by_line") {
     level <- rlang::quos(PlotID, EvaluationID, LineKey)
     level_colnames <- c("PlotID", "EvaluationID", "LineKey")
-  } else {
+  } else if (unit == "by_plot") {
     level <- rlang::quos(PlotID, EvaluationID)
     level_colnames <- c("PlotID", "EvaluationID")
+  }else {
+    stop("Incorrect unit. Height metrics can only calculated by_plot or by_line. ")
   }
 
   #select relevant columns from species list.
@@ -138,14 +140,16 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, b
 
 #' @export ageclass_metrics
 #' @rdname woodystructure_use_metrics
-ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspecieslist, by_line = F, by_species = F){
+ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspecieslist, unit = "by_plot", by_species = F){
 
   #allow metrics to be calculated at the plot level, line level, or species level.
   level <- rlang::quos(PlotID, EvaluationID)
   level_colnames <- c("PlotID", "EvaluationID")
-  if(by_line){
+  if(unit == "by_line"){
     level <- c(level, rlang::quos(LineKey))
     level_colnames <- c(level_colnames, "LineKey")
+  } else if(!unit %in% c("by_line", "by_plot")){
+    stop("Incorrect unit. Height metrics can only calculated by_plot or by_line. ")
   }
   if(by_species){
     level <- c(level, rlang::quos(RiparianWoodySpecies, UnknownCodeKey))
@@ -357,12 +361,12 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspeciesli
 
 #' @export SGConifer_metrics
 #' @rdname woodystructure_use_metrics
-SGConifer_metrics <- function(tree_tall, masterspecieslist, by_line = F){
+SGConifer_metrics <- function(tree_tall, masterspecieslist, unit = "by_plot"){
 
   #allow metrics to be calculated at the plot level, line level, or species level.
   level <- rlang::quos(PlotID, EvaluationID)
   level_colnames <- c("PlotID", "EvaluationID")
-  if(by_line){
+  if(unit == "by_line"){
     level <- c(level, rlang::quos(LineKey))
     level_colnames <- c(level_colnames, "LineKey")
   }
@@ -395,12 +399,14 @@ SGConifer_metrics <- function(tree_tall, masterspecieslist, by_line = F){
 
 #' @export hummocks_metrics
 #' @rdname woodystructure_use_metrics
-hummocks_metrics <- function(hummocks, by_line = F){
+hummocks_metrics <- function(hummocks, unit = "by_plot"){
 
-  if (by_line) {
+  if (unit == "by_line") {
     level <- rlang::quos(PlotID, EvaluationID, LineKey)
-  } else {
+  } else if (unit == "by_plot") {
     level <- rlang::quos(PlotID, EvaluationID)
+  } else {
+    stop("Incorrect unit. Height metrics can only calculated by_plot or by_line. ")
   }
 
   nohummockplots <- hummocks%>%

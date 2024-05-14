@@ -44,6 +44,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   filter_exprs <- rlang::quos(...)
 
   plotchar <- plotchar%>%
+    {if(!"SpeciesState" %in% names(.)) mutate(., SpeciesState = AdminState) else .}%>%
     mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
            #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
@@ -92,18 +93,16 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   if(!missing(annualuse_tall)){
     annualusevisits <- annualuse_tall%>%
       dplyr::select(PlotID,
-                    EvaluationID)%>%
+                    EvaluationID, AdminState, SpeciesState)%>%
       dplyr::distinct(EvaluationID, .keep_all = T)%>%
       dplyr::filter(!(EvaluationID %in% header$EvaluationID))%>%
       dplyr::mutate(VisitType = "Annual Use Visit",
-                    FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")) + lubridate::hours(12))%>%
+                    FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")) + lubridate::hours(12),
+                    State = SpeciesState)%>%
       dplyr::left_join(.,
                        header%>%dplyr::select(PlotID,
                                               SiteName,
                                               SamplingApproach,
-                                              State,
-                                              AdminState,
-                                              SpeciesState,
                                               WetlandIndicatorRegion,
                                               LatitudeWGS84,
                                               LongitudeWGS84)%>%

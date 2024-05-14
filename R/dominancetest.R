@@ -23,7 +23,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
-                     masterspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, Species),
+                     masterspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, type, Species),
                      by = c("Code" = "Symbol"))
 
   #calculate the total absolute cover made up by species that were never identified. May help explain some sites that didn't pass test.
@@ -34,7 +34,7 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
-    dplyr::filter(Species!=""&!is.na(Species))%>%
+    dplyr::filter(Species!=""&!is.na(Species)&type!="Nonvascular")%>%
     dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West"~AW_WetStatus,
                                        WetlandIndicatorRegion == "Western Mountains, Valleys, and Coast"~WMVC_WetStatus,
                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
