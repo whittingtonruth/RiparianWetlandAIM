@@ -359,15 +359,16 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
         .cols = dplyr::starts_with("WS") & dplyr::ends_with(c("PctQdrts", "Cnt")), ~ifelse(GrowthHabit == "Woody", tidyr::replace_na(.,0), .)))%>%
     {if(!is.null(SpeciesAnnualUse))
       #Replace any NAs in use counts with 0 if annual use was measured. This should only occur if annual use data was collected anywhere in the dataset.
-      dplyr::mutate(AU_StubbleHgt_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
-                                   GrowthHabitSub == "Graminoid",
-                                 tidyr::replace_na(AU_StubbleHgt_Cnt, 0),
-                                 AU_StubbleHgt_Cnt),
-      AU_WoodyUseClass_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
-                                      GrowthHabit == "Woody" &
-                                      WetlandIndicatorStatus %in% c("FACW", "FAC", "OBL"),
-                                    tidyr::replace_na(AU_WoodyUseClass_Cnt, 0),
-                                    AU_WoodyUseClass_Cnt))
+      dplyr::mutate(.,
+                    AU_StubbleHgt_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
+                                                 GrowthHabitSub == "Graminoid",
+                                               tidyr::replace_na(AU_StubbleHgt_Cnt, 0),
+                                               AU_StubbleHgt_Cnt),
+                    AU_WoodyUseClass_Cnt = ifelse(EvaluationID %in% AnnualUseEvaluationIDs &
+                                                    GrowthHabit == "Woody" &
+                                                    WetlandIndicatorStatus %in% c("FACW", "FAC", "OBL"),
+                                                  tidyr::replace_na(AU_WoodyUseClass_Cnt, 0),
+                                                  AU_WoodyUseClass_Cnt))
       else .}
 
 
