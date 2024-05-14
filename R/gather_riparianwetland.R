@@ -686,10 +686,6 @@ gather_tree <- function(dsn, source = "SDE"){
       layer = "F_TreeRepeat",
       stringsAsFactors = F
     ))%>%
-      #Finalize this once new SDE structure is available.
-      dplyr::mutate(TreeSpecies = Species,
-             TreeUnknownCodeKey = UnknownCodeKey,
-             TreeIndivLiveDead = IndivLiveDead)%>%
       dplyr::select(-c(Species, UnknownCodeKey))
 
     message("Gathering tables from the SDE into tree table. ")
