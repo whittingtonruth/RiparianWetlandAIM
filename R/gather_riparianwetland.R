@@ -686,7 +686,7 @@ gather_tree <- function(dsn, source = "SDE"){
       layer = "F_TreeRepeat",
       stringsAsFactors = F
     ))%>%
-      dplyr::select(-c(Species, UnknownCodeKey))
+      dplyr::mutate(PointNbr = as.numeric(PointNbr))
 
     message("Gathering tables from the SDE into tree table. ")
   }
