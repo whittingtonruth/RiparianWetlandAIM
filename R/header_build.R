@@ -44,8 +44,8 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   filter_exprs <- rlang::quos(...)
 
   plotchar <- plotchar%>%
-    {if(!"SpeciesState" %in% names(.)) mutate(., SpeciesState = AdminState) else .}%>%
-    mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
+    {if(!"SpeciesState" %in% names(.)) dplyr::mutate(., SpeciesState = AdminState) else .}%>%
+    dplyr::mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
            #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
            StateCode = SpeciesState,
