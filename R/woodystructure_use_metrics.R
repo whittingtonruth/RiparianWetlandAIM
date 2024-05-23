@@ -74,7 +74,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, u
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
       dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
-      tidyr::pivot_wider(., id_cols = c(!!!level), values_from = RiparianWoodySpecies, names_prefix = "AU_DominantWoody", names_from= rank)
+      tidyr::pivot_wider(., id_cols = c(!!!level), values_from = RiparianWoodySpecies, names_prefix = "AU_DominantRiparianWoody", names_from= rank)
 
     #Calculate Woody Metrics
     woodymetrics <- riparianwoody%>%

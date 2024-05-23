@@ -50,7 +50,10 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
            #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
            StateCode = SpeciesState,
            PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
-                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*ActualPlotLength,
+                                          #Use actual plot length when smaller than the max.
+                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear") & MaxPlotLengthCalc>ActualPlotLength~AvgWidthArea*ActualPlotLength,
+                                          #Use max when actual is larger
+                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*MaxPlotLengthCalc,
                                           PlotLayout == "Mixed Layout"~NA))
 
   # Create a list of fields to keep, then test whether they are present in the header table.
@@ -66,7 +69,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                              WetlandType,
                              EcotypeAlaska = AlaskaEcotypeClassification,
                              AdminState,
-                             State = StateCode,
+                             StateCode,
                              SpeciesState,
                              WetlandIndicatorRegion,
                              FieldEvalDate,

@@ -98,12 +98,12 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   AbsoluteNativeGrowth <- pct_NativeGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
-                  dplyr::any_of(c("AH_NativeGraminoidCover", "AH_NativeShrubCover")))
+                  dplyr::any_of(c("AH_NativeGraminoidCover", "AH_NativeShrubCover", "AH_NonnativeShrubCover")))
 
   if(any(grepl("SG_Group", colnames(masterspecieslist)))){
     AbsoluteSGGroup <- pct_SGGroupCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)%>%
       dplyr::select(!!!level,
-                    dplyr::any_of(c("AH_SGPreferredForbCover", "AH_SGInvasiveAnnualGrassCover")))
+                    dplyr::any_of(c("AH_PreferredForbCover" = "AH_SGPreferredForbCover", "AH_SGInvasiveAnnualGrassCover")))
   } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
 
   NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", masterspecieslist, unit = unit)%>%
@@ -252,13 +252,14 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                            "SamplingApproach",
                            "AdminState",
                            "SpeciesState",
-                           "State",
+                           "StateCode",
                            "WetlandIndicatorRegion",
                            "CowardinAttribute",
                            "HGMClass",
                            "WetlandType",
                            "EcotypeAlaska",
                            "PlotLayout",
+                           "PlotArea_m2",
                            "Elevation_m",
                            "Species",
                            "UnknownCodeKey",
@@ -273,7 +274,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                            "StabilityRating" = "StabilityNum",
                            "SG_Group",
                            "PreferredForb",
-                           "abundance")),
+                           "Abundance" = "abundance")),
                   ends_with("_NOX"),
                   ends_with("_C.Value"),
                   ends_with("WetStatus"))%>%
@@ -420,9 +421,9 @@ allmetrics_byplot <- function(header,
   ageclassmetrics <- ageclass_metrics(header, woody_tall, tree_tall = tree_tall, masterspecieslist = masterspecieslist)%>%
     dplyr::select(-dplyr::starts_with("WS_TreeMaxHgtClass"))
 
-  if(!is.null(tree_tall)){
+  if(!is.null(tree_tall)&any(grepl("SG_Group", colnames(masterspecieslist)))){
     sgconifermetrics <- SGConifer_metrics(tree_tall, masterspecieslist = masterspecieslist, unit = "by_plot")
-  }  else{missingindicators <- c(missingindicators, "Tree Repeat")}
+  }  else{missingindicators <- c(missingindicators, "Sage Grouse Tree Metrics")}
 
   usemetrics <- use_metrics(header, annualuse_tall, woody_tall, masterspecieslist)
 
@@ -443,7 +444,7 @@ allmetrics_byplot <- function(header,
                      by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., heightmetrics, by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., ageclassmetrics, by = c("PlotID", "EvaluationID"))%>%
-    {if(!is.null(tree_tall)) dplyr::left_join(., sgconifermetrics, by = c("PlotID", "EvaluationID")) else .}%>%
+    {if(!is.null(tree_tall)&any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., sgconifermetrics, by = c("PlotID", "EvaluationID")) else .}%>%
     {if(!is.null(hummocks)) dplyr::left_join(., hummocksmetrics, by = c("PlotID", "EvaluationID")) else .}%>%
     dplyr::left_join(., usemetrics, by = c("PlotID", "EvaluationID"))
 
