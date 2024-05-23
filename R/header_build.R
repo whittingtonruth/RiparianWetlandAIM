@@ -113,7 +113,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                        by = c("PlotID"))
 
     header <- header%>%
-      bind_rows(., annualusevisits)
+      dplyr::bind_rows(., annualusevisits)
   } else {
     warning("annualuse_tall table was not used to create header. All Annual Use Only visits will be excluded from analysis. ")
   }
