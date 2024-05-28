@@ -14,6 +14,7 @@
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
 #'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
 #'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'@param statespecieslist Data frame. A state-based list should be used, which includes a unique entry for each species-state combination.
 #'@param covertype Character string. "relative" or "absolute". Specifies the kind of cover calculation. Relative cover is only used for calculations on vascular plant species and specifies the percent of overall hits made up of a particular species or group. Absolute cover is the percent of the pin drops made up by a particular species or group.
 #'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
 #'@param hit Character string. "any", "first" or "basal". Only used in \code{pct_NonPlantGroundCover()}, where relative cover is not calculated. If "any" is used, any layer will be used to calculate non-plant cover. If "first" is used, only \code{"TopCanopy"} hits will be counted. If "basal" is used, only \code{"SoilSurface"} hits will be counted. Defaults to "any".
@@ -162,7 +163,7 @@ pct_NativeCover <- function(lpi_tall, masterspecieslist, covertype = "absolute",
 
 #'@export pct_NoxiousCover
 #'@rdname Cover_Metrics
-pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
+pct_NoxiousCover <- function(header, lpi_tall, statespecieslist, covertype = "absolute", unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -183,20 +184,14 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
 
   fieldname <- ifelse(covertype == "relative", "RelativeNoxiousCover", "AH_NoxiousCover")
 
-  masterspecieslist <- masterspecieslist%>%
+  statespecieslist <- statespecieslist%>%
     dplyr::select(Symbol,
-                  Scientific.Name,
-                  Species,
-                  GrowthHabitSub,
-                  Duration,
-                  NativeStatus,
-                  ends_with("_WetStatus"),
-                  ends_with("_C.Value"),
-                  ends_with("_Nox"))
+                  SpeciesState,
+                  StateNoxious)
 
   #Check for states for which no noxious information is in species list.
-  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
-    warning("Some states in header do not have a noxious column in the species list provided. Sites in states outside of the expected set will be removed from noxious calculations. ")
+  if(!all(header$SpeciesState %in% unique(statespecieslist$SpeciesState))){
+    warning("Some states in header do not have any state-based entries in state species list. NA will be returned for noxious species cover.")
   }
 
   header <- header%>%
@@ -208,7 +203,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
   #join lpi_tall to species list then add column for checking whether the species is considered Noxious
   #Filter the list for relative cover to only include plants identified to species.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
-    dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
+    dplyr::left_join(., statespecieslist, by = c("code" = "Symbol"))%>%
     mutate(Noxious = "")%>%
     {if(covertype == "relative") dplyr::filter(.,Species !=""|is.na(Species)) else .}
 
