@@ -100,6 +100,10 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::select(!!!level,
                   dplyr::any_of(c("AH_NativeGraminoidCover", "AH_NativeShrubCover", "AH_NonnativeShrubCover")))
 
+  AbsoluteTypeDuration <- pct_DurationTypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("AH_NonwoodyPerennialCover")))
+
   if(any(grepl("SG_Group", colnames(masterspecieslist)))){
     AbsoluteSGGroup <- pct_SGGroupCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)%>%
       dplyr::select(!!!level,
@@ -146,6 +150,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNativeGrowth, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteTypeDuration, by = level_colnames)%>%
     {if(any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., AbsoluteSGGroup, by = level_colnames) else .}%>%
     dplyr::left_join(., NonPlantCover, by = level_colnames)
 
