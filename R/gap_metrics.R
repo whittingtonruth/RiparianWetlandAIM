@@ -21,8 +21,10 @@ gap_cover <- function(gap_tall,
   # For how deep to group. Always by plot, sometimes by line
   if (by_line) {
     level <- rlang::quos(EvaluationID, LineKey)
+    level_colnames <- c("EvaluationID", "LineKey")
   } else {
     level <- rlang::quos(EvaluationID)
+    level_colnames <- c("EvaluationID")
   }
 
   ## Convert the line lengths to the same units as the gaps
@@ -50,7 +52,7 @@ gap_cover <- function(gap_tall,
     dplyr::summarize(total_line_length = sum(LineLength)) %>%
 
     # Merge back with original gap data
-    dplyr::left_join(gap_tall, .)
+    dplyr::left_join(gap_tall, ., by = level_colnames)
 
   # Check for site visits with less than 3 transects and create warning message
   # if there are any.
