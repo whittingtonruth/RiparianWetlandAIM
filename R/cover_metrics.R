@@ -21,7 +21,7 @@
 
 #'@export pct_FoliarCover
 #'@rdname Cover_Metrics
-pct_FoliarCover <- function(lpi_tall, unit = "by_plot"){
+pct_FoliarCover <- function(lpi_tall, masterspecieslist = NULL, unit = "by_plot"){
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
@@ -46,6 +46,13 @@ pct_FoliarCover <- function(lpi_tall, unit = "by_plot"){
                                          unit = unit,
                                          code)%>%
     dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::mutate(Symbol = stringr::str_split_i(metric, "\\.", 2))%>%
+    # filter out nonvascular codes
+    {if (!is.null(masterspecieslist)) left_join(.,
+                                                masterspecieslist%>%
+                                                  select(Symbol, type), by = "Symbol")%>%
+        filter(type != "Nonvascular")
+      else .}%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(TotalFoliarCover = round(sum(percent), digits = 2))
 

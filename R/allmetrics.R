@@ -71,7 +71,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     level_colnames <- c("PlotID", "EvaluationID")
   }
 
-  Foliar <- pct_FoliarCover(lpi_tall, unit = unit)
+  Foliar <- pct_FoliarCover(lpi_tall, masterspecieslist, unit = unit)
 
   Basal <- pct_BasalCover(lpi_tall, unit = unit)
 
