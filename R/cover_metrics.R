@@ -51,7 +51,7 @@ pct_FoliarCover <- function(lpi_tall, masterspecieslist = NULL, unit = "by_plot"
     {if (!is.null(masterspecieslist)) left_join(.,
                                                 masterspecieslist%>%
                                                   select(Symbol, type), by = "Symbol")%>%
-        filter(type != "Nonvascular")
+        filter(!type %in% c("Nonvascular"))
       else .}%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(TotalFoliarCover = round(sum(percent), digits = 2))
