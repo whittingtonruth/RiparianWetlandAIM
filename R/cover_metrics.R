@@ -741,8 +741,7 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
                   Species,
                   NativeStatus,
                   GrowthHabitSub,
-                  Duration,
-                  PreferredForb
+                  Duration
     )
 
   #join lpi_tall to species list.
