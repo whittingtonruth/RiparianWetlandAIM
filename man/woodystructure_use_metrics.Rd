@@ -12,7 +12,7 @@ use_metrics(
   annualuse_tall,
   woody_tall,
   masterspecieslist,
-  by_line = F,
+  unit = "by_plot",
   by_species = F
 )
 
@@ -36,11 +36,11 @@ hummocks_metrics(hummocks, unit = "by_plot")
 
 \item{woody_tall}{Data frame. Use the data frame from the \code{gather_woodyspecies()} output.}
 
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, or \code{by_line}. \code{by_geosurface} is not an option for this calculation. Defaults to \code{by_plot}.}
+
 \item{by_species}{Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.}
 
 \item{tree_tall}{Optional data frame. Use the data frame from the \code{gather_tree()} output. For data from years prior to 2023, this data.frame will not exist.}
-
-\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, or \code{by_line}. \code{by_geosurface} is not an option for this calculation. Defaults to \code{by_plot}.}
 
 \item{hummocks}{Data frame. Use the data frame from the \code{gather_hummocks()} output.}
 }

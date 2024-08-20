@@ -11,8 +11,10 @@
 \alias{pct_GrowthHabitCover}
 \alias{pct_TypeCover}
 \alias{pct_DurationCover}
+\alias{pct_DurationTypeCover}
 \alias{pct_DurationGrowthHabitCover}
 \alias{pct_NativeGrowthHabitCover}
+\alias{pct_NativeTypeCover}
 \alias{pct_NativeDurationGrowthHabitCover}
 \alias{pct_StabilityClassCover}
 \alias{pct_SGGroupCover}
@@ -22,7 +24,7 @@
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
-pct_FoliarCover(lpi_tall, unit = "by_plot")
+pct_FoliarCover(lpi_tall, masterspecieslist = NULL, unit = "by_plot")
 
 pct_BasalCover(lpi_tall, unit = "by_plot")
 
@@ -83,6 +85,14 @@ pct_DurationCover(
   unit = "by_plot"
 )
 
+pct_DurationTypeCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
+)
+
 pct_DurationGrowthHabitCover(
   lpi_tall,
   masterspecieslist,
@@ -92,6 +102,14 @@ pct_DurationGrowthHabitCover(
 )
 
 pct_NativeGrowthHabitCover(
+  lpi_tall,
+  masterspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
+)
+
+pct_NativeTypeCover(
   lpi_tall,
   masterspecieslist,
   covertype = "absolute",
@@ -143,9 +161,9 @@ pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
 \arguments{
 \item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
-\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
-
 \item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{covertype}{Character string. "relative" or "absolute". Specifies the kind of cover calculation. Relative cover is only used for calculations on vascular plant species and specifies the percent of overall hits made up of a particular species or group. Absolute cover is the percent of the pin drops made up by a particular species or group.}
 
