@@ -725,6 +725,69 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = 
   return(NativeGrowthCover)
 }
 
+#'@export pct_NativeTypeCover
+#'@rdname Cover_Metrics
+pct_NativeTypeCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+
+  if(!(covertype %in% c("relative", "absolute"))){
+    stop("covertype must be 'relative' or 'absolute'.")
+  }
+
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+
+  masterspecieslist <- masterspecieslist%>%
+    dplyr::select(Symbol,
+                  Scientific.Name,
+                  Species,
+                  type,
+                  Duration,
+                  NativeStatus
+    )
+
+  #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
+  #These plant hits would be included in the denominator of the calculation if left in.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
+    mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
+  if(!missing(unknowncodes)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, GrowthHabitSubUnknown = GrowthHabit),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      dplyr::mutate(type = case_when(type!=""&!is.na(type)~type,
+                                     type==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
+                                     type==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
+                                     type==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
+  }
+
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
+  #cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., type !=""&!is.na(type)&NativeStatus !=""&!is.na(NativeStatus)) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #Remove AbsoluteCover from the data frame to take out nulls.
+  #pivot to show in wide format by EvaluationID
+  NativeTypeCover <- pct_cover_lentic(lpispeciesjoin,
+                                        tall = TRUE,
+                                        hit = switch(covertype,
+                                                     "relative" = "all",
+                                                     "absolute" = "any"),
+                                        unit = unit,
+                                        NativeStatus,
+                                        type)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
+                                   " ", ""),
+                                 "Cover", sep = ""))%>%
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(NativeTypeCover)
+}
+
 #'@export pct_NativeDurationGrowthHabitCover
 #'@rdname Cover_Metrics
 pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
