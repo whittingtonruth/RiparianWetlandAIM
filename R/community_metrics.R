@@ -64,7 +64,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
 
   #filter out sites with no c-value data available in provided species list.
   if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
-    warning("Some states in header do not have a C-Value column in the species list provided. Sites in states outside of the expected set will be removed from noxious calculations. ")
+    warning("Some states in header do not have a C-Value column in the species list provided. Sites in states outside of the expected set will be removed from c-value calculations. ")
   }
 
   header <- header%>%
@@ -162,9 +162,16 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
+    warning("Some states in header do not have a noxious column in the species list provided. Sites in states outside of the expected set will be removed from noxious calculations. ")
+  }
+
+  header <- header%>%
+    dplyr::filter(SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))%>%
+    {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
+
   #join header, specieslist and master species list together, then filter out duplicates and unnecessary columns.
-  SpeciesList <- dplyr::left_join(header%>%
-                                    {if("sf" %in% class(header))sf::st_drop_geometry(.) else .},
+  SpeciesList <- dplyr::left_join(header,
                                   SpeciesList, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(EvaluationID)%>%
