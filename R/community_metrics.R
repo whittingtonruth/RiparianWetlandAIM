@@ -62,9 +62,17 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
       dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
   }
 
+  #filter out sites with no c-value data available in provided species list.
+  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
+    warning("Some states in header do not have a C-Value column in the species list provided. Sites in states outside of the expected set will be removed from noxious calculations. ")
+  }
+
+  header <- header%>%
+    dplyr::filter(SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))%>%
+    {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
+
   #Join header, specieslist, and master species list together and filter out unknowns. Add C.Value column to add state-specific C-Values
-  SpeciesList <- dplyr::left_join(header%>%
-                                    {if("sf" %in% class(header))sf::st_drop_geometry(.) else .},
+  SpeciesList <- dplyr::left_join(header,
                                   SpeciesList, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::group_by(EvaluationID)%>%
@@ -73,6 +81,7 @@ Community_C.Value <- function(header, SpeciesList, masterspecieslist, listtype =
                   Duration != "Nonvascular")%>%
     dplyr::select(EvaluationID, SpeciesState, Species, ends_with("_C.Value"))%>%
     tibble::add_column(., C.Value = NA)
+
 
   #Populate C-Value data based on SpeciesState from header.
   for (i in 1:nrow(SpeciesList)){
