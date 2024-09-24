@@ -22,6 +22,19 @@
 #'@rdname allmetrics
 CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unknowncodes, unit = "by_plot"){
 
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  } else if (unit == "by_line") {
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
+  } else if(unit == "by_geosurface") {
+    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
+    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
+  } else {
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
+  }
+
   TotalAbsolute <- pct_TotalAbsoluteCover(lpi_tall, unit = unit)
 
   RelativeNative <- pct_NativeCover(lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
@@ -43,13 +56,13 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                      SpeciesState,
                                                                                      FieldEvalDate),
                                                               .,
-                                                              by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeNative, by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeNoxious, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeHydro, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeHydroFAC, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeGrowthHabit, by =  c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., RelativeDuration, by =  c("PlotID", "EvaluationID"))
+                                                              by = level_colnames)%>%
+    dplyr::left_join(., RelativeNative, by = level_colnames)%>%
+    dplyr::left_join(., RelativeNoxious, by = level_colnames)%>%
+    dplyr::left_join(., RelativeHydro, by = level_colnames)%>%
+    dplyr::left_join(., RelativeHydroFAC, by = level_colnames)%>%
+    dplyr::left_join(., RelativeGrowthHabit, by = level_colnames)%>%
+    dplyr::left_join(., RelativeDuration, by = level_colnames)
 
   return(LPI_Cover_Indicators)
 }
