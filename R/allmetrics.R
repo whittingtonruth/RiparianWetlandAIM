@@ -56,7 +56,7 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                                                      SpeciesState,
                                                                                      FieldEvalDate),
                                                               .,
-                                                              by = level_colnames)%>%
+                                                              by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeNative, by = level_colnames)%>%
     dplyr::left_join(., RelativeNoxious, by = level_colnames)%>%
     dplyr::left_join(., RelativeHydro, by = level_colnames)%>%
