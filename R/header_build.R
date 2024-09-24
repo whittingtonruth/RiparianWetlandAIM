@@ -118,7 +118,7 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     warning("annualuse_tall table was not used to create header. All Annual Use Only visits will be excluded from analysis. ")
   }
 
-  if(nrow(header%>%filter(duplicated(EvaluationID)))>0){
+  if(nrow(header%>%dplyr::filter(duplicated(EvaluationID)))>0){
     warning("EvaluationIDs in header are not unique! There may be multiple Plot Characterization forms for one or more site visits. ")
   }
 
