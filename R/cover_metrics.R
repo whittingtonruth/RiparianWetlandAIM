@@ -278,7 +278,9 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
     dplyr::mutate(AW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AW_WetStatus=="","NR",AW_WetStatus),
                   WMVC_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&WMVC_WetStatus=="","NR", WMVC_WetStatus),
                   GP_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&GP_WetStatus=="","NR", GP_WetStatus),
-                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus))
+                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus),
+                  MW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&MW_WetStatus=="","NR", MW_WetStatus),
+                  NCNE_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&NCNE_WetStatus=="","NR", NCNE_WetStatus))
 
   header <- header%>%
     dplyr::select(EvaluationID,
@@ -293,7 +295,9 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
     mutate(Hydro = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                              WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                              WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                             WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
+                             WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                             WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                             WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                              TRUE ~ "REGIONMISSING"))%>%
     mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
@@ -353,7 +357,9 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
     dplyr::mutate(AW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AW_WetStatus=="","NR",AW_WetStatus),
                   WMVC_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&WMVC_WetStatus=="","NR", WMVC_WetStatus),
                   GP_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&GP_WetStatus=="","NR", GP_WetStatus),
-                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus))
+                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus),
+                  MW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&MW_WetStatus=="","NR", MW_WetStatus),
+                  NCNE_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&NCNE_WetStatus=="","NR", NCNE_WetStatus))
 
   header <- header%>%
     dplyr::select(EvaluationID,
@@ -368,7 +374,9 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
     mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                 WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                 WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
+                                WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                 TRUE ~ "REGIONMISSING"))%>%
     mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
     {if(covertype == "relative") dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC)) else .}

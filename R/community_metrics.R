@@ -222,10 +222,12 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
                   ends_with("_WetStatus")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
-                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
-                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus),
-                  AK_WetStatus = ifelse(Species!=""&AK_WetStatus=="","NR", AK_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&GP_WetStatus=="","NR", GP_WetStatus),
+                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus),
+                  MW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&MW_WetStatus=="","NR", MW_WetStatus),
+                  NCNE_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&NCNE_WetStatus=="","NR", NCNE_WetStatus))
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -253,6 +255,8 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
                                     WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                     WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                     WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                    WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                    WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                     TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", Hydro))%>%
     dplyr::filter(.,Hydro !=""|is.na(Hydro))%>%
@@ -296,10 +300,12 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
                   ends_with("_WetStatus")
     )%>%
     #Change all species without an indicator status to Not Rated so they will be included in calculation
-    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&AW_WetStatus=="","NR",AW_WetStatus),
-                  WMVC_WetStatus = ifelse(Species!=""&WMVC_WetStatus=="","NR", WMVC_WetStatus),
-                  GP_WetStatus = ifelse(Species!=""&GP_WetStatus=="","NR", GP_WetStatus),
-                  AK_WetStatus = ifelse(Species!=""&AK_WetStatus=="","NR", AK_WetStatus))
+    dplyr::mutate(AW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AW_WetStatus=="","NR",AW_WetStatus),
+                  WMVC_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&WMVC_WetStatus=="","NR", WMVC_WetStatus),
+                  GP_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&GP_WetStatus=="","NR", GP_WetStatus),
+                  AK_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus),
+                  MW_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&MW_WetStatus=="","NR", MW_WetStatus),
+                  NCNE_WetStatus = ifelse(Species!=""&Duration != "Nonvascular"&NCNE_WetStatus=="","NR", NCNE_WetStatus))
 
   #If using LPI, change the code column to Species, then remove all nonplant codes.
   if(listtype == "lpi"){
@@ -327,6 +333,8 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                        WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                       WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                       WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                        TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
     dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC))%>%

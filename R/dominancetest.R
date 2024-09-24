@@ -35,10 +35,12 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
     dplyr::filter(Species!=""&!is.na(Species)&type!="Nonvascular")%>%
-    dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West"~AW_WetStatus,
-                                       WetlandIndicatorRegion == "Western Mountains, Valleys, and Coast"~WMVC_WetStatus,
+    dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                       WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                       WetlandIndicatorRegion=="Alaska"~AK_WetStatus),
+                                       WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                       WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                       WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus),
                   Strata = ifelse(GrowthHabitSub %in% c("Graminoid", "Forb"), "Herbaceous", GrowthHabitSub))%>%
     dplyr::select(-c(ends_with("WetStatus"), GrowthHabitSub))
 
