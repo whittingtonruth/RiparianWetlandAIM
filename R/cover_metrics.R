@@ -216,7 +216,7 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
   #Filter the list for relative cover to only include plants identified to species.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(Noxious = "")%>%
+    dplyr::mutate(Noxious = "")%>%
     {if(covertype == "relative") dplyr::filter(.,Species !=""|is.na(Species)) else .}
 
   #Fill in the Noxious column based on the state data was collected.
@@ -292,14 +292,14 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
   #combine OBL and FACW species into one category.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(Hydro = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+    dplyr::mutate(Hydro = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                              WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                              WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                              WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
                              WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                              WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                              TRUE ~ "REGIONMISSING"))%>%
-    mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
+    dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
 
@@ -371,14 +371,14 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
   #combine OBL and FACW species into one category.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+    dplyr::mutate(HydroFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                 WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                 WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                 WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
                                 WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                                 WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                 TRUE ~ "REGIONMISSING"))%>%
-    mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
+    dplyr::mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
     {if(covertype == "relative") dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC)) else .}
 
   HydroFACCover <- pct_cover_lentic(lpispeciesjoin,
@@ -473,7 +473,7 @@ pct_TypeCover <- function(lpi_tall, masterspecieslist, covertype = "absolute", u
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
-      dplyr::mutate(type = case_when(type!=""&!is.na(type)~type,
+      dplyr::mutate(type = dplyr::case_when(type!=""&!is.na(type)~type,
                                      type==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
                                      type==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
                                      type==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
@@ -582,7 +582,7 @@ pct_DurationTypeCover <- function(lpi_tall, masterspecieslist, covertype = "abso
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration),
-                    type = case_when(type!=""&!is.na(type)~type,
+                    type = dplyr::case_when(type!=""&!is.na(type)~type,
                                      type==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
                                      type==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
                                      type==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
@@ -694,7 +694,7 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, masterspecieslist, covertype = 
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
   #These plant hits would be included in the denominator of the calculation if left in.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
+    dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
   if(!missing(unknowncodes)){
@@ -755,14 +755,14 @@ pct_NativeTypeCover <- function(lpi_tall, masterspecieslist, covertype = "absolu
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
   #These plant hits would be included in the denominator of the calculation if left in.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
+    dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
   if(!missing(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
-      dplyr::mutate(type = case_when(type!=""&!is.na(type)~type,
+      dplyr::mutate(type = dplyr::case_when(type!=""&!is.na(type)~type,
                                      type==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
                                      type==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
                                      type==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
@@ -817,7 +817,7 @@ pct_NativeDurationGrowthHabitCover <- function(lpi_tall, masterspecieslist, cove
 
   #join lpi_tall to species list.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
+    dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "Nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
   if(!missing(unknowncodes)){
@@ -872,7 +872,7 @@ pct_StabilityClassCover <- function(header, lpi_tall, masterspecieslist, coverty
 
   #join lpi_tall to species list. Fill in species with no stability class as "Unknown"
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(StabilityName = ifelse(StabilityName == "", "Unknown", StabilityName))
+    dplyr::mutate(StabilityName = ifelse(StabilityName == "", "Unknown", StabilityName))
 
   #Then filter out any blank values where StabilityName == "". This is only necessary for relative cover calculations. For Absolute cover, I can't remove empty values, because it'll throw off the number of pindrops.
   lpispeciesjoin <- lpispeciesjoin%>%
@@ -1017,7 +1017,7 @@ pct_UnknownCover <- function(lpi_tall, masterspecieslist, covertype = "relative"
   #join lpi_tall to species list then filter out nonplant codes for relative cover
   #codes not in nonplantcodes list or without a genusspecies are classified as unknown.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    mutate(GenusSpecies = case_when(code%in%nonplantcodes$code~NA,
+    dplyr::mutate(GenusSpecies = dplyr::case_when(code%in%nonplantcodes$code~NA,
                                     !GenusSpecies%in%c(NA, "")~GenusSpecies,
                                     TRUE~"Unknown"))%>%
     {if(covertype == "relative") dplyr::filter(., !is.na(GenusSpecies)) else .}
@@ -1060,7 +1060,7 @@ pct_FunctionalGroupCover <- function(lpi_tall, masterspecieslist, covertype = "a
                   Genus,
                   Species
     )%>%
-    dplyr::mutate(FunctionalGroup = case_when(
+    dplyr::mutate(FunctionalGroup = dplyr::case_when(
       Genus %in% marshgen | Symbol %in% marshspp~"Marsh Species",
       Genus %in% playagen ~"Playa Species",
       Genus != ""~"No Functional Group"
