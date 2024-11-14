@@ -1125,7 +1125,11 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist, unit = "by_plo
   #Remove all unknowncodekeys for species that were identified to species. Use this
   #datatable to calculate cover for unknowns.
   UnknownSpeciesjoin <- dplyr::left_join(lpi_tall, masterspecieslist, by = c("code" = "Symbol"))%>%
-    dplyr::mutate(UnknownCodeKey = ifelse(Species!="" & !str_detect(code, "XXXX"), NA, UnknownCodeKey))
+    #Genus-level codes are given an unknown code key so that their cover is accounted for.
+    #plants that have been identified to species have their unknown code key removed so they are removed from the unknown calculation.
+    dplyr::mutate(UnknownCodeKey = dplyr::case_when(Species==""&is.na(UnknownCodeKey)~code,
+                                                    Species!="" & !str_detect(code, "XXXX")~NA,
+                                                    TRUE~UnknownCodeKey))
 
   UnknownCodeCover <- pct_cover_lentic(UnknownSpeciesjoin,
                                        tall = TRUE,
@@ -1135,7 +1139,9 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, masterspecieslist, unit = "by_plo
     dplyr::filter(percent > 0)%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::separate(metric, into = c("Absolute", "Code", "UnknownCodeKey"), sep = "\\.")%>%
-    dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))
+    dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))%>%
+    #Change genus-level codes' unknown code key back to NA
+    dplyr::mutate(UnknownCodeKey = ifelse(Code == UnknownCodeKey, NA, UnknownCodeKey))
 
   #Calculate cover for species identified to species, then filter cover to just those species.
   CodeCover <- pct_cover_lentic(lpi_tall,
