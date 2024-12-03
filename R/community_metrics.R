@@ -199,9 +199,9 @@ Community_NoxiousCount <- function(header, SpeciesList, masterspecieslist, listt
   return(totals)
 }
 
-#'@export Community_Hydrophytes
+#'@export Community_HydroNoFAC
 #'@rdname Community_Metrics
-Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_HydroNoFAC <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
     stop("Method must be 'percent' or 'count'.")
@@ -258,16 +258,16 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
                                     WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                                     WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                     TRUE ~ "REGIONMISSING"))%>%
-    dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", Hydro))%>%
+    dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "HydroNoFAC", Hydro))%>%
     dplyr::filter(.,Hydro !=""|is.na(Hydro))%>%
     dplyr::select(EvaluationID,
                   Species,
                   Hydro)
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, Hydro)%>%
-    dplyr::filter(grepl("*HYDROPHYTE_", metric))%>%
+    dplyr::filter(grepl("*HYDRONOFAC_", metric))%>%
     dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
+                                 stringr::str_replace_all(metric, c("HYDRONOFAC" = "HydroNoFAC")), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
@@ -277,9 +277,9 @@ Community_Hydrophytes <- function(header, SpeciesList, masterspecieslist, listty
   return(totals)
 }
 
-#'@export Community_HydroFAC
+#'@export Community_HydroWithFAC
 #'@rdname Community_Metrics
-Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_HydroWithFAC <- function(header, SpeciesList, masterspecieslist, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
     stop("Method must be 'percent' or 'count'.")
@@ -329,23 +329,23 @@ Community_HydroFAC <- function(header, SpeciesList, masterspecieslist, listtype 
     dplyr::filter(!(duplicated(UnknownCodeKey) & Species.y %in% c(NA, "")) &
                     !(duplicated(Species) & !(Species.y %in% c(NA, ""))),
                   Duration != "Nonvascular")%>%
-    dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+    dplyr::mutate(HydroWithFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                        WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
                                        WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                                        WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                        TRUE ~ "REGIONMISSING"))%>%
-    dplyr::mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
-    dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC))%>%
+    dplyr::mutate(HydroWithFAC = ifelse(grepl("FAC$|FACW|OBL", HydroWithFAC), "HydroWithFAC", HydroWithFAC))%>%
+    dplyr::filter(.,HydroWithFAC !=""|is.na(HydroWithFAC))%>%
     dplyr::select(EvaluationID,
                   Species,
-                  HydroFAC)
+                  HydroWithFAC)
 
-  totals <- Community_Composition(SpeciesList, method = method, tall = T, HydroFAC)%>%
-    dplyr::filter(grepl("*HYDROFAC_", metric))%>%
+  totals <- Community_Composition(SpeciesList, method = method, tall = T, HydroWithFAC)%>%
+    dplyr::filter(grepl("*HYDROWITHFAC_", metric))%>%
     dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace(metric, "HYDROFAC", "HydroFAC"), sep = "_"))%>%
+                                 stringr::str_replace(metric, "HYDROWITHFAC", "HydroWithFAC"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",

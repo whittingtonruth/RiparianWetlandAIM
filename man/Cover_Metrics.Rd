@@ -6,8 +6,8 @@
 \alias{pct_TotalAbsoluteCover}
 \alias{pct_NativeCover}
 \alias{pct_NoxiousCover}
-\alias{pct_HydrophyteCover}
-\alias{pct_HydroFACCover}
+\alias{pct_HydroNoFACCover}
+\alias{pct_HydroWithFACCover}
 \alias{pct_GrowthHabitCover}
 \alias{pct_TypeCover}
 \alias{pct_DurationCover}
@@ -45,7 +45,7 @@ pct_NoxiousCover(
   unit = "by_plot"
 )
 
-pct_HydrophyteCover(
+pct_HydroNoFACCover(
   header,
   lpi_tall,
   masterspecieslist,
@@ -53,7 +53,7 @@ pct_HydrophyteCover(
   unit = "by_plot"
 )
 
-pct_HydroFACCover(
+pct_HydroWithFACCover(
   header,
   lpi_tall,
   masterspecieslist,

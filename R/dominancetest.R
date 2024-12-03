@@ -24,7 +24,8 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
                      masterspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, type, Species),
-                     by = c("Code" = "Symbol"))
+                     by = c("Code" = "Symbol"))%>%
+    {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
 
   #calculate the total absolute cover made up by species that were never identified. May help explain some sites that didn't pass test.
   UnknownCover <- AbsoluteSpeciesCover%>%
@@ -90,8 +91,8 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   AllDominanceTests <- dplyr::left_join(PlotDominanceTest,
                    PlotPrevalenceTest, by = "EvaluationID")%>%
-    dplyr::left_join(., pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative"), by = "EvaluationID")%>%
-    dplyr::left_join(pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute"), by = c("EvaluationID", "PlotID"))
+    dplyr::left_join(., pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "relative"), by = "EvaluationID")%>%
+    dplyr::left_join(pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute"), by = c("EvaluationID", "PlotID"))
 
   return(AllDominanceTests)
 

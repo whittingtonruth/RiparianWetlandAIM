@@ -5,8 +5,8 @@
 \alias{Community_C.Value}
 \alias{Community_Native}
 \alias{Community_NoxiousCount}
-\alias{Community_Hydrophytes}
-\alias{Community_HydroFAC}
+\alias{Community_HydroNoFAC}
+\alias{Community_HydroWithFAC}
 \alias{Community_SGGroup}
 \alias{Community_GrowthHabit}
 \alias{Community_Duration}
@@ -40,7 +40,7 @@ Community_NoxiousCount(
   listtype = "speciesinventory"
 )
 
-Community_Hydrophytes(
+Community_HydroNoFAC(
   header,
   SpeciesList,
   masterspecieslist,
@@ -48,7 +48,7 @@ Community_Hydrophytes(
   method = "percent"
 )
 
-Community_HydroFAC(
+Community_HydroWithFAC(
   header,
   SpeciesList,
   masterspecieslist,

@@ -240,9 +240,9 @@ pct_NoxiousCover <- function(header, lpi_tall, masterspecieslist, covertype = "a
   return(NoxiousCover)
 }
 
-#'@export pct_HydrophyteCover
+#'@export pct_HydroNoFACCover
 #'@rdname Cover_Metrics
-pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
+pct_HydroNoFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -299,28 +299,33 @@ pct_HydrophyteCover <- function(header, lpi_tall, masterspecieslist, covertype =
                              WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                              WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                              TRUE ~ "REGIONMISSING"))%>%
-    dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "Hydrophyte", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
+    dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "HydroNoFAC", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
 
-  HydrophyteCover <- pct_cover_lentic(lpispeciesjoin,
+  HydroNoFACCover <- pct_cover_lentic(lpispeciesjoin,
                                                  tall = TRUE,
                                                  hit = switch(covertype,
                                                               "relative" = "all",
                                                               "absolute" = "any"),
                                                  unit = unit,
                                                  Hydro)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""),
-                  percent = round(percent, digits = 2))%>%
-    tidyr::pivot_wider(names_from = metric, values_from = percent)%>%
-    dplyr::select(c(level_colnames, tidyselect::matches("Hydrophyte|Upland")))
+    dplyr::filter(grepl("\\.HYDRONOFAC$|\\.UPLAND$", metric))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(metric, c("Absolute" = "",
+                                                                    "Relative" = "",
+                                                                    "\\.HYDRONOFAC$" = "HydroNoFAC",
+                                                                    "\\.UPLAND$" = "Upland")),
+                                 "Cover", sep = ""),
+                  percent = round(percent, 2))%>%
+    tidyr::pivot_wider(id_cols = dplyr::all_of(level_colnames), names_from = metric, values_from = percent)
 
-  return(HydrophyteCover)
+  return(HydroNoFACCover)
 }
 
-#'@export pct_HydroFACCover
+#'@export pct_HydroWithFACCover
 #'@rdname Cover_Metrics
-pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
+pct_HydroWithFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -339,7 +344,7 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
     level_colnames <- c("PlotID", "EvaluationID")
   }
 
-  fieldname <- ifelse(covertype == "relative", "RelativeHydroFACCover", "AH_HydroFACCover")
+  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
 
   masterspecieslist <- masterspecieslist%>%
     dplyr::select(Symbol,
@@ -371,15 +376,15 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
   #combine OBL and FACW species into one category.
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., masterspecieslist, by = c("code" = "Symbol"))%>%
-    dplyr::mutate(HydroFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+    dplyr::mutate(HydroWithFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                 WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                 WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                 WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
                                 WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
                                 WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                 TRUE ~ "REGIONMISSING"))%>%
-    dplyr::mutate(HydroFAC = ifelse(grepl("FAC$|FACW|OBL", HydroFAC), "HydroFAC", HydroFAC))%>%
-    {if(covertype == "relative") dplyr::filter(.,HydroFAC !=""|is.na(HydroFAC)) else .}
+    dplyr::mutate(HydroWithFAC = ifelse(grepl("FAC$|FACW|OBL", HydroWithFAC), "HydroWithFAC", HydroWithFAC))%>%
+    {if(covertype == "relative") dplyr::filter(.,HydroWithFAC !=""|is.na(HydroWithFAC)) else .}
 
   HydroFACCover <- pct_cover_lentic(lpispeciesjoin,
                                               tall = TRUE,
@@ -387,10 +392,15 @@ pct_HydroFACCover <- function(header, lpi_tall, masterspecieslist, covertype = "
                                                            "relative" = "all",
                                                            "absolute" = "any"),
                                               unit = unit,
-                                              HydroFAC)%>%
-    dplyr::filter(grepl("\\.HYDROFAC$", metric))%>%
-    dplyr::group_by(!!!level)%>%
-    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
+                                              HydroWithFAC)%>%
+    dplyr::filter(grepl("\\.HYDROWITHFAC$", metric))%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(metric, c("Absolute" = "",
+                                                                    "Relative" = "",
+                                                                    "\\.HYDROWITHFAC$" = "HydroWithFAC")),
+                                 "Cover", sep = ""),
+                  percent = round(percent, 2))%>%
+    tidyr::pivot_wider(id_cols = dplyr::all_of(level_colnames), names_from = metric, values_from = percent)
 
   return(HydroFACCover)
 }

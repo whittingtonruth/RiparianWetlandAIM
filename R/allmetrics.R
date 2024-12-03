@@ -41,9 +41,9 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   RelativeNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
+  RelativeHydroNoFAC <- pct_HydroNoFACCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
-  RelativeHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
+  RelativeHydroWithFAC <- pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "relative", unit = unit)
 
   RelativeGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "relative", unknowncodes, unit = unit)
 
@@ -59,8 +59,8 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
                                                               by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeNative, by = level_colnames)%>%
     dplyr::left_join(., RelativeNoxious, by = level_colnames)%>%
-    dplyr::left_join(., RelativeHydro, by = level_colnames)%>%
-    dplyr::left_join(., RelativeHydroFAC, by = level_colnames)%>%
+    dplyr::left_join(., RelativeHydroNoFAC, by = level_colnames)%>%
+    dplyr::left_join(., RelativeHydroWithFAC, by = level_colnames)%>%
     dplyr::left_join(., RelativeGrowthHabit, by = level_colnames)%>%
     dplyr::left_join(., RelativeDuration, by = level_colnames)
 
@@ -92,9 +92,9 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   AbsoluteNoxious <- pct_NoxiousCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydro <- pct_HydrophyteCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
+  AbsoluteHydroNoFAC <- pct_HydroNoFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
-  AbsoluteHydroFAC <- pct_HydroFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
+  AbsoluteHydroWithFAC <- pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)
 
   AbsoluteGrowthHabit <- pct_GrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
@@ -157,8 +157,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., Basal, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNative, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNoxious, by = level_colnames)%>%
-    dplyr::left_join(., AbsoluteHydro, by = level_colnames)%>%
-    dplyr::left_join(., AbsoluteHydroFAC, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydroNoFAC, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteHydroWithFAC, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteGrowthHabit, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
@@ -183,8 +183,8 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
   C.Val <- Community_C.Value(header, SpeciesList, masterspecieslist, listtype = listtype)
   Native <- Community_Native(SpeciesList, masterspecieslist, listtype = listtype)
   Nox <- Community_NoxiousCount(header, SpeciesList, masterspecieslist, listtype = listtype)
-  Hydro <- Community_Hydrophytes(header, SpeciesList, masterspecieslist, listtype = listtype)
-  HydroFAC <- Community_HydroFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
+  HydroNoFAC <- Community_HydroNoFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
+  HydroWithFAC <- Community_HydroWithFAC(header, SpeciesList, masterspecieslist, listtype = listtype)
   GrowthForm <- Community_GrowthHabit(SpeciesList, masterspecieslist, listtype = listtype)
   Duration <- Community_Duration(SpeciesList, masterspecieslist, listtype = listtype)
   if(any(grepl("SG_Group", colnames(masterspecieslist)))){
@@ -207,8 +207,8 @@ Community_Metrics <- function(header, SpeciesList, masterspecieslist, listtype =
     dplyr::left_join(., C.Val, by = "EvaluationID") %>%
     dplyr::left_join(., Native, by = "EvaluationID")%>%
     dplyr::left_join(., Nox, by = "EvaluationID")%>%
-    dplyr::left_join(., Hydro, by = "EvaluationID")%>%
-    dplyr::left_join(., HydroFAC, by = "EvaluationID")%>%
+    dplyr::left_join(., HydroNoFAC, by = "EvaluationID")%>%
+    dplyr::left_join(., HydroWithFAC, by = "EvaluationID")%>%
     dplyr::left_join(., GrowthForm, by = "EvaluationID")%>%
     dplyr::left_join(., Duration, by = "EvaluationID")%>%
     {if(any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., SGgroup, by = "EvaluationID") else .}%>%
