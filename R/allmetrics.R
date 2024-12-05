@@ -107,7 +107,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
 
   AbsoluteDurationGrowth <- pct_DurationGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
-                  dplyr::any_of(c("AH_AnnualGraminoidCover")))
+                  dplyr::any_of(c("AH_AnnualGraminoidCover", "AH_PerennialGraminoidCover")))
 
   AbsoluteNativeGrowth <- pct_NativeGrowthHabitCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
@@ -116,6 +116,14 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
   AbsoluteTypeDuration <- pct_DurationTypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
                   dplyr::any_of(c("AH_NonwoodyPerennialCover")))
+
+  AbsoluteWoody <- pct_TypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot")%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("AH_WoodyCover")))
+
+  AbsoluteNativeType <- pct_NativeTypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot")%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("AH_NativeWoodyCover", "AH_NonnativeWoodyCover")))
 
   if(any(grepl("SG_Group", colnames(masterspecieslist)))){
     AbsoluteSGGroup <- pct_SGGroupCover(lpi_tall, masterspecieslist, covertype = "absolute", unit = unit)%>%
@@ -163,6 +171,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::left_join(., AbsoluteDuration, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteDurationGrowth, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNativeGrowth, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteWoody, by = level_colnames)%>%
+    dplyr::left_join(., AbsoluteNativeType, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteTypeDuration, by = level_colnames)%>%
     {if(any(grepl("SG_Group", colnames(masterspecieslist)))) dplyr::left_join(., AbsoluteSGGroup, by = level_colnames) else .}%>%
     dplyr::left_join(., NonPlantCover, by = level_colnames)
