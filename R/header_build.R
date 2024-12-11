@@ -56,42 +56,27 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                                           PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*MaxPlotLengthCalc,
                                           PlotLayout == "Mixed Layout"~NA))
 
-  # Create a list of fields to keep, then test whether they are present in the header table.
-  finalfields <- rlang::quos(PlotID,
-                             EvaluationID,
-                             SiteName,
-                             VisitType,
-                             SamplingApproach,
-                             PlotLayout,
-                             PlotArea_m2,
-                             CowardinAttribute,
-                             HGMClass,
-                             WetlandType,
-                             EcotypeAlaska = AlaskaEcotypeClassification,
-                             AdminState,
-                             StateCode,
-                             SpeciesState,
-                             WetlandIndicatorRegion,
-                             FieldEvalDate,
-                             LatitudeWGS84,
-                             LongitudeWGS84,
-                             Elevation_m)
-  finalfieldnames <- sapply(finalfields, rlang::quo_text)
-
-  # Identify the fields to remove.
-  removefields <- numeric()
-  for (i in 1:length(finalfieldnames)){
-    test <- finalfieldnames[i] %in% colnames(plotchar)
-    if(!test){removefields <- append(removefields, i)}
-  }
-
-  if(length(removefields) > 0){
-    finalfields <- finalfields[-removefields]
-  }
-
-
   header<- plotchar%>%
-    dplyr::select(!!!finalfields)
+    dplyr::select(dplyr::any_of(c("PlotID",
+                                  "EvaluationID",
+                                  "SiteName",
+                                  "ProjectYearID" = "Project",
+                                  "VisitType",
+                                  "SamplingApproach",
+                                  "PlotLayout",
+                                  "PlotArea_m2",
+                                  "CowardinAttribute",
+                                  "HGMClass",
+                                  "WetlandType",
+                                  "EcotypeAlaska" = "AlaskaEcotypeClassification",
+                                  "AdminState",
+                                  "StateCode",
+                                  "SpeciesState",
+                                  "WetlandIndicatorRegion",
+                                  "FieldEvalDate",
+                                  "LatitudeWGS84",
+                                  "LongitudeWGS84",
+                                  "Elevation_m")))
 
   if(!missing(annualuse_tall)){
     annualusevisits <- annualuse_tall%>%
@@ -103,12 +88,13 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
                     FieldEvalDate = as.Date(stringr::str_extract(EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}")) + lubridate::hours(12),
                     State = SpeciesState)%>%
       dplyr::left_join(.,
-                       header%>%dplyr::select(PlotID,
-                                              SiteName,
-                                              SamplingApproach,
-                                              WetlandIndicatorRegion,
-                                              LatitudeWGS84,
-                                              LongitudeWGS84)%>%
+                       header%>%dplyr::select(dplyr::any_of(c("PlotID",
+                                                              "SiteName",
+                                                              "ProjectYearID",
+                                                              "SamplingApproach",
+                                                              "WetlandIndicatorRegion",
+                                                              "LatitudeWGS84",
+                                                              "LongitudeWGS84")))%>%
                          dplyr::distinct(PlotID, .keep_all = T),
                        by = c("PlotID"))
 

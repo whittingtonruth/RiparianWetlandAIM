@@ -284,7 +284,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
       dplyr::bind_rows(.,
                        AnnualUseSpeciesHeader%>%
                        sf::st_drop_geometry()%>%
-                       dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
+                       dplyr::select(-c(LatitudeWGS84, LongitudeWGS84)))
       else .
       }%>%
     # Add species from plots with LPI but no species inventory
@@ -292,7 +292,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
       dplyr::bind_rows(.,
                        nosppinv_spp%>%
                          sf::st_drop_geometry()%>%
-                         dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
+                         dplyr::select(-c(LatitudeWGS84, LongitudeWGS84)))
       else .
     }%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
@@ -302,11 +302,14 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
     dplyr::select(any_of(c("EvaluationID",
                            "PlotID",
                            "SiteName",
+                           "ProjectYearID",
+                           "VisitType",
                            "SamplingApproach",
                            "AdminState",
                            "SpeciesState",
                            "StateCode",
                            "WetlandIndicatorRegion",
+                           "FieldEvalDate",
                            "CowardinAttribute",
                            "HGMClass",
                            "WetlandType",
