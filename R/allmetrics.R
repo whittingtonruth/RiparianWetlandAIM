@@ -117,11 +117,11 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, masterspecieslist, unk
     dplyr::select(!!!level,
                   dplyr::any_of(c("AH_NonwoodyPerennialCover")))
 
-  AbsoluteWoody <- pct_TypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot")%>%
+  AbsoluteWoody <- pct_TypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
                   dplyr::any_of(c("AH_WoodyCover")))
 
-  AbsoluteNativeType <- pct_NativeTypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot")%>%
+  AbsoluteNativeType <- pct_NativeTypeCover(lpi_tall, masterspecieslist, covertype = "absolute", unknowncodes, unit = unit)%>%
     dplyr::select(!!!level,
                   dplyr::any_of(c("AH_NativeWoodyCover", "AH_NonnativeWoodyCover")))
 
