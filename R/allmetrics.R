@@ -257,6 +257,23 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                                                      multiple = 'all')
       else .}
 
+  #Create a table of unique species for plots where species inventory was not completed.
+  nosppinv_header <- header%>%
+    #filter to header records that are not in species inventory
+    dplyr::filter(EvaluationID%in%SpeciesCover$EvaluationID &
+                    !EvaluationID %in% spp_inventory_tall$EvaluationID)
+
+  #create list of all species observed in plots with no species inventory.
+  nosppinv_spp <- SpeciesCover%>%
+    select(EvaluationID, PlotID, Species = Code, UnknownCodeKey)%>%
+    dplyr::full_join(., SpeciesHeight%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
+                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
+    dplyr::full_join(., SpeciesAnnualUse%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
+                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
+    dplyr::full_join(., SpeciesAgeClass%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
+                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
+    dplyr::left_join(nosppinv_header, ., by = c("EvaluationID", "PlotID"))
+
   # Create a species list of all species in species inventory for which there is
   # a matching plot in the header.
   SpeciesList <- dplyr::inner_join(header%>%
@@ -270,6 +287,14 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                        dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
       else .
       }%>%
+    # Add species from plots with LPI but no species inventory
+    {if(nrow(nosppinv_spp)>0)
+      dplyr::bind_rows(.,
+                       nosppinv_spp%>%
+                         sf::st_drop_geometry()%>%
+                         dplyr::select(-c(VisitType, LatitudeWGS84, LongitudeWGS84)))
+      else .
+    }%>%
     dplyr::left_join(., masterspecieslist, by = c("Species" = "Symbol"))%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
     dplyr::group_by(EvaluationID)%>%
@@ -357,7 +382,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
 
   #Ensure that all species in these other tables are already included in the species list, provide a warning if not. This is particularly problematic if it happens with LPI.
   if(nrow(dplyr::anti_join(SpeciesCover, SpeciesList, by = c("PlotID", "EvaluationID", "Code" = "Species", "Scientific.Name" = "ScientificName", "Common.Name" = "CommonName", "UnknownCodeKey")))>0){
-    warning("Some plant codes used in LPI are not found in Species Inventory. These species will be excluded. For more information, try `anti_join(abscover, spp_inventory_tall, by = c('EvaluationID', 'Code' = 'Species'))` where abscover is the dataframe produced from the `pct_AbsoluteSpeciesCover` function. ")
+    warning("Some plant codes used in LPI are not found in Species Inventory. These species will be excluded. For more information, try `anti_join(abscover, spp_inventory_tall, by = c('EvaluationID', 'Code' = 'Species'))` where abscover is the dataframe produced from the `pct_AbsoluteSpeciesCover` function. Note that species from sample visits where Species Inventory was not collected have been added to spp indicator calculations. ")
   }
   if(nrow(dplyr::anti_join(SpeciesAgeClass, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
     warning("Some plant codes used in age class metrics are not found in Species Inventory. These species will be excluded.")
