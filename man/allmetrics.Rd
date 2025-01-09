@@ -11,7 +11,8 @@
 CombineRelativeCoverMetrics(
   header,
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
+  statespecieslist = NULL,
   unknowncodes,
   unit = "by_plot"
 )
@@ -19,7 +20,8 @@ CombineRelativeCoverMetrics(
 CombineAbsoluteCoverMetrics(
   header,
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
+  statespecieslist = NULL,
   unknowncodes,
   unit = "by_plot"
 )
@@ -27,7 +29,8 @@ CombineAbsoluteCoverMetrics(
 Community_Metrics(
   header,
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
+  statespecieslist = NULL,
   listtype = "speciesinventory"
 )
 
@@ -39,7 +42,8 @@ allmetrics_byspecies(
   woody_tall,
   tree_tall = NULL,
   annualuse_tall,
-  masterspecieslist,
+  nationalspecieslist,
+  statespecieslist = NULL,
   unknowncodes
 )
 
@@ -59,7 +63,8 @@ allmetrics_byplot(
   soil_stability_tall = NULL,
   waterqualdet = NULL,
   unknowncodes,
-  masterspecieslist
+  nationalspecieslist,
+  statespecieslist = NULL
 )
 }
 \arguments{
@@ -67,10 +72,13 @@ allmetrics_byplot(
 
 \item{lpi_tall}{Data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.
-#'@param unit String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
+
+\item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
 
 \item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
+
+\item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{spp_inventory_tall}{Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.}
 

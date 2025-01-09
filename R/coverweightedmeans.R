@@ -3,7 +3,8 @@
 #'@description Function used to calculate a cover-weighted average (or CWM) of given plant traits for species found on plot. Nonvascular species are not included in cover weighted averages.
 #'
 #'@param cover_species A tall/long-format data frame. Use the data frame from the \code{pct_AbsoluteSpeciesCover} output, then join desired species traits.
-#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'@param nationalspecieslist Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.
+#'@param statespecieslist Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.
 #'@param planttraits character vector. The field name(s) of numeric plant traits found in the \code{masterspecieslist} which will be used to calculate a cover-weighted mean.
 #'@returns Data frame of a cover weighted mean (CWM) of plant traits selected for each plot found in the \code{cover_species} dataframe.
 
@@ -40,16 +41,19 @@ coverweightedmean <- function(cover_species,
 #'@rdname coverweightedmean
 cwm_metrics <- function(cover_species,
                         header,
-                        masterspecieslist){
+                        nationalspecieslist,
+                        statespecieslist){
 
-  masterspecieslist <- masterspecieslist%>%
-    dplyr::select(Symbol, SpeciesName = Species, type,
-           ends_with("_C.Value"),
-           ends_with("_WetStatus"),
-           StabilityNum)
+  nationalspecieslist <- nationalspecieslist%>%
+    dplyr::select(Symbol, TaxonLevel, GrowthHabit,
+           StabilityRating,
+           dplyr::ends_with("WetStatus"))
+
+  statespecieslist <- statespecieslist%>%
+    dplyr::select(Symbol, SpeciesState, StateCValue)
 
   #To ensure any new states not included in hard coded field calculations, warning will be given.
-  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MT", "NM", "NV", "OR", "UT", "WY", "WA"))){
+  if(!all(header$SpeciesState %in% c("AK", "AZ", "CA", "CO", "ID", "MN", "MT", "NM", "NV", "OR", "UT", "WA", "WI", "WY"))){
     warning("Some states in header do not have a C-Value column in the species list provided. Sites in states outside of the expected set will have NA as their C-Value CWM. ")
   }
 
@@ -57,38 +61,28 @@ cwm_metrics <- function(cover_species,
     dplyr::left_join(., header%>%
                        dplyr::select(EvaluationID, SpeciesState, WetlandIndicatorRegion),
                      by = "EvaluationID")%>%
-    dplyr::left_join(., masterspecieslist, by = c("Code" = "Symbol"))%>%
+    dplyr::left_join(., nationalspecieslist, by = c("Code" = "Symbol"))%>%
+    dplyr::left_join(., statespecieslist, by = c("Code" = "Symbol", "SpeciesState"))%>%
     #Filter out nonvascular codes to ensure they don't effect calculations
-    dplyr::filter(type!="Nonvascular")%>%
+    dplyr::filter(GrowthHabit!="Nonvascular")%>%
     #add a wetland indicator status with respect to plot region
     dplyr::mutate(WetlandIndicatorStatus = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                                             WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                                             WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                                             WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
+                                                            WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                                            WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                                             TRUE ~ "REGIONMISSING"),
                   #Vascular plants ID'd to species without a indicator status should be considered upland.
-                  WetlandIndicatorStatus = ifelse(WetlandIndicatorStatus == "" & SpeciesName != "", "UPL", WetlandIndicatorStatus),
+                  WetlandIndicatorStatus = ifelse(WetlandIndicatorStatus == "" & TaxonLevel%in%c("Species", "Trinomial"), "UPL", WetlandIndicatorStatus),
                   SiteWetlandValue = dplyr::case_when(WetlandIndicatorStatus == "UPL"~0,
                                                       WetlandIndicatorStatus == "FACU"~25,
                                                       WetlandIndicatorStatus == "FAC"~50,
                                                       WetlandIndicatorStatus == "FACW"~75,
-                                                      WetlandIndicatorStatus == "OBL"~100),
-                  CValue = dplyr::case_when(SpeciesState == "AK"~AK_C.Value,
-                                            SpeciesState == "AZ"~AZ_C.Value,
-                                            SpeciesState == "CA"~CA_C.Value,
-                                            SpeciesState == "CO"~CO_C.Value,
-                                            SpeciesState == "ID"~ID_C.Value,
-                                            SpeciesState == "MT"~MT_C.Value,
-                                            SpeciesState == "NM"~NM_C.Value,
-                                            SpeciesState == "NV"~NV_C.Value,
-                                            SpeciesState == "OR"~OR_C.Value,
-                                            SpeciesState == "UT"~UT_C.Value,
-                                            SpeciesState == "WY"~WY_C.Value,
-                                            SpeciesState == "WA"~WA_C.Value))%>%
-    dplyr::select(PlotID, EvaluationID, Code, AH_SpeciesCover, WetlandIndicatorStatus, SiteWetlandValue, CValue, StabilityNum)
+                                                      WetlandIndicatorStatus == "OBL"~100))%>%
+    dplyr::select(PlotID, EvaluationID, Code, AH_SpeciesCover, WetlandIndicatorStatus, SiteWetlandValue, StateCValue, StabilityRating)
 
-  cwm_metrics <- coverweightedmean(cover_species, planttraits = c("StabilityNum", "SiteWetlandValue", "CValue"))%>%
-    dplyr::rename(LPI_StabilityValue_CWM = LPI_StabilityNum_CWM)%>%
+  cwm_metrics <- coverweightedmean(cover_species, planttraits = c("StabilityRating", "SiteWetlandValue", "StateCValue"))%>%
     dplyr::mutate(LPI_SiteWetlandRating_CWM = dplyr::case_when(LPI_SiteWetlandValue_CWM < 17 ~ "UPL",
                                                                LPI_SiteWetlandValue_CWM < 43 ~ "FACU",
                                                                LPI_SiteWetlandValue_CWM < 67 ~ "FAC",

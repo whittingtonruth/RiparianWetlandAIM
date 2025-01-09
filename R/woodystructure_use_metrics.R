@@ -7,11 +7,12 @@
 #'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, or `by_line`. `by_geosurface` is not an option for this calculation. Defaults to `by_plot`.
 #'@param by_species Logical. If TRUE then results will be reported at the species-plot level. Defaults to FALSE.
 #'@param tree_tall Optional data frame. Use the data frame from the \code{gather_tree()} output. For data from years prior to 2023, this data.frame will not exist.
+#'@param nationalspecieslist Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.
 #'@returns Data.frame of the summarized woody and annual use data by plot.
 
 #' @export use_metrics
 #' @rdname woodystructure_use_metrics
-use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, unit = "by_plot", by_species = F){
+use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist, unit = "by_plot", by_species = F){
 
   #Allow to be calculated by line
   if (unit == "by_line") {
@@ -25,8 +26,8 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, u
   }
 
   #select relevant columns from species list.
-  masterspecieslist <- masterspecieslist%>%
-    dplyr::select(Symbol, ends_with("WetStatus"), Species)
+  nationalspecieslist <- nationalspecieslist%>%
+    dplyr::select(Symbol, ends_with("WetStatus"), TaxonLevel)
 
   #calculate use metrics from woodies, first by filtering woody species use to riparian woody species
   riparianwoody <- woody_tall%>%
@@ -36,14 +37,16 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, u
                         sf::st_drop_geometry(),
                      .,
                      by = c("PlotID", "EvaluationID"))%>%
-    dplyr::left_join(., masterspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
+    dplyr::left_join(., nationalspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
     dplyr::mutate(RipStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                         WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                         WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
                                         WetlandIndicatorRegion=="Alaska" ~ AK_WetStatus,
+                                        WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                        WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
                                         TRUE ~ "REGIONMISSING"),
-                  UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))%>%
-    dplyr::select(-Species)
+                  UnknownCodeKey = ifelse(!TaxonLevel%in%c("Species", "Trinomial"), UnknownCodeKey, NA))%>%
+    dplyr::select(-TaxonLevel)
 
   if(by_species == F){
 
@@ -99,10 +102,10 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, u
     if(any(annualuse_tall$AnnualUseCollected=="Yes")){
       annualuse_tall <- annualuse_tall%>%
         dplyr::left_join(.,
-                         masterspecieslist%>%dplyr::select(Symbol, Species),
+                         nationalspecieslist%>%dplyr::select(Symbol, TaxonLevel),
                          by = c("StubbleHeightDominantSpecies"="Symbol"))%>%
-        dplyr::mutate(UnknownCodeStubbleKey = ifelse(Species %in% c(NA, ""), UnknownCodeStubbleKey, NA))%>%
-        dplyr::select(-Species)
+        dplyr::mutate(UnknownCodeStubbleKey = ifelse(!TaxonLevel %in% c("Species", "Trinomial"), UnknownCodeStubbleKey, NA))%>%
+        dplyr::select(-TaxonLevel)
 
       #No need to calculate "dominant species" when calculating averages by species.
       annualusemetrics <- annualuse_tall%>%
@@ -140,7 +143,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, masterspecieslist, u
 
 #' @export ageclass_metrics
 #' @rdname woodystructure_use_metrics
-ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspecieslist, unit = "by_plot", by_species = F){
+ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecieslist, unit = "by_plot", by_species = F){
 
   #allow metrics to be calculated at the plot level, line level, or species level.
   level <- rlang::quos(PlotID, EvaluationID)
@@ -181,18 +184,18 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspeciesli
   #This is only important for species-wise calcs, but it doesn't hurt plot and transect calcs.
   woody_tall <- woody_tall%>%
     dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, Species),
+                     nationalspecieslist%>%dplyr::select(Symbol, TaxonLevel),
                      by = c("RiparianWoodySpecies"="Symbol"))%>%
-    dplyr::mutate(UnknownCodeKey = ifelse(Species %in% c(NA, ""), UnknownCodeKey, NA))
+    dplyr::mutate(UnknownCodeKey = ifelse(!TaxonLevel%in%c("Species", "Trinomial"), UnknownCodeKey, NA))
 
   if(!is.null(tree_tall)){
     tree_tall <- tree_tall%>%
       dplyr::left_join(.,
-                       masterspecieslist%>%dplyr::select(Symbol, Species),
+                       nationalspecieslist%>%dplyr::select(Symbol, TaxonLevel),
                        by = c("TreeSpecies"="Symbol"))%>%
       dplyr::filter(!is.na(TreeSpecies))%>%
       dplyr::mutate(RiparianWoodySpecies = TreeSpecies,
-                    UnknownCodeKey = ifelse(Species %in% c(NA, ""), TreeUnknownCodeKey, NA),
+                    UnknownCodeKey = ifelse(!TaxonLevel%in%c("Species", "Trinomial"), TreeUnknownCodeKey, NA),
                     OverhangingOrRooted = "Rooted-in",
                     AgeClass = dplyr::case_when(TreeIndivLiveDead == "D"~"Dead",
                                                 (TreeMaxHeightClass %in% c("Height Class 0",
@@ -264,7 +267,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspeciesli
     {if(!is.null(tree_tall)) dplyr::bind_rows(., ageclass_trees) else .}%>%
     #join to master species list to remove any species that are not riparian.
     dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                     nationalspecieslist%>%dplyr::select(Symbol, RipWoodList),
                      by = c("RiparianWoodySpecies" = "Symbol"))%>%
     dplyr::filter(OverhangingOrRooted == "Rooted-in", RipWoodList == "Y")%>%
     dplyr::group_by(!!!level)%>%
@@ -281,7 +284,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspeciesli
   #Calculate percent of quadrats with riparian woody rhizomatous species
   rhiz_byquad <- woody_tall%>%
     dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, RipWoodList),
+                     nationalspecieslist%>%dplyr::select(Symbol, RipWoodList),
                      by = c("RiparianWoodySpecies" = "Symbol"))%>%
     dplyr::filter(OverhangingOrRooted == "Rooted-in", GrowthHabit == "Rhizomatous or Dwarf Shrub", RipWoodList == "Y")%>%
     dplyr::group_by(!!!level)%>%
@@ -361,7 +364,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, masterspeciesli
 
 #' @export SGConifer_metrics
 #' @rdname woodystructure_use_metrics
-SGConifer_metrics <- function(tree_tall, masterspecieslist, unit = "by_plot"){
+SGConifer_metrics <- function(tree_tall, nationalspecieslist, unit = "by_plot"){
 
   #allow metrics to be calculated at the plot level, line level, or species level.
   level <- rlang::quos(PlotID, EvaluationID)
@@ -373,11 +376,11 @@ SGConifer_metrics <- function(tree_tall, masterspecieslist, unit = "by_plot"){
 
   sgconifermetrics <- tree_tall%>%
     dplyr::left_join(.,
-                     masterspecieslist%>%dplyr::select(Symbol, Species, SG_Group),
+                     nationalspecieslist%>%dplyr::select(Symbol, TaxonLevel, SG_Group),
                      by = c("TreeSpecies"="Symbol"))%>%
-    dplyr::filter(!is.na(TreeSpecies), SG_Group == "Conifer")%>%
+    dplyr::filter(TaxonLevel%in%c("Species", "Trinomial"), SG_Group == "Conifer")%>%
     dplyr::mutate(RiparianWoodySpecies = TreeSpecies,
-                  UnknownCodeKey = ifelse(Species %in% c(NA, ""), TreeUnknownCodeKey, NA),
+                  UnknownCodeKey = ifelse(!TaxonLevel %in% c("Species", "Trinomial"), TreeUnknownCodeKey, NA),
                   TreeMaxHeightClass = dplyr::case_when(stringr::str_detect(TreeMaxHeightClass, "^Height Class")~stringr::str_replace_all(TreeMaxHeightClass, c(" "="", "Height" = "Hgt")),
                                                         TreeMaxHeightClassAK<=1~"HgtClass2",
                                                         TreeMaxHeightClassAK<=2~"HgtClass3",

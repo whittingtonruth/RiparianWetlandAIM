@@ -4,38 +4,38 @@
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.
 #'@param lpi_tall A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
-#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
+#'@param nationalspecieslist Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.
 #'@param bystrata logical. Indicates whether Dominance Test should be performed by strata, as is recommended by the USACE.
 #'@return Dataframe showing site scores on several ways to classify dominance of hydrophytic species.
 
 #'@export dominance_test
 #'@rdname dominance_test
-dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
+dominance_test <- function(header, lpi_tall, nationalspecieslist, bystrata = F){
 
   header <- header%>%
     dplyr::select(EvaluationID,
                   SpeciesState,
                   WetlandIndicatorRegion)
 
-  AbsoluteSpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist)%>%
+  AbsoluteSpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, nationalspecieslist)%>%
     #join to header to get wetland indicator region
     dplyr::left_join(header, ., by = c("EvaluationID"), multiple = 'all')%>%
 
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
-                     masterspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, type, Species),
+                     nationalspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, GrowthHabit, TaxonLevel),
                      by = c("Code" = "Symbol"))%>%
     {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
 
   #calculate the total absolute cover made up by species that were never identified. May help explain some sites that didn't pass test.
   UnknownCover <- AbsoluteSpeciesCover%>%
-    dplyr::filter(Species==""|is.na(Species))%>%
+    dplyr::filter(!TaxonLevel%in%c("Species", "Trinomial"))%>%
     dplyr::group_by(EvaluationID)%>%
     dplyr::summarize(AbsoluteUnknownCover = sum(AH_SpeciesCover))
 
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
-    dplyr::filter(Species!=""&!is.na(Species)&type!="Nonvascular")%>%
+    dplyr::filter(TaxonLevel%in%c("Species", "Trinomial")&GrowthHabit!="Nonvascular")%>%
     dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
@@ -91,8 +91,8 @@ dominance_test <- function(header, lpi_tall, masterspecieslist, bystrata = F){
 
   AllDominanceTests <- dplyr::left_join(PlotDominanceTest,
                    PlotPrevalenceTest, by = "EvaluationID")%>%
-    dplyr::left_join(., pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "relative"), by = "EvaluationID")%>%
-    dplyr::left_join(pct_HydroWithFACCover(header, lpi_tall, masterspecieslist, covertype = "absolute"), by = c("EvaluationID", "PlotID"))
+    dplyr::left_join(., pct_HydroWithFACCover(header, lpi_tall, nationalspecieslist, covertype = "relative"), by = "EvaluationID")%>%
+    dplyr::left_join(pct_HydroWithFACCover(header, lpi_tall, nationalspecieslist, covertype = "absolute"), by = c("EvaluationID", "PlotID"))
 
   return(AllDominanceTests)
 

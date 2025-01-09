@@ -8,27 +8,27 @@
 \alias{Community_HydroNoFAC}
 \alias{Community_HydroWithFAC}
 \alias{Community_SGGroup}
-\alias{Community_GrowthHabit}
+\alias{Community_GrowthHabitSub}
 \alias{Community_Duration}
 \alias{Community_StabilityGrowthHabit}
 \title{Summarize community composition for specified grouping variables.}
 \usage{
 Community_Richness(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory"
 )
 
 Community_C.Value(
   header,
   SpeciesList,
-  masterspecieslist,
+  statespecieslist,
   listtype = "speciesinventory"
 )
 
 Community_Native(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -36,14 +36,14 @@ Community_Native(
 Community_NoxiousCount(
   header,
   SpeciesList,
-  masterspecieslist,
+  statespecieslist,
   listtype = "speciesinventory"
 )
 
 Community_HydroNoFAC(
   header,
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -51,35 +51,35 @@ Community_HydroNoFAC(
 Community_HydroWithFAC(
   header,
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_SGGroup(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
-Community_GrowthHabit(
+Community_GrowthHabitSub(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_Duration(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_StabilityGrowthHabit(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -87,11 +87,13 @@ Community_StabilityGrowthHabit(
 \arguments{
 \item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
 
 \item{listtype}{Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".}
 
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.}
+
+\item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
 
 \item{method}{character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.}
 }

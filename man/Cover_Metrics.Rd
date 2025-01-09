@@ -8,14 +8,14 @@
 \alias{pct_NoxiousCover}
 \alias{pct_HydroNoFACCover}
 \alias{pct_HydroWithFACCover}
+\alias{pct_GrowthHabitSubCover}
 \alias{pct_GrowthHabitCover}
-\alias{pct_TypeCover}
 \alias{pct_DurationCover}
-\alias{pct_DurationTypeCover}
 \alias{pct_DurationGrowthHabitCover}
+\alias{pct_DurationGrowthHabitSubCover}
+\alias{pct_NativeGrowthHabitSubCover}
 \alias{pct_NativeGrowthHabitCover}
-\alias{pct_NativeTypeCover}
-\alias{pct_NativeDurationGrowthHabitCover}
+\alias{pct_NativeDurationGrowthHabitSubCover}
 \alias{pct_StabilityClassCover}
 \alias{pct_SGGroupCover}
 \alias{pct_NonPlantGroundCover}
@@ -24,7 +24,7 @@
 \alias{pct_AbsoluteSpeciesCover}
 \title{Calculate percent cover metrics from LPI}
 \usage{
-pct_FoliarCover(lpi_tall, masterspecieslist = NULL, unit = "by_plot")
+pct_FoliarCover(lpi_tall, nationalspecieslist = NULL, unit = "by_plot")
 
 pct_BasalCover(lpi_tall, unit = "by_plot")
 
@@ -32,7 +32,7 @@ pct_TotalAbsoluteCover(lpi_tall, unit = "by_plot")
 
 pct_NativeCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
@@ -40,7 +40,7 @@ pct_NativeCover(
 pct_NoxiousCover(
   header,
   lpi_tall,
-  masterspecieslist,
+  statespecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
@@ -48,7 +48,7 @@ pct_NoxiousCover(
 pct_HydroNoFACCover(
   header,
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
@@ -56,22 +56,22 @@ pct_HydroNoFACCover(
 pct_HydroWithFACCover(
   header,
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
 
-pct_GrowthHabitCover(
+pct_GrowthHabitSubCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
 )
 
-pct_TypeCover(
+pct_GrowthHabitCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
@@ -79,15 +79,7 @@ pct_TypeCover(
 
 pct_DurationCover(
   lpi_tall,
-  masterspecieslist,
-  covertype = "absolute",
-  unknowncodes,
-  unit = "by_plot"
-)
-
-pct_DurationTypeCover(
-  lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
@@ -95,7 +87,23 @@ pct_DurationTypeCover(
 
 pct_DurationGrowthHabitCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
+)
+
+pct_DurationGrowthHabitSubCover(
+  lpi_tall,
+  nationalspecieslist,
+  covertype = "absolute",
+  unknowncodes,
+  unit = "by_plot"
+)
+
+pct_NativeGrowthHabitSubCover(
+  lpi_tall,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
@@ -103,23 +111,15 @@ pct_DurationGrowthHabitCover(
 
 pct_NativeGrowthHabitCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
 )
 
-pct_NativeTypeCover(
+pct_NativeDurationGrowthHabitSubCover(
   lpi_tall,
-  masterspecieslist,
-  covertype = "absolute",
-  unknowncodes,
-  unit = "by_plot"
-)
-
-pct_NativeDurationGrowthHabitCover(
-  lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unknowncodes,
   unit = "by_plot"
@@ -128,14 +128,14 @@ pct_NativeDurationGrowthHabitCover(
 pct_StabilityClassCover(
   header,
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
 
 pct_SGGroupCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "absolute",
   unit = "by_plot"
 )
@@ -143,31 +143,33 @@ pct_SGGroupCover(
 pct_NonPlantGroundCover(
   lpi_tall,
   hit = "any",
-  masterspecieslist,
+  nationalspecieslist,
   unit = "by_plot"
 )
 
 pct_UnknownCover(
   lpi_tall,
-  masterspecieslist,
+  nationalspecieslist,
   covertype = "relative",
   unit = "by_plot"
 )
 
-pct_FunctionalGroupCover(lpi_tall, masterspecieslist, covertype = "absolute")
+pct_FunctionalGroupCover(lpi_tall, nationalspecieslist, covertype = "absolute")
 
-pct_AbsoluteSpeciesCover(lpi_tall, masterspecieslist, unit = "by_plot")
+pct_AbsoluteSpeciesCover(lpi_tall, nationalspecieslist, unit = "by_plot")
 }
 \arguments{
 \item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
 
 \item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, \code{by_line} or \code{by_geosurface} (for data from Lotic-Integration Plots). Defaults to \code{by_plot}.}
 
 \item{covertype}{Character string. "relative" or "absolute". Specifies the kind of cover calculation. Relative cover is only used for calculations on vascular plant species and specifies the percent of overall hits made up of a particular species or group. Absolute cover is the percent of the pin drops made up by a particular species or group.}
 
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.}
+
+\item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
 
 \item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without Duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.}
 

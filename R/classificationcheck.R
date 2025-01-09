@@ -3,18 +3,13 @@
 #'Functions starting with tall table outputs from gather functions to calculate metrics used to classify sites, then perform that classification using a combination of indicator data.
 #'
 #'@param header Data frame. Use the data frame from the \code{header_build_lentic()} output.
-#'@param spp_inventory_tall Data frame. Use the data frame from the \code{gather_spp_inventory_lentic()} output.
 #'@param lpi_tall Data frame. Use the data frame from the \code{gather_lpi_lentic()} output.
 #'@param height_tall Data frame. Use the data frame from the \code{gather_heights_lentic()} output.
 #'@param woody_tall Data frame. Use the data frame from the \code{gather_woodyspecies()} output.
-#'@param annualuse_tall Data frame. Use the data frame from the \code{gather_annualuse()} output.
-#'@param hummocks Data frame. Use the data frame from the \code{gather_hummocks()} output.
-#'@param gap_tall optional data frame. Use the data frame from the \code{gather_gap()} output.
-#'@param soil_stability_tall Optional data frame. Use the data frame from the \code{gather_soilstab()} output.
-#'@param waterqualdet Optional data frame. Use the data frame from the file geodatabase. Must have EvaluationID as the identifying column.
-#'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
-#'@param masterspecieslist Data frame. The centrally managed master species list should be used.
-#'#'@param unit String. The sampling unit by which data should be summarized. Should be `by_plot`, `by_line` or `by_geosurface` (for data from Lotic-Integration Plots). Defaults to `by_plot`.
+#'@param nationalspecieslist Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.
+#'@param unknowncodes Data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in LPI never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{pct_cover_lentic()}.
+#'@param soils Data frame.
+#'@param PlotChar Data frame.
 #'@returns Data frame of indicator data calculated by EvaluationID.
 #'
 
@@ -24,7 +19,7 @@ classificationcheck <- function(header,
                                 lpi_tall,
                                 height_tall,
                                 woody_tall,
-                                masterspecieslist,
+                                nationalspecieslist,
                                 unknowncodes,
                                 soils,
                                 PlotChar){
@@ -35,21 +30,21 @@ classificationcheck <- function(header,
     select(PlotID, EvaluationID, AdminState, AvgWidthArea, CowardinConfidence, HGMClassConfidence, WetlandTypeConfidence, WetlandTypeOther, ClassificationComments)
 
   #calculate the dominance test. maintain only the result of that test.
-  dominance <- dominance_test(header%>%sf::st_drop_geometry(), lpi_tall, masterspecieslist, bystrata = F)
+  dominance <- dominance_test(header%>%sf::st_drop_geometry(), lpi_tall, nationalspecieslist, bystrata = F)
 
   Foliar <- pct_FoliarCover(lpi_tall, unit = "by_plot")
 
-  BareSoilCover <- pct_NonPlantGroundCover(lpi_tall, hit = "first", masterspecieslist, unit = "by_plot")%>%
+  BareSoilCover <- pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = "by_plot")%>%
     dplyr::mutate(BareSoilCoverAll = rowSums(dplyr::select(., dplyr::any_of(c("FH_SoilCover","FH_OrganicMaterialCover")))))%>%
     dplyr::select(PlotID, EvaluationID, BareSoilCoverAll, FH_SaltCrustCover)
 
-  UnkCover <- pct_UnknownCover(lpi_tall = lpi_tall, masterspecieslist = masterspecieslist, covertype = "relative", unit = "by_plot")
+  UnkCover <- pct_UnknownCover(lpi_tall = lpi_tall, nationalspecieslist = nationalspecieslist, covertype = "relative", unit = "by_plot")
 
-  FuncGroupCover <- pct_FunctionalGroupCover(lpi_tall = lpi_tall, masterspecieslist = masterspecieslist, covertype = "absolute")
+  FuncGroupCover <- pct_FunctionalGroupCover(lpi_tall = lpi_tall, nationalspecieslist = nationalspecieslist, covertype = "absolute")
 
-  GrowthHabitCover <- pct_GrowthHabitCover(lpi_tall = lpi_tall, masterspecieslist = masterspecieslist,covertype = "absolute", unknowncodes = unknowncodes, unit = "by_plot")
+  GrowthHabitSubCover <- pct_GrowthHabitSubCover(lpi_tall = lpi_tall, nationalspecieslist = nationalspecieslist,covertype = "absolute", unknowncodes = unknowncodes, unit = "by_plot")
 
-  TypeCover <- pct_TypeCover(lpi_tall = lpi_tall, masterspecieslist = masterspecieslist,covertype = "absolute", unknowncodes = unknowncodes, unit = "by_plot")
+  GrowthHabitCover <- pct_GrowthHabitCover(lpi_tall = lpi_tall, nationalspecieslist = nationalspecieslist,covertype = "absolute", unknowncodes = unknowncodes, unit = "by_plot")
 
   #Store whether A1 Histosol was observed in any soil pit.
   soilscheck <- soils%>%
@@ -59,7 +54,7 @@ classificationcheck <- function(header,
     dplyr::group_by(PlotID, EvaluationID)%>%
     dplyr::summarize(HistosolCheck = ifelse(any(HistosolCheck=="Histosol"), "Histosol", "Mineral"))
 
-  heightmetrics <- height_metrics(height_tall, masterspecieslist, unknowncodes, method = "mean")
+  heightmetrics <- height_metrics(height_tall, nationalspecieslist, unknowncodes, method = "mean")
 
   #Calculate the cover of tall woodies in woody structure form
 
@@ -103,12 +98,12 @@ classificationcheck <- function(header,
     dplyr::left_join(., BareSoilCover, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., UnkCover, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., FuncGroupCover, by = join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., GrowthHabitSubCover, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., GrowthHabitCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., TypeCover, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., heightmetrics, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., soilscheck, by = join_by(PlotID, EvaluationID))%>%
     dplyr::left_join(., TallWoodyCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., PlotChar)
+    dplyr::left_join(., PlotChar, by = join_by(PlotID, EvaluationID, AdminState))
 
   #Calculate an anticipated wetland type
   classificationcheck <- classinddata %>%
