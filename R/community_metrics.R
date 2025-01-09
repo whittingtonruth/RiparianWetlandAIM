@@ -544,11 +544,11 @@ Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, unk
                                                            GrowthHabit==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
                                                            GrowthHabit==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
       else .}%>%
-    dplyr::filter(StabilityRating != "" & !is.na(StabilityRating), !GrowthHabit %in% c("", NA, "Nonvascular"))%>%
+    dplyr::filter(StabilityRatingName != "" & !is.na(StabilityRatingName), !GrowthHabit %in% c("", NA, "Nonvascular"))%>%
     dplyr::mutate(GrowthHabit = case_when(GrowthHabit == "Woody"~"Woody",
                                           GrowthHabit == "NonWoody"~"Herbaceous"))
 
-  totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabit, StabilityRating)%>%
+  totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabit, StabilityRatingName)%>%
     dplyr::mutate(metric = paste(fieldname,
                                  stringr::str_replace_all(
                                    stringr::str_to_title(

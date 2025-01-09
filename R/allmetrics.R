@@ -207,12 +207,14 @@ Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespe
   Duration <- Community_Duration(SpeciesList, nationalspecieslist, unknowncodes = unknowncodes, listtype = listtype)
   if(any(grepl("SG_Group", colnames(nationalspecieslist)))){
     SGgroup <- Community_SGGroup(SpeciesList, nationalspecieslist, listtype = listtype, method = "count")%>%
-      dplyr::rename("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")
+      dplyr::rename(dplyr::any_of(c("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")))
   } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
   stability <- Community_StabilityGrowthHabit(SpeciesList, nationalspecieslist, unknowncodes = unknowncodes, listtype = listtype, method = "count")%>%
     dplyr::select(EvaluationID,
                   any_of(c("SppInv_HerbHighStability_Cnt" = "SppInv_HerbaceousHighStability_Cnt",
-                           "SppInv_WoodyHighStability_Cnt")))
+                           "SppInv_WoodyHighStability_Cnt",
+                           "LPI_HerbaceousHighStability_Cnt",
+                           "LPI_WoodyHighStability_Cnt")))
 
   #Join all metrics into one table with PlotID, Name and AdminState.
   AllCommunityMetrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
