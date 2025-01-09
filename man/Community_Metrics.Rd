@@ -66,6 +66,7 @@ Community_SGGroup(
 Community_GrowthHabitSub(
   SpeciesList,
   nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -73,6 +74,7 @@ Community_GrowthHabitSub(
 Community_Duration(
   SpeciesList,
   nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -80,6 +82,7 @@ Community_Duration(
 Community_StabilityGrowthHabit(
   SpeciesList,
   nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -96,6 +99,8 @@ Community_StabilityGrowthHabit(
 \item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
 
 \item{method}{character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.}
+
+\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in the species list never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{community_composition()}.}
 }
 \value{
 Data frame of summary metrics by plot.

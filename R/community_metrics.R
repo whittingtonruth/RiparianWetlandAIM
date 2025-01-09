@@ -8,6 +8,7 @@
 #'@param SpeciesList Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.
 #'@param nationalspecieslist Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.
 #'@param statespecieslist Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.
+#'@param unknowncodes Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in the species list never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{community_composition()}.
 #'@param listtype Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".
 #'@param method character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.
 #'@returns Data frame of summary metrics by plot.
@@ -410,7 +411,7 @@ Community_SGGroup <- function(SpeciesList, nationalspecieslist, listtype = "spec
 
 #'@export Community_GrowthHabitSub
 #'@rdname Community_Metrics
-Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, unknowncodes = NULL, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
     stop("Method must be 'percent' or 'count'.")
@@ -436,6 +437,13 @@ Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, listtype 
     dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
                     !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
                   Duration != "Nonvascular")%>%
+    #if unknowncodes is provided, fill in the growthhabit for unknowns.
+    {if(!is.null(unknowncodes)) dplyr::left_join(.,
+                                                unknowncodes%>%
+                                                  dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitUnknown = GrowthHabit),
+                                                by = "UnknownCodeKey")%>%
+        dplyr::mutate(., GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabitUnknown, GrowthHabitSub))
+      else .}%>%
     dplyr::filter(GrowthHabitSub != "" & !is.na(GrowthHabitSub))
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabitSub)%>%
@@ -451,7 +459,7 @@ Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, listtype 
 
 #'@export Community_Duration
 #'@rdname Community_Metrics
-Community_Duration <- function(SpeciesList, nationalspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_Duration <- function(SpeciesList, nationalspecieslist, unknowncodes = NULL, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
     stop("Method must be 'percent' or 'count'.")
@@ -477,6 +485,13 @@ Community_Duration <- function(SpeciesList, nationalspecieslist, listtype = "spe
     dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
                     !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
                   Duration != "Nonvascular")%>%
+    #if unknowncodes is provided, fill in the duration for unknowns.
+    {if(!is.null(unknowncodes)) dplyr::left_join(.,
+                                                 unknowncodes%>%
+                                                   dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitUnknown = GrowthHabit),
+                                                 by = "UnknownCodeKey")%>%
+        dplyr::mutate(., Duration = ifelse(Duration=="", DurationUnknown, Duration))
+      else .}%>%
     dplyr::filter(Duration != "" & !is.na(Duration))
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, Duration)%>%
@@ -492,7 +507,7 @@ Community_Duration <- function(SpeciesList, nationalspecieslist, listtype = "spe
 
 #'@export Community_StabilityGrowthHabit
 #'@rdname Community_Metrics
-Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, listtype = "speciesinventory", method = "percent"){
+Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, unknowncodes = NULL, listtype = "speciesinventory", method = "percent"){
 
   if(!(method %in% c("percent", "count"))){
     stop("Method must be 'percent' or 'count'.")
@@ -519,7 +534,17 @@ Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, lis
     dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
                     !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
                   Duration != "Nonvascular")%>%
-    dplyr::filter(StabilityRating != "" & !is.na(StabilityRating), GrowthHabit != "" & !is.na(GrowthHabit))%>%
+    #if unknowncodes is provided, fill in the growthhabit for unknowns.
+    {if(!is.null(unknowncodes)) dplyr::left_join(.,
+                                                 unknowncodes%>%
+                                                   dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
+                                                 by = "UnknownCodeKey")%>%
+        dplyr::mutate(., GrowthHabitSub = dplyr::case_when(GrowthHabit!=""&!is.na(GrowthHabit)~GrowthHabit,
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
+      else .}%>%
+    dplyr::filter(StabilityRating != "" & !is.na(StabilityRating), !GrowthHabit %in% c("", NA, "Nonvascular"))%>%
     dplyr::mutate(GrowthHabit = case_when(GrowthHabit == "Woody"~"Woody",
                                           GrowthHabit == "NonWoody"~"Herbaceous"))
 

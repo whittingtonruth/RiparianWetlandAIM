@@ -31,6 +31,7 @@ Community_Metrics(
   SpeciesList,
   nationalspecieslist,
   statespecieslist = NULL,
+  unknowncodes = NULL,
   listtype = "speciesinventory"
 )
 

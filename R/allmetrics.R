@@ -187,7 +187,7 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
 
 #'@export Community_Metrics
 #'@rdname allmetrics
-Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespecieslist = NULL, listtype = "speciesinventory"){
+Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespecieslist = NULL, unknowncodes = NULL, listtype = "speciesinventory"){
 
   if(!(listtype %in% c("speciesinventory", "lpi"))){
     stop("listtype must be 'speciesinventory' or 'lpi'.")
@@ -203,13 +203,13 @@ Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespe
   Native <- Community_Native(SpeciesList, nationalspecieslist, listtype = listtype)
   HydroNoFAC <- Community_HydroNoFAC(header, SpeciesList, nationalspecieslist, listtype = listtype)
   HydroWithFAC <- Community_HydroWithFAC(header, SpeciesList, nationalspecieslist, listtype = listtype)
-  GrowthForm <- Community_GrowthHabitSub(SpeciesList, nationalspecieslist, listtype = listtype)
-  Duration <- Community_Duration(SpeciesList, nationalspecieslist, listtype = listtype)
+  GrowthForm <- Community_GrowthHabitSub(SpeciesList, nationalspecieslist, unknowncodes = unknowncodes, listtype = listtype)
+  Duration <- Community_Duration(SpeciesList, nationalspecieslist, unknowncodes = unknowncodes, listtype = listtype)
   if(any(grepl("SG_Group", colnames(nationalspecieslist)))){
     SGgroup <- Community_SGGroup(SpeciesList, nationalspecieslist, listtype = listtype, method = "count")%>%
       dplyr::rename("NumSpp_PreferredForb" = "SppInv_SGPreferredForb_Cnt")
   } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
-  stability <- Community_StabilityGrowthHabit(SpeciesList, nationalspecieslist, listtype = listtype, method = "count")%>%
+  stability <- Community_StabilityGrowthHabit(SpeciesList, nationalspecieslist, unknowncodes = unknowncodes, listtype = listtype, method = "count")%>%
     dplyr::select(EvaluationID,
                   any_of(c("SppInv_HerbHighStability_Cnt" = "SppInv_HerbaceousHighStability_Cnt",
                            "SppInv_WoodyHighStability_Cnt")))
