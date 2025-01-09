@@ -13,7 +13,7 @@ CombineRelativeCoverMetrics(
   lpi_tall,
   nationalspecieslist,
   statespecieslist = NULL,
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -22,7 +22,7 @@ CombineAbsoluteCoverMetrics(
   lpi_tall,
   nationalspecieslist,
   statespecieslist = NULL,
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -44,7 +44,7 @@ allmetrics_byspecies(
   annualuse_tall,
   nationalspecieslist,
   statespecieslist = NULL,
-  unknowncodes
+  unknowncodes = NULL
 )
 
 allmetrics_byplot(
@@ -62,7 +62,7 @@ allmetrics_byplot(
   gap_tall = NULL,
   soil_stability_tall = NULL,
   waterqualdet = NULL,
-  unknowncodes,
+  unknowncodes = NULL,
   nationalspecieslist,
   statespecieslist = NULL
 )

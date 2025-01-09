@@ -21,7 +21,7 @@
 
 #'@export CombineRelativeCoverMetrics
 #'@rdname allmetrics
-CombineRelativeCoverMetrics <- function(header, lpi_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes, unit = "by_plot"){
+CombineRelativeCoverMetrics <- function(header, lpi_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes = NULL, unit = "by_plot"){
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
@@ -72,7 +72,7 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
 
 #'@export CombineAbsoluteCoverMetrics
 #'@rdname allmetrics
-CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes, unit = "by_plot"){
+CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes = NULL, unit = "by_plot"){
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
@@ -237,7 +237,7 @@ Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespe
 
 #'@export allmetrics_byspecies
 #'@rdname allmetrics
-allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_tall, woody_tall, tree_tall = NULL, annualuse_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes){
+allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_tall, woody_tall, tree_tall = NULL, annualuse_tall, nationalspecieslist, statespecieslist = NULL, unknowncodes = NULL){
 
   SpeciesCover <- pct_AbsoluteSpeciesCover(lpi_tall, nationalspecieslist)
 
@@ -348,7 +348,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                   ends_with("WetStatus"))%>%
     dplyr::mutate(StateNoxious = ifelse(!StateNoxious %in% c(NA, ""), "Noxious", ""))
 
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     SpeciesList <- SpeciesList%>%
       dplyr::left_join(.,
                        unknowncodes%>%
@@ -445,7 +445,7 @@ allmetrics_byplot <- function(header,
                               gap_tall = NULL,
                               soil_stability_tall = NULL,
                               waterqualdet = NULL,
-                              unknowncodes,
+                              unknowncodes = NULL,
                               nationalspecieslist,
                               statespecieslist = NULL){
 

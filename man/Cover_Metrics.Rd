@@ -65,7 +65,7 @@ pct_GrowthHabitSubCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -73,7 +73,7 @@ pct_GrowthHabitCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -81,7 +81,7 @@ pct_DurationCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -89,7 +89,7 @@ pct_DurationGrowthHabitCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -97,7 +97,7 @@ pct_DurationGrowthHabitSubCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -105,7 +105,7 @@ pct_NativeGrowthHabitSubCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -113,7 +113,7 @@ pct_NativeGrowthHabitCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 
@@ -121,7 +121,7 @@ pct_NativeDurationGrowthHabitSubCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
-  unknowncodes,
+  unknowncodes = NULL,
   unit = "by_plot"
 )
 

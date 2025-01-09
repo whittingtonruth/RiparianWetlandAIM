@@ -7,7 +7,7 @@
 height_metrics(
   height_tall,
   nationalspecieslist,
-  unknowncodes,
+  unknowncodes = NULL,
   method = "mean",
   unit = "by_plot",
   omit_zero = TRUE,

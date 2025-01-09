@@ -385,7 +385,7 @@ pct_HydroWithFACCover <- function(header, lpi_tall, nationalspecieslist, coverty
 
 #'@export pct_GrowthHabitSubCover
 #'@rdname Cover_Metrics
-pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -406,7 +406,7 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
       lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                          dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                          by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -437,7 +437,7 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
 
 #'@export pct_GrowthHabitCover
 #'@rdname Cover_Metrics
-pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -458,7 +458,7 @@ pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "abs
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -493,7 +493,7 @@ pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "abs
 
 #'@export pct_DurationCover
 #'@rdname Cover_Metrics
-pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -514,7 +514,7 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -546,7 +546,7 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
 
 #'@export pct_DurationGrowthHabitCover
 #'@rdname Cover_Metrics
-pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -566,7 +566,7 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertyp
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -606,7 +606,7 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertyp
 
 #'@export pct_DurationGrowthHabitSubCover
 #'@rdname Cover_Metrics
-pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -626,7 +626,7 @@ pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, cover
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -663,7 +663,7 @@ pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, cover
 
 #'@export pct_NativeGrowthHabitSubCover
 #'@rdname Cover_Metrics
-pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -686,7 +686,7 @@ pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, coverty
     dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -724,7 +724,7 @@ pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, coverty
 
 #'@export pct_NativeGrowthHabitCover
 #'@rdname Cover_Metrics
-pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -747,7 +747,7 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype 
     dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, GrowthHabitSubUnknown = GrowthHabit),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
@@ -787,7 +787,7 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype 
 
 #'@export pct_NativeDurationGrowthHabitSubCover
 #'@rdname Cover_Metrics
-pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes, unit = "by_plot"){
+pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
   if(!(covertype %in% c("relative", "absolute"))){
     stop("covertype must be 'relative' or 'absolute'.")
@@ -809,7 +809,7 @@ pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist,
     dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "nonnative", NativeStatus))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
-  if(!missing(unknowncodes)){
+  if(!is.null(unknowncodes)){
     lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%

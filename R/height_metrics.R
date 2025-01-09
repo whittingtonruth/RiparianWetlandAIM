@@ -13,7 +13,7 @@
 #'@export height_metrics
 height_metrics <- function(height_tall,
                            nationalspecieslist,
-                           unknowncodes,
+                           unknowncodes = NULL,
                            method = "mean",
                            unit = "by_plot",
                            omit_zero = TRUE,
@@ -53,7 +53,7 @@ height_metrics <- function(height_tall,
                      by = c("Species"="Symbol"))
 
   #connect to unknown plants to get a growth habit for plants not identified to species.
-  if(!missing(unknowncodes))
+  if(!is.null(unknowncodes))
     height_tall <- height_tall%>%
     dplyr::left_join(., unknowncodes%>%dplyr::select(UnknownCodeKey, GrowthHabitUnknown = GrowthHabit), by = c("UnknownCodeKey"))%>%
     dplyr::mutate(WoodyNonWoody = case_when(WoodyNonWoody == "" & GrowthHabitUnknown %in% c("Forb", "Graminoid")~"NonWoody",
