@@ -5,30 +5,30 @@
 \alias{Community_C.Value}
 \alias{Community_Native}
 \alias{Community_NoxiousCount}
-\alias{Community_Hydrophytes}
-\alias{Community_HydroFAC}
+\alias{Community_HydroNoFAC}
+\alias{Community_HydroWithFAC}
 \alias{Community_SGGroup}
-\alias{Community_GrowthHabit}
+\alias{Community_GrowthHabitSub}
 \alias{Community_Duration}
 \alias{Community_StabilityGrowthHabit}
 \title{Summarize community composition for specified grouping variables.}
 \usage{
 Community_Richness(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory"
 )
 
 Community_C.Value(
   header,
   SpeciesList,
-  masterspecieslist,
+  statespecieslist,
   listtype = "speciesinventory"
 )
 
 Community_Native(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -36,50 +36,53 @@ Community_Native(
 Community_NoxiousCount(
   header,
   SpeciesList,
-  masterspecieslist,
+  statespecieslist,
   listtype = "speciesinventory"
 )
 
-Community_Hydrophytes(
+Community_HydroNoFAC(
   header,
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
-Community_HydroFAC(
+Community_HydroWithFAC(
   header,
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_SGGroup(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
   listtype = "speciesinventory",
   method = "percent"
 )
 
-Community_GrowthHabit(
+Community_GrowthHabitSub(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_Duration(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
 
 Community_StabilityGrowthHabit(
   SpeciesList,
-  masterspecieslist,
+  nationalspecieslist,
+  unknowncodes = NULL,
   listtype = "speciesinventory",
   method = "percent"
 )
@@ -87,13 +90,17 @@ Community_StabilityGrowthHabit(
 \arguments{
 \item{SpeciesList}{Data frame. Table of species by PlotID that will be summarized. Can be either species_inventory_tall produced by \code{gather_spp_inventory_lentic()} or lpi_tall produced by \code{gather_lpi_lentic()}.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
 
 \item{listtype}{Character string. Indicates the source of the SpeciesList provided. Can either be "speciesinventory" or"lpi". Defaults to "speciesinventory".}
 
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot WetlandIndicatorRegion or state.}
 
+\item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
+
 \item{method}{character string. The method used for the produced summary table. Can be "percent", "mean", or "count". Included in functions where applicable.}
+
+\item{unknowncodes}{Optional data frame. Use the data frame from the \code{gather_unknowns_lentic()} output. Unknown species list matching unknown codes to their duration and Growth habit. This is used to fill in duration and growth habit for plants in the species list never identified to a species or genus with those fields specified. If argument is unused, all unknown species without duration or Growth Habit specified will be filtered out before being passed on to \code{community_composition()}.}
 }
 \value{
 Data frame of summary metrics by plot.

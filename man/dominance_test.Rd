@@ -4,14 +4,14 @@
 \alias{dominance_test}
 \title{Calculate whether each site passes the Dominance Test and Prevalence Test}
 \usage{
-dominance_test(header, lpi_tall, masterspecieslist, bystrata = F)
+dominance_test(header, lpi_tall, nationalspecieslist, bystrata = F)
 }
 \arguments{
 \item{header}{Data frame. Use the data frame from the \code{header_build_lentic()} output. Used in Noxious and Wetland Indicator calculations to specify the plot region or state.}
 
 \item{lpi_tall}{A tall/long-format data frame. Use the data frame from the \code{gather_lpi_lentic()} output.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
 
 \item{bystrata}{logical. Indicates whether Dominance Test should be performed by strata, as is recommended by the USACE.}
 }

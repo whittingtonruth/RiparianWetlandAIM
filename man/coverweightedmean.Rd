@@ -7,14 +7,16 @@
 \usage{
 coverweightedmean(cover_species, planttraits)
 
-cwm_metrics(cover_species, header, masterspecieslist)
+cwm_metrics(cover_species, header, nationalspecieslist, statespecieslist)
 }
 \arguments{
 \item{cover_species}{A tall/long-format data frame. Use the data frame from the \code{pct_AbsoluteSpeciesCover} output, then join desired species traits.}
 
 \item{planttraits}{character vector. The field name(s) of numeric plant traits found in the \code{masterspecieslist} which will be used to calculate a cover-weighted mean.}
 
-\item{masterspecieslist}{Data frame. The centrally managed master species list should be used.}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
+
+\item{statespecieslist}{Data frame. The centrally managed master species list should be used. This dataframe should contain a unique record for each Symbol-SpeciesState combination.}
 }
 \value{
 Data frame of a cover weighted mean (CWM) of plant traits selected for each plot found in the \code{cover_species} dataframe.

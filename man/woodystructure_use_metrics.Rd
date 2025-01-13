@@ -11,7 +11,7 @@ use_metrics(
   header,
   annualuse_tall,
   woody_tall,
-  masterspecieslist,
+  nationalspecieslist,
   unit = "by_plot",
   by_species = F
 )
@@ -20,12 +20,12 @@ ageclass_metrics(
   header,
   woody_tall,
   tree_tall = NULL,
-  masterspecieslist,
+  nationalspecieslist,
   unit = "by_plot",
   by_species = F
 )
 
-SGConifer_metrics(tree_tall, masterspecieslist, unit = "by_plot")
+SGConifer_metrics(tree_tall, nationalspecieslist, unit = "by_plot")
 
 hummocks_metrics(hummocks, unit = "by_plot")
 }
@@ -35,6 +35,8 @@ hummocks_metrics(hummocks, unit = "by_plot")
 \item{annualuse_tall}{Data frame. Use the data frame from the \code{gather_annualuse()} output.}
 
 \item{woody_tall}{Data frame. Use the data frame from the \code{gather_woodyspecies()} output.}
+
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. The assumed structure is that each row is unique on its Symbol.}
 
 \item{unit}{String. The sampling unit by which data should be summarized. Should be \code{by_plot}, or \code{by_line}. \code{by_geosurface} is not an option for this calculation. Defaults to \code{by_plot}.}
 
