@@ -52,7 +52,7 @@ pct_cover_lentic <- function(lpi_tall,
   #convert all grouping variables to uppercase to avoid case issues in grouping.
   if(!(rlang::as_string(rlang::quo_get_expr(grouping_variables[[1]])) == "code")){
     lpi_tall <- lpi_tall %>%
-      dplyr::mutate_at(dplyr::vars(!!!grouping_variables), toupper)
+      dplyr::mutate_at(dplyr::vars(!!!grouping_variables), stringr::str_to_title)
   }
 
   #Set layer filter based on hit. If hit is "all", SoilSurface should be excluded to avoid species duplicates. If hit is "any" no filter should be applied,
@@ -172,10 +172,14 @@ pct_cover_lentic <- function(lpi_tall,
   summary <- suppressWarnings(allsitemetrics%>%
                                 dplyr::left_join(., summary, by = c("metric", level_colnames))%>%
                                 dplyr::mutate_all(dplyr::funs(replace(., is.na(.), 0)))%>%
-                                dplyr::mutate(metric=
-                                                {ifelse(rep(hit == "all", nrow(.)),
-                                                        paste("Relative.", metric, sep = ""),
-                                                        paste("Absolute.", metric, sep = ""))}) %>%
+                                dplyr::mutate(metric= {dplyr::case_when(rep(hit == "all", nrow(.))~
+                                                                    paste("Relative", metric, "Cover", sep = ""),
+                                                                  rep(hit == "any",
+                                                                      nrow(.))~paste("AH_", metric, "Cover", sep = ""),
+                                                                  rep(hit == "first",
+                                                                      nrow(.))~paste("FH_", metric, "Cover", sep = ""),
+                                                                  rep(hit == "basal",
+                                                                      nrow(.))~paste("Surface_", metric, "Cover", sep = ""))}) %>%
                                 dplyr::arrange(EvaluationID)%>%
                                 dplyr::relocate(PlotID)
                               )

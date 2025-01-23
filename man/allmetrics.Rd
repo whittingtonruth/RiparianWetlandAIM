@@ -3,6 +3,7 @@
 \name{CombineRelativeCoverMetrics}
 \alias{CombineRelativeCoverMetrics}
 \alias{CombineAbsoluteCoverMetrics}
+\alias{CombineFirstHitMetrics}
 \alias{Community_Metrics}
 \alias{allmetrics_byspecies}
 \alias{allmetrics_byplot}
@@ -18,6 +19,15 @@ CombineRelativeCoverMetrics(
 )
 
 CombineAbsoluteCoverMetrics(
+  header,
+  lpi_tall,
+  nationalspecieslist,
+  statespecieslist = NULL,
+  unknowncodes = NULL,
+  unit = "by_plot"
+)
+
+CombineFirstHitMetrics(
   header,
   lpi_tall,
   nationalspecieslist,

@@ -185,6 +185,97 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
   return(LPI_AbsoluteCover_Metrics)
 }
 
+#'@export CombineFirstHitMetrics
+#'@rdname allmetrics
+CombineFirstHitMetrics <- function(header,
+                                   lpi_tall,
+                                   nationalspecieslist,
+                                   statespecieslist = NULL,
+                                   unknowncodes = NULL,
+                                   unit = "by_plot"){
+
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  } else if (unit == "by_line") {
+    level <- rlang::quos(PlotID, EvaluationID, LineKey)
+    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
+  } else if(unit == "by_geosurface") {
+    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
+    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
+  } else {
+    level <- rlang::quos(PlotID, EvaluationID)
+    level_colnames <- c("PlotID", "EvaluationID")
+  }
+
+  FHNative <- pct_NativeCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unit = unit)
+
+  if(!is.null(statespecieslist)){
+    FHNoxious <- pct_NoxiousCover(header, lpi_tall, statespecieslist, covertype = "firsthit", unit = unit)
+  } else (message("State species list missing. Noxious cover will not be calculated. "))
+
+  FHHydroNoFAC <- pct_HydroNoFACCover(header, lpi_tall, nationalspecieslist, covertype = "firsthit", unit = unit)
+
+  FHHydroWithFAC <- pct_HydroWithFACCover(header, lpi_tall, nationalspecieslist, covertype = "firsthit", unit = unit)
+
+  FHGrowthHabitSub <- pct_GrowthHabitSubCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_ForbCover",
+                                  "FH_GraminoidCover",
+                                  "FH_ShrubCover",
+                                  "FH_TreeCover")))
+
+  FHDuration <- pct_DurationCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)
+
+  FHDurationGrowthHabitSub <- pct_DurationGrowthHabitSubCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_AnnualGraminoidCover", "FH_PerennialGraminoidCover")))
+
+  FHNativeGrowthHabitSub <- pct_NativeGrowthHabitSubCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_NativeGraminoidCover", "FH_NativeShrubCover", "FH_NonnativeShrubCover")))
+
+  FHWoody <- pct_GrowthHabitCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_WoodyCover", "FH_NonwoodyCover")))
+
+  FHNativeGrowthHabit <- pct_NativeGrowthHabitCover(lpi_tall, nationalspecieslist, covertype = "firsthit", unknowncodes, unit = unit)%>%
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_NativeWoodyCover", "FH_NonnativeWoodyCover")))
+
+  NonPlantCover <- pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = unit)%>%
+                               dplyr::select(!!!level,
+                                             dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
+                                                             "FH_MossCover",
+                                                             "FH_AlgaeCover",
+                                                             "FH_LichenCover",
+                                                             "FH_RockCover",
+                                                             "FH_WaterCover",
+                                                             "FH_SaltCrustCover",
+                                                             "FH_SoilCover",
+                                                             "FH_OrganicMaterialCover")))
+
+  LPI_FHCover_Metrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
+                                                                 EvaluationID,
+                                                                 SiteName,
+                                                                 AdminState,
+                                                                 SpeciesState,
+                                                                 FieldEvalDate),
+                                          FHNative,
+                                          by = c("PlotID", "EvaluationID"))%>%
+    {if(!is.null(statespecieslist)) dplyr::left_join(., FHNoxious, by = level_colnames) else .}%>%
+    dplyr::left_join(., FHHydroNoFAC, by = level_colnames)%>%
+    dplyr::left_join(., FHHydroWithFAC, by = level_colnames)%>%
+    dplyr::left_join(., FHGrowthHabitSub, by = level_colnames)%>%
+    dplyr::left_join(., FHDuration, by = level_colnames)%>%
+    dplyr::left_join(., FHDurationGrowthHabitSub, by = level_colnames)%>%
+    dplyr::left_join(., FHNativeGrowthHabitSub, by = level_colnames)%>%
+    dplyr::left_join(., FHWoody, by = level_colnames)%>%
+    dplyr::left_join(., FHNativeGrowthHabit, by = level_colnames)%>%
+    dplyr::left_join(., NonPlantCover, by = level_colnames)
+
+  return(LPI_FHCover_Metrics)
+}
+
 #'@export Community_Metrics
 #'@rdname allmetrics
 Community_Metrics <- function(header, SpeciesList, nationalspecieslist, statespecieslist = NULL, unknowncodes = NULL, listtype = "speciesinventory"){

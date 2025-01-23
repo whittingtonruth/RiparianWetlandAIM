@@ -37,17 +37,14 @@ pct_FoliarCover <- function(lpi_tall, nationalspecieslist = NULL, unit = "by_plo
     level_colnames <- c("PlotID", "EvaluationID")
   }
 
-  #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
-  nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
-
   #cover calculation for foliar cover
   PercentFoliarCover <- pct_cover_lentic(lpi_tall,
                                          tall = TRUE,
                                          hit = "first",
                                          unit = unit,
                                          code)%>%
-    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
-    dplyr::mutate(Symbol = stringr::str_split_i(metric, "\\.", 2))%>%
+    dplyr::filter(!stringr::str_extract(metric, "(?<=FH_)\\w+(?=Cover)") %in% nonplantcodes$code)%>%
+    dplyr::mutate(Symbol = stringr::str_extract(metric, "(?<=FH_)\\w+(?=Cover)"))%>%
     # filter out nonvascular codes
     {if (!is.null(nationalspecieslist)) dplyr::left_join(.,
                                                          nationalspecieslist%>%
@@ -77,15 +74,12 @@ pct_BasalCover <- function(lpi_tall, unit = "by_plot"){
     level_colnames <- c("PlotID", "EvaluationID")
   }
 
-  #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
-  nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
-
   PercentBasalCover <- pct_cover_lentic(lpi_tall,
                                         tall = TRUE,
                                         hit = "basal",
                                         unit = unit,
                                         code)%>%
-    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::filter(!stringr::str_extract(metric, "(?<=Surface_)\\w+(?=Cover)") %in% nonplantcodes$code)%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(AH_BasalCover = round(sum(percent), digits = 2))
 
@@ -109,15 +103,12 @@ pct_TotalAbsoluteCover <- function(lpi_tall, unit = "by_plot"){
     level_colnames <- c("PlotID", "EvaluationID")
   }
 
-  #many cover indicators need to be filtered to plant codes only. Use this regex expression to filter:
-  nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
-
   TotalAbsoluteCover <- pct_cover_lentic(lpi_tall,
                                           tall = TRUE,
                                           hit = "any",
                                           unit = unit,
                                           code)%>%
-    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::filter(!stringr::str_extract(metric, "(?<=AH_)\\w+(?=Cover)") %in% nonplantcodes$code)%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(TotalAbsoluteCover = round(sum(percent), digits = 2))
 
@@ -128,11 +119,13 @@ pct_TotalAbsoluteCover <- function(lpi_tall, unit = "by_plot"){
 #'@rdname Cover_Metrics
 pct_NativeCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -152,12 +145,12 @@ pct_NativeCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute
                                          tall = TRUE,
                                          hit = switch(covertype,
                                                       "relative" = "all",
-                                                      "absolute" = "any"),
+                                                      "absolute" = "any",
+                                                      "firsthit" = "first"),
                                          unit = unit,
                                          NativeStatus)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
-    dplyr::filter(grepl("Native|Nonnative", metric))%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("Native|Nonnative", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NativeCover)
@@ -167,24 +160,13 @@ pct_NativeCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute
 #'@rdname Cover_Metrics
 pct_NoxiousCover <- function(header, lpi_tall, statespecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
-  } else if (unit == "by_line") {
-    level <- rlang::quos(PlotID, EvaluationID, LineKey)
-    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
-  } else if(unit == "by_geosurface") {
-    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
-    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
-  } else {
-    level <- rlang::quos(PlotID, EvaluationID)
-    level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  fieldname <- ifelse(covertype == "relative", "RelativeNoxiousCover", "AH_NoxiousCover")
 
   statespecieslist <- statespecieslist%>%
     dplyr::select(Symbol,
@@ -216,12 +198,13 @@ pct_NoxiousCover <- function(header, lpi_tall, statespecieslist, covertype = "ab
                                       tall = TRUE,
                                       hit = switch(covertype,
                                                    "relative" = "all",
-                                                   "absolute" = "any"),
+                                                   "absolute" = "any",
+                                                   "firsthit" = "first"),
                                       unit = unit,
                                       StateNoxious)%>%
-    dplyr::filter(grepl("\\.NOXIOUS$", metric))%>%
-    dplyr::group_by(!!!level)%>%
-    dplyr::summarize(!!fieldname := round(sum(percent), digits = 2))
+    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("Noxious", metric))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NoxiousCover)
 }
@@ -230,24 +213,13 @@ pct_NoxiousCover <- function(header, lpi_tall, statespecieslist, covertype = "ab
 #'@rdname Cover_Metrics
 pct_HydroNoFACCover <- function(header, lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
-  } else if (unit == "by_line") {
-    level <- rlang::quos(PlotID, EvaluationID, LineKey)
-    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
-  } else if(unit == "by_geosurface") {
-    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
-    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
-  } else {
-    level <- rlang::quos(PlotID, EvaluationID)
-    level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -284,23 +256,18 @@ pct_HydroNoFACCover <- function(header, lpi_tall, nationalspecieslist, covertype
     dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "HydroNoFAC", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
-
   HydroNoFACCover <- pct_cover_lentic(lpispeciesjoin,
                                                  tall = TRUE,
                                                  hit = switch(covertype,
                                                               "relative" = "all",
-                                                              "absolute" = "any"),
+                                                              "absolute" = "any",
+                                                              "firsthit" = "first"),
                                                  unit = unit,
                                                  Hydro)%>%
-    dplyr::filter(grepl("\\.HYDRONOFAC$|\\.UPLAND$", metric))%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(metric, c("Absolute" = "",
-                                                                    "Relative" = "",
-                                                                    "\\.HYDRONOFAC$" = "HydroNoFAC",
-                                                                    "\\.UPLAND$" = "Upland")),
-                                 "Cover", sep = ""),
-                  percent = round(percent, 2))%>%
-    tidyr::pivot_wider(id_cols = dplyr::all_of(level_colnames), names_from = metric, values_from = percent)
+    dplyr::mutate(metric = stringr::str_replace(metric, "Hydronofac", "HydroNoFAC"),
+                  percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("HydroNoFAC|Upland", metric))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(HydroNoFACCover)
 }
@@ -309,24 +276,13 @@ pct_HydroNoFACCover <- function(header, lpi_tall, nationalspecieslist, covertype
 #'@rdname Cover_Metrics
 pct_HydroWithFACCover <- function(header, lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
   if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
     stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
-  } else if (unit == "by_line") {
-    level <- rlang::quos(PlotID, EvaluationID, LineKey)
-    level_colnames <- c("PlotID", "EvaluationID", "LineKey")
-  } else if(unit == "by_geosurface") {
-    level <- rlang::quos(PlotID, EvaluationID, GeoSurface)
-    level_colnames <- c("PlotID", "EvaluationID", "GeoSurface")
-  } else {
-    level <- rlang::quos(PlotID, EvaluationID)
-    level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -368,17 +324,14 @@ pct_HydroWithFACCover <- function(header, lpi_tall, nationalspecieslist, coverty
                                               tall = TRUE,
                                               hit = switch(covertype,
                                                            "relative" = "all",
-                                                           "absolute" = "any"),
+                                                           "absolute" = "any",
+                                                           "firsthit" = "first"),
                                               unit = unit,
                                               HydroWithFAC)%>%
-    dplyr::filter(grepl("\\.HYDROWITHFAC$", metric))%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(metric, c("Absolute" = "",
-                                                                    "Relative" = "",
-                                                                    "\\.HYDROWITHFAC$" = "HydroWithFAC")),
-                                 "Cover", sep = ""),
-                  percent = round(percent, 2))%>%
-    tidyr::pivot_wider(id_cols = dplyr::all_of(level_colnames), names_from = metric, values_from = percent)
+    dplyr::mutate(metric = stringr::str_replace(metric, "Hydrowithfac", "HydroWithFAC"),
+                  percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("HydroWithFAC", metric))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(HydroFACCover)
 }
@@ -387,11 +340,13 @@ pct_HydroWithFACCover <- function(header, lpi_tall, nationalspecieslist, coverty
 #'@rdname Cover_Metrics
 pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -424,11 +379,10 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
                                     tall = TRUE,
                                     hit = switch(covertype,
                                                  "relative" = "all",
-                                                 "absolute" = "any"),
+                                                 "absolute" = "any",
+                                                 "firsthit" = "first"),
                                     unit = unit,
                                     GrowthHabitSub)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
-    dplyr::group_by(EvaluationID)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
@@ -439,16 +393,18 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
 #'@rdname Cover_Metrics
 pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
                   ScientificName,
-                  Species,
+                  TaxonLevel,
                   GrowthHabit,
                   Duration
     )
@@ -479,13 +435,12 @@ pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "abs
                                        tall = TRUE,
                                        hit = switch(covertype,
                                                     "relative" = "all",
-                                                    "absolute" = "any"),
+                                                    "absolute" = "any",
+                                                    "firsthit" = "first"),
                                        unit = unit,
                                        GrowthHabit)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
-    filter(str_detect(metric, "Woody|Nonwoody|Nonvascular"))%>%
-    dplyr::group_by(EvaluationID)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("Woody|Nonwoody|Nonvascular", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(GrowthHabitCover)
@@ -495,11 +450,13 @@ pct_GrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "abs
 #'@rdname Cover_Metrics
 pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -533,12 +490,12 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
                                        tall = TRUE,
                                        hit = switch(covertype,
                                                     "relative" = "all",
-                                                    "absolute" = "any"),
+                                                    "absolute" = "any",
+                                                    "firsthit" = "first"),
                                        unit = unit,
                                        Duration)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
-    dplyr::filter(grepl("Perennial|Annual", metric))%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::filter(grepl("Annual|Perennial", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationCover)
@@ -548,11 +505,13 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
 #'@rdname Cover_Metrics
 pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -589,16 +548,12 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertyp
                                         tall = TRUE,
                                         hit = switch(covertype,
                                                      "relative" = "all",
-                                                     "absolute" = "any"),
+                                                     "absolute" = "any",
+                                                     "firsthit" = "first"),
                                         unit = unit,
                                         GrowthHabit, Duration)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationTypeCover)
@@ -608,11 +563,13 @@ pct_DurationGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertyp
 #'@rdname Cover_Metrics
 pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -643,19 +600,15 @@ pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, cover
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
   DurationGrowthCover <- pct_cover_lentic(lpispeciesjoin,
-                                    tall = TRUE,
-                                    hit = switch(covertype,
-                                                 "relative" = "all",
-                                                 "absolute" = "any"),
-                                    unit = unit,
-                                    Duration,GrowthHabitSub)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+                                          tall = TRUE,
+                                          hit = switch(covertype,
+                                                       "relative" = "all",
+                                                       "absolute" = "any",
+                                                       "firsthit" = "first"),
+                                          unit = unit,
+                                          Duration,GrowthHabitSub)%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationGrowthCover)
@@ -665,11 +618,13 @@ pct_DurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, cover
 #'@rdname Cover_Metrics
 pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -706,17 +661,13 @@ pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, coverty
                                           tall = TRUE,
                                           hit = switch(covertype,
                                                        "relative" = "all",
-                                                       "absolute" = "any"),
+                                                       "absolute" = "any",
+                                                       "firsthit" = "first"),
                                           unit = unit,
                                           NativeStatus,
                                           GrowthHabitSub)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NativeGrowthCover)
@@ -726,11 +677,13 @@ pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, coverty
 #'@rdname Cover_Metrics
 pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -769,17 +722,13 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype 
                                       tall = TRUE,
                                       hit = switch(covertype,
                                                    "relative" = "all",
-                                                   "absolute" = "any"),
+                                                   "absolute" = "any",
+                                                   "firsthit" = "first"),
                                       unit = unit,
                                       NativeStatus,
                                       GrowthHabit)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(NativeTypeCover)
@@ -789,11 +738,13 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype 
 #'@rdname Cover_Metrics
 pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -828,16 +779,12 @@ pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist,
                                           tall = TRUE,
                                           hit = switch(covertype,
                                                        "relative" = "all",
-                                                       "absolute" = "any"),
+                                                       "absolute" = "any",
+                                                       "firsthit" = "first"),
                                           unit = unit,
                                           NativeStatus, Duration, GrowthHabitSub)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(DurationGrowthCover)
@@ -847,42 +794,40 @@ pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist,
 #'@rdname Cover_Metrics
 pct_StabilityClassCover <- function(header, lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
                   ScientificName,
                   TaxonLevel,
-                  StabilityName)
+                  StabilityRatingName)
 
   #join lpi_tall to species list. Fill in species with no stability class as "Unknown"
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))%>%
-    dplyr::mutate(StabilityName = ifelse(StabilityName == "", "Unknown", StabilityName))
+    dplyr::mutate(StabilityRatingName = ifelse(StabilityRatingName == "", "Unknown", paste(StabilityRatingName, "Stability", sep = " ")))
 
   #Then filter out any blank values where StabilityName == "". This is only necessary for relative cover calculations. For Absolute cover, I can't remove empty values, because it'll throw off the number of pindrops.
   lpispeciesjoin <- lpispeciesjoin%>%
-    {if(covertype == "relative") dplyr::filter(., StabilityName !=""&!is.na(StabilityName)) else .}
+    {if(covertype == "relative") dplyr::filter(., StabilityRatingName !=""&!is.na(StabilityRatingName)) else .}
 
   #Run pct_cover_lentic, then rename metrics to title case.
   #pivot to show in wide format by EvaluationID
   StabilityCover <- pct_cover_lentic(lpispeciesjoin,
                                           tall = TRUE,
                                           hit = switch(covertype,
-                                                       "relative" = "all",
-                                                       "absolute" = "any"),
+                                                        "relative" = "all",
+                                                        "absolute" = "any",
+                                                        "firsthit" = "first"),
                                           unit = unit,
-                                          StabilityName)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "StabilityCover", sep = ""))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
+                                          StabilityRatingName)%>%
+    dplyr::mutate(metric = stringr::str_replace(metric, " ", ""),
+                  percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(StabilityCover)
@@ -892,11 +837,13 @@ pct_StabilityClassCover <- function(header, lpi_tall, nationalspecieslist, cover
 #'@rdname Cover_Metrics
 pct_SGGroupCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -917,16 +864,13 @@ pct_SGGroupCover <- function(lpi_tall, nationalspecieslist, covertype = "absolut
                                     tall = TRUE,
                                     hit = switch(covertype,
                                                  "relative" = "all",
-                                                 "absolute" = "any"),
+                                                 "absolute" = "any",
+                                                 "firsthit" = "first"),
                                     unit = unit,
                                     SG_Group)%>%
-    dplyr::mutate(metric = paste(fieldname, "SG",
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""), "Cover", sep = ""))%>%
+    dplyr::mutate(percent = round(percent, digits = 2),
+                  metric = stringr::str_replace_all(metric, c("_" = "_SG", " " = "")))%>%
     dplyr::filter(grepl("PreferredForb|Conifer|InvasiveAnnualGrass", metric))%>%
-    dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
   return(SGGroupCover)
@@ -940,10 +884,9 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", nationalspecieslist, 
     stop("hit for non-plant cover must be 'any', 'first', or 'basal'.")
   }
 
-  fieldname <- switch(hit,
-                      "any" = "AH_",
-                      "first" = "FH_",
-                      "basal" = "Surface_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   #Change Lichens and Mosses ID'd to species back to generic codes.
   if(!missing(nationalspecieslist)){
@@ -976,7 +919,6 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", nationalspecieslist, 
                                                       "basal" = "basal"),
                                          unit = unit,
                                          covercategory)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace_all(metric, c("Relative\\.|Absolute\\." = ""))), "Cover", sep = ""))%>%
     dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch",
                                                               "Organicmaterial" = "OrganicMaterial",
                                                               "Saltcrust" = "SaltCrust")))%>%
@@ -990,11 +932,13 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", nationalspecieslist, 
 #'@rdname Cover_Metrics
 pct_UnknownCover <- function(lpi_tall, nationalspecieslist, covertype = "relative", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol,
@@ -1015,10 +959,10 @@ pct_UnknownCover <- function(lpi_tall, nationalspecieslist, covertype = "relativ
                                    tall = TRUE,
                                    hit = switch(covertype,
                                                 "relative" = "all",
-                                                "absolute" = "any"),
+                                                "absolute" = "any",
+                                                "firsthit" = "first"),
                                    unit = unit,
                                    KnownUnknown)%>%
-    dplyr::mutate(metric = paste(fieldname, stringr::str_to_title(stringr::str_replace(metric, "Relative\\.|Absolute\\.", "")), "Cover", sep = ""))%>%
     dplyr::filter(grepl("Unknown", metric))%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -1028,13 +972,15 @@ pct_UnknownCover <- function(lpi_tall, nationalspecieslist, covertype = "relativ
 
 #'@export pct_FunctionalGroupCover
 #'@rdname Cover_Metrics
-pct_FunctionalGroupCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute"){
+pct_FunctionalGroupCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unit = "by_plot"){
 
-  if(!(covertype %in% c("relative", "absolute"))){
-    stop("covertype must be 'relative' or 'absolute'.")
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
   }
 
-  fieldname <- ifelse(covertype == "relative", "Relative", "AH_")
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
 
   #Store lists of marsh species and genera)
   marshspp <- c("SCAC3", "SCACA", "SCACO2", "SCTA2", "SCAM6", "SCCA11", "BORO5", "BOMA7")
@@ -1060,18 +1006,14 @@ pct_FunctionalGroupCover <- function(lpi_tall, nationalspecieslist, covertype = 
     {if(covertype == "relative") dplyr::filter(.,FunctionalGroup !=""|is.na(FunctionalGroup)) else .}
 
   FunctionalGroupCover <- pct_cover_lentic(lpispeciesjoin,
-                                      tall = TRUE,
-                                      hit = switch(covertype,
-                                                   "relative" = "all",
-                                                   "absolute" = "any"),
-                                      unit = "by_plot",
-                                      FunctionalGroup)%>%
-    dplyr::mutate(metric = paste(fieldname,
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(
-                                     stringr::str_replace_all(metric, c("\\." = " ", "Relative|Absolute" = ""))),
-                                   " ", ""),
-                                 "Cover", sep = ""),
+                                           tall = TRUE,
+                                           hit = switch(covertype,
+                                                        "relative" = "all",
+                                                        "absolute" = "any",
+                                                        "firsthit" = "first"),
+                                           unit = unit,
+                                           FunctionalGroup)%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, c(" "="")),
                   percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("MarshSpecies|PlayaSpecies", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -1095,9 +1037,6 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, nationalspecieslist, unit = "by_p
     level <- rlang::quos(PlotID, EvaluationID)
     level_colnames <- c("PlotID", "EvaluationID")
   }
-
-  #Create nonplantcodesfilter
-  nonplantcodesfilter <- paste(paste("\\.", nonplantcodes$code, "$", sep = ""), collapse = "|")
 
   #select necessary columns in species list
   nationalspecieslist <- nationalspecieslist %>%
@@ -1130,7 +1069,8 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, nationalspecieslist, unit = "by_p
                                        code, UnknownCodeKey)%>%
     dplyr::filter(percent > 0)%>%
     dplyr::group_by(EvaluationID)%>%
-    tidyr::separate(metric, into = c("Absolute", "Code", "UnknownCodeKey"), sep = "\\.")%>%
+    dplyr::mutate(metric = stringr::str_extract(metric, "(?<=AH_).+(?=Cover)"))%>%
+    tidyr::separate(metric, into = c("Code", "UnknownCodeKey"), sep = "\\.")%>%
     dplyr::left_join(., nationalspecieslist, by = c("Code" = "Symbol"))%>%
     #Change genus-level codes' unknown code key back to NA
     dplyr::mutate(UnknownCodeKey = ifelse(Code == UnknownCodeKey, NA, UnknownCodeKey))
@@ -1141,9 +1081,9 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, nationalspecieslist, unit = "by_p
                                 hit = "any",
                                 unit = unit,
                                 code)%>%
-    dplyr::filter(!stringr::str_detect(metric, nonplantcodesfilter))%>%
+    dplyr::filter(!stringr::str_extract(metric, "(?<=AH_)\\w+(?=Cover)") %in% nonplantcodes$code)%>%
     dplyr::group_by(!!!level)%>%
-    dplyr::mutate(Code = stringr::str_replace(metric, "Absolute.", ""))%>%
+    dplyr::mutate(Code = stringr::str_extract(metric, "(?<=AH_)\\w+(?=Cover)"))%>%
     dplyr::left_join(., nationalspecieslist, by = c("Code" = "Symbol"))%>%
     dplyr::filter(TaxonLevel%in%c("Species", "Trinomial")&percent>0)
 

@@ -154,7 +154,12 @@ pct_UnknownCover(
   unit = "by_plot"
 )
 
-pct_FunctionalGroupCover(lpi_tall, nationalspecieslist, covertype = "absolute")
+pct_FunctionalGroupCover(
+  lpi_tall,
+  nationalspecieslist,
+  covertype = "absolute",
+  unit = "by_plot"
+)
 
 pct_AbsoluteSpeciesCover(lpi_tall, nationalspecieslist, unit = "by_plot")
 }
