@@ -219,7 +219,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     #Tree age class counts to incorporate below.
     ageclass_trees <- tree_tall%>%
       dplyr::group_by(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted, AgeClass)%>%
-      dplyr::summarize(Count = n())%>%
+      dplyr::summarize(Count = dplyr::n())%>%
       #pivot into a wider format to match ageclass_sum table below.
       tidyr::pivot_wider(.,
                          id_cols = c(PlotID, EvaluationID, LineKey, RiparianWoodySpecies, UnknownCodeKey, OverhangingOrRooted),
@@ -238,7 +238,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
                     TreeBasalArea = DBHcm^2 * 0.00007854)%>%
       dplyr::filter(!is.na(TreeMaxHeightClass), AgeClass != "Seedling")%>%
       dplyr::group_by(!!!level, TreeMaxHeightClass)%>%
-      dplyr::summarise(Cnt = n(),
+      dplyr::summarise(Cnt = dplyr::n(),
                        LiveCnt = sum(ifelse(TreeIndivLiveDead == "L", 1, 0)),
                        DeadCnt = sum(ifelse(TreeIndivLiveDead == "D", 1, 0)),
                        LiveBasalSum = sum(ifelse(TreeIndivLiveDead == "L", TreeBasalArea, 0)),
@@ -264,7 +264,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
   #Next calculate age class totals for non rhizomatous species.
   ageclass_sum <- woody_tall%>%
     #bind tree species rows to add to age class counts
-    {if(!is.null(tree_tall)) dplyr::bind_rows(., ageclass_trees) else .}%>%
+    {if(!is.null(tree_tall)&nrow(ageclass_trees)>0) dplyr::bind_rows(., ageclass_trees) else .}%>%
     #join to master species list to remove any species that are not riparian.
     dplyr::left_join(.,
                      nationalspecieslist%>%dplyr::select(Symbol, RipWoodList),
@@ -351,7 +351,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::left_join(., allwoodyheight, by = level_colnames)%>%
     dplyr::left_join(., ageclass_sum, by = level_colnames)%>%
     dplyr::left_join(., rhiz_byquad, by = level_colnames)%>%
-    {if(!is.null(tree_tall)) dplyr::left_join(., treemetrics, by = level_colnames) else .}%>%
+    {if(!is.null(tree_tall)&nrow(treemetrics)>0) dplyr::left_join(., treemetrics, by = level_colnames) else .}%>%
     {if(by_species) dplyr::rename(., Species = RiparianWoodySpecies) else .} %>%
     dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                       WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),

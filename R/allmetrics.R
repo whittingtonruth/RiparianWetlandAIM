@@ -369,8 +369,8 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
     select(EvaluationID, PlotID, Species = Code, UnknownCodeKey)%>%
     dplyr::full_join(., SpeciesHeight%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
                      by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
-    dplyr::full_join(., SpeciesAnnualUse%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
-                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
+    {if(!is.null(SpeciesAnnualUse)) dplyr::full_join(., SpeciesAnnualUse%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
+                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey")) else .}%>%
     dplyr::full_join(., SpeciesAgeClass%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
                      by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
     dplyr::left_join(nosppinv_header, ., by = c("EvaluationID", "PlotID"))
