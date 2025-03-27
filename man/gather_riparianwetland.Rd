@@ -19,7 +19,7 @@ gather_lpi_lentic(dsn, source = "SDE", lr = FALSE)
 
 gather_species_inventory_lentic(dsn, source = "SDE")
 
-gather_unknowns_lentic(dsn, source = "SDE", familygenuslist = NULL)
+gather_unknowns_lentic(dsn, source = "SDE", nationalspecieslist = NULL)
 
 gather_height_lentic(dsn, source = "SDE", lr = FALSE)
 
@@ -39,7 +39,7 @@ gather_all_riparianwetland(
   dsn,
   source = "SDE",
   lr = FALSE,
-  familygenuslist = NULL,
+  nationallist = NULL,
   covariates = TRUE
 )
 }
@@ -50,7 +50,7 @@ gather_all_riparianwetland(
 
 \item{lr}{Logical. Only used for LR integration data from LPI, where Geomorphic surface field should come with the data. Defaults to FALSE.}
 
-\item{familygenuslist}{data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level ('Level'), i.e. "Family" or "Genus".}
+\item{nationalspecieslist}{Data frame. The centrally managed master species list should be used. Only required in gathering Unknown Plant form for data loaded from the online feature service to clean up family and genus-level identification. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes. List should contain an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Symbol'), and the taxonomic level ('TaxonLevel'), which is used to filter to "Family" or "Genus" records.}
 }
 \value{
 tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.

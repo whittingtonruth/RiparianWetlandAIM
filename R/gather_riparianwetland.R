@@ -4,7 +4,7 @@
 #' @param dsn Character string. The full filepath and filename (including file extensions) of the geodatabase containing the table of interest.For the AGOL source, a URL can be used.
 #' @param source Character string. The source and schema of the data being analyzed. Default is SDE, but other options are AGOL and GDB. AGOL anticipates loading data from a feature service URL from online, while GDB anticipates a structure identical to the Survey123 project but from a local File Geodatabase.
 #' @param lr Logical. Only used for LR integration data from LPI, where Geomorphic surface field should come with the data. Defaults to FALSE.
-#' @param familygenuslist data.frame. Only required in gathering Unknown Plant form for data loaded from the online feature service. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes.an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Code'), and the taxonomic level ('Level'), i.e. "Family" or "Genus".
+#' @param nationalspecieslist Data frame. The centrally managed master species list should be used. Only required in gathering Unknown Plant form for data loaded from the online feature service to clean up family and genus-level identification. Otherwise, script expects Unknown Plants has already been corrected to fill in unknown plants with their codes. List should contain an exhaustive list of all possible family and genus names ('ScientificName'), their associated codes ('Symbol'), and the taxonomic level ('TaxonLevel'), which is used to filter to "Family" or "Genus" records.
 #' @importFrom magrittr %>%
 #' @name gather_RiparianWetland
 #' @return tall Data frame containing the data from a detail table from a Riparian and Wetland AIM file geodatabase.
@@ -186,7 +186,7 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
 #' @export gather_unknowns_lentic
 #' @rdname gather_riparianwetland
-gather_unknowns_lentic <- function(dsn, source = "SDE", familygenuslist = NULL) {
+gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NULL) {
 
   # Read in the files from the geodatabase
   if(source == "GDB"){
@@ -225,9 +225,13 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", familygenuslist = NULL) 
   else if(source == "AGOL"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into unknown table. All unknown species will be maintained in the list for use in correcting uningested data. ")
 
-    if(is.null(familygenuslist)){
+    if(is.null(nationalspecieslist)){
       stop("If loading during-season data, the unknown species list must be corrected with a provided genus and family code list. ")
     }
+
+    familygenuslist <- nationalspecieslist%>%
+      filter(TaxonLevel%in%c("Family", "Genus"))%>%
+      select(Symbol, ScientificName, TaxonLevel)
 
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
@@ -257,10 +261,10 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", familygenuslist = NULL) 
     UnknownPlants_tall <- UnknownPlants_tall%>%
       dplyr::filter(!is.na(UnknownCodeKey))%>%
       dplyr::left_join(.,
-                       familygenuslist%>%dplyr::filter(Level=="Genus")%>%dplyr::select(GenusCode = Code, ScientificName),
+                       familygenuslist%>%dplyr::filter(TaxonLevel=="Genus")%>%dplyr::select(GenusCode = Symbol, ScientificName),
                        by = c("Genus" = "ScientificName"))%>%
       dplyr::left_join(.,
-                       familygenuslist%>%dplyr::filter(Level=="Family")%>%dplyr::select(FamilyCode = Code, ScientificName),
+                       familygenuslist%>%dplyr::filter(TaxonLevel=="Family")%>%dplyr::select(FamilyCode = Symbol, ScientificName),
                        by = c("Family" = "ScientificName"))%>%
       dplyr::mutate(IdentificationStatus = ifelse(is.na(IdentificationStatus), "Not Identified", IdentificationStatus),
                     GrowthHabitCode = dplyr::case_when(GrowthHabit=="Graminoid" ~ "G",
@@ -907,7 +911,7 @@ gather_soilstab <- function(dsn, source = "SDE"){
 
 #' @export gather_all_riparianwetland
 #' @rdname gather_riparianwetland
-gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, familygenuslist = NULL, covariates = TRUE){
+gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, nationallist = NULL, covariates = TRUE){
 
   #Create list variable in which all tables will be stored.
   tableList <- list()
@@ -923,7 +927,7 @@ gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, familyge
   spp_inventory_tall <- gather_species_inventory_lentic(dsn = dsn, source = source)
   tableList$spp_inventory_tall <- spp_inventory_tall
 
-  unknowncodes <- gather_unknowns_lentic(dsn = dsn, source = source, familygenuslist = familygenuslist)
+  unknowncodes <- gather_unknowns_lentic(dsn = dsn, source = source, nationalspecieslist = nationalspecieslist)
   tableList$unknowncodes <- unknowncodes
 
   height_tall <- gather_height_lentic(dsn = dsn, source = source, lr = lr)
