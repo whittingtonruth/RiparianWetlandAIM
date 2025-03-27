@@ -48,13 +48,14 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     dplyr::mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
              lubridate::hours(12),
            #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
-           StateCode = SpeciesState,
-           PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
+           StateCode = SpeciesState)%>%
+    {if("PlotLayout"%in%names(.)) dplyr::mutate(.,PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
                                           #Use actual plot length when smaller than the max.
                                           PlotLayout %in% c("Transverse", "Diagonal", "Linear") & MaxPlotLengthCalc>ActualPlotLength~AvgWidthArea*ActualPlotLength,
                                           #Use max when actual is larger
                                           PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*MaxPlotLengthCalc,
                                           PlotLayout == "Mixed Layout"~NA))
+      else .}
 
   header<- plotchar%>%
     dplyr::select(dplyr::any_of(c("PlotID",

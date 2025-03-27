@@ -140,7 +140,7 @@ pct_cover_lentic <- function(lpi_tall,
   #remove all metrics with no value for one grouping_variable
   summary <- summary %>% subset(!grepl(
     x = metric,
-    pattern = "^[.]|[.]$|\\.\\.|\\.NA|NA\\.|\\.NA\\."
+    pattern = "^[\\.]|[\\.]$|\\.\\.|\\.NA$|^NA\\.|\\.NA\\."
   ))
 
 
