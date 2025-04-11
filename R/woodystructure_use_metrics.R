@@ -264,7 +264,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
   #Next calculate age class totals for non rhizomatous species.
   ageclass_sum <- woody_tall%>%
     #bind tree species rows to add to age class counts
-    {if(!is.null(tree_tall)&nrow(ageclass_trees)>0) dplyr::bind_rows(., ageclass_trees) else .}%>%
+    {if(!is.null(tree_tall)&&nrow(ageclass_trees)>0) dplyr::bind_rows(., ageclass_trees) else .}%>%
     #join to master species list to remove any species that are not riparian.
     dplyr::left_join(.,
                      nationalspecieslist%>%dplyr::select(Symbol, RipWoodList),

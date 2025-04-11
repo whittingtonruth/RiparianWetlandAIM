@@ -1059,7 +1059,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, nationalspecieslist, unit = "by_p
     #Genus-level codes are given an unknown code key so that their cover is accounted for.
     #plants that have been identified to species have their unknown code key removed so they are removed from the unknown calculation.
     dplyr::mutate(UnknownCodeKey = dplyr::case_when(!TaxonLevel%in%c("Species", "Trinomial")&!code%in%nonplantcodes$code&is.na(UnknownCodeKey)~code,
-                                                    TaxonLevel%in%c("Species", "Trinomial") & !str_detect(code, "XXXX")~NA,
+                                                    TaxonLevel%in%c("Species", "Trinomial") & !stringr::str_detect(code, "XXXX")~NA,
                                                     TRUE~UnknownCodeKey))
 
   UnknownCodeCover <- pct_cover_lentic(UnknownSpeciesjoin,
