@@ -351,7 +351,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::left_join(., allwoodyheight, by = level_colnames)%>%
     dplyr::left_join(., ageclass_sum, by = level_colnames)%>%
     dplyr::left_join(., rhiz_byquad, by = level_colnames)%>%
-    {if(!is.null(tree_tall)&nrow(treemetrics)>0) dplyr::left_join(., treemetrics, by = level_colnames) else .}%>%
+    {if(!is.null(tree_tall)&&nrow(treemetrics)>0) dplyr::left_join(., treemetrics, by = level_colnames) else .}%>%
     {if(by_species) dplyr::rename(., Species = RiparianWoodySpecies) else .} %>%
     dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                       WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),
