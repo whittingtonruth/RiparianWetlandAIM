@@ -54,10 +54,9 @@ CombineRelativeCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
 
   LPI_Cover_Indicators <- TotalAbsolute %>% dplyr::right_join(header%>%dplyr::select(PlotID,
                                                                                      EvaluationID,
-                                                                                     SiteName,
-                                                                                     AdminState,
                                                                                      SpeciesState,
-                                                                                     FieldEvalDate),
+                                                                                     FieldEvalDate,
+                                                                                     any_of(c("SiteName", "AdminState"))),
                                                               .,
                                                               by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., RelativeNative, by = level_colnames)%>%
