@@ -212,7 +212,7 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NU
         "Duration",
         "ScientificName")%>%
       # Join the detail table to the header and remove any NAs
-      dplyr::right_join(x = UnknownPlants_header%>%dplyr::select("PlotID":"VisitDate"),
+      dplyr::right_join(x = UnknownPlants_header%>%dplyr::select("PlotID":"SpeciesState"),
                         y = .,
                         by = c("EvaluationID" = "UnknownCodesEvaluationID"))
 
@@ -434,7 +434,7 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
     lpi_depth_water
   ) %>% dplyr::full_join(
     x = lpi_header, y = ., by = c("LineKey" = "RecKey")) %>%
-    dplyr::select(-c(CollectionNumber, UnknownCode))%>%
+    dplyr::select(-dplyr::any_of(c("CollectionNumber", "UnknownCode")))%>%
     subset(., !is.na(Height))
 
   # Output the woody/herbaceous level data

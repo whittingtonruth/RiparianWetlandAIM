@@ -160,11 +160,10 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
   )
 
   LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::left_join(header%>%dplyr::select(PlotID,
-                                                                                   EvaluationID,
-                                                                                   SiteName,
-                                                                                   AdminState,
-                                                                                   SpeciesState,
-                                                                                   FieldEvalDate),
+                                                                                  EvaluationID,
+                                                                                  SpeciesState,
+                                                                                  FieldEvalDate,
+                                                                                  any_of(c("SiteName", "AdminState"))),
                                                             .,
                                                             by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., Basal, by = level_colnames)%>%
@@ -256,10 +255,9 @@ CombineFirstHitMetrics <- function(header,
 
   LPI_FHCover_Metrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
                                                                  EvaluationID,
-                                                                 SiteName,
-                                                                 AdminState,
                                                                  SpeciesState,
-                                                                 FieldEvalDate),
+                                                                 FieldEvalDate,
+                                                                 any_of(c("SiteName", "AdminState"))),
                                           FHNative,
                                           by = c("PlotID", "EvaluationID"))%>%
     {if(!is.null(statespecieslist)) dplyr::left_join(., FHNoxious, by = level_colnames) else .}%>%
