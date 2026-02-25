@@ -734,6 +734,60 @@ pct_NativeGrowthHabitCover <- function(lpi_tall, nationalspecieslist, covertype 
   return(NativeTypeCover)
 }
 
+#'@export pct_NativeDurationCover
+#'@rdname Cover_Metrics
+pct_NativeDurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){
+
+  if(!(covertype %in% c("relative", "absolute", "firsthit"))){
+    stop("covertype must be 'relative', 'absolute', or 'firsthit'.")
+  }
+
+  if(!(unit %in% c("by_plot", "by_line", "by_geosurface"))){
+    stop("Can only summarize using a sampling unit of `by_plot`, `by_line`, or `by_geosurface` (for L-R plots only). Update unit to one of these strings. ")
+  }
+
+  nationalspecieslist <- nationalspecieslist%>%
+    dplyr::select(Symbol,
+                  ScientificName,
+                  TaxonLevel,
+                  NativeStatus,
+                  Duration
+    )
+
+  #join lpi_tall to species list.
+  lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))%>%
+    dplyr::mutate(NativeStatus = ifelse(NativeStatus %in% c("Cryptogenic", "cryptogenic"), "nonnative", NativeStatus))
+
+  #If a unknown code list is also specified, we can use this list to fill in missing durations.
+  if(!is.null(unknowncodes)){
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))
+  }
+
+  #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute cover, I can't remove empty values, because it'll throw off the number of pindrops.
+  lpispeciesjoin <- lpispeciesjoin%>%
+    {if(covertype == "relative") dplyr::filter(., Duration !=""&!is.na(Duration)&NativeStatus!=""&!is.na(NativeStatus)) else .}
+
+  #Run pct_cover_lentic, then rename metrics to title case.
+  #Remove AbsoluteCover from the data frame to take out nulls.
+  #pivot to show in wide format by EvaluationID
+  NativeDurationCover <- pct_cover_lentic(lpispeciesjoin,
+                                          tall = TRUE,
+                                          hit = switch(covertype,
+                                                       "relative" = "all",
+                                                       "absolute" = "any",
+                                                       "firsthit" = "first"),
+                                          unit = unit,
+                                          NativeStatus, Duration)%>%
+    dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
+                  percent = round(percent, digits = 2))%>%
+    tidyr::pivot_wider(names_from = metric, values_from = percent)
+
+  return(NativeDurationCover)
+}
+
 #'@export pct_NativeDurationGrowthHabitSubCover
 #'@rdname Cover_Metrics
 pct_NativeDurationGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute", unknowncodes = NULL, unit = "by_plot"){

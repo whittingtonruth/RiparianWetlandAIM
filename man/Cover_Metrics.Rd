@@ -15,6 +15,7 @@
 \alias{pct_DurationGrowthHabitSubCover}
 \alias{pct_NativeGrowthHabitSubCover}
 \alias{pct_NativeGrowthHabitCover}
+\alias{pct_NativeDurationCover}
 \alias{pct_NativeDurationGrowthHabitSubCover}
 \alias{pct_StabilityClassCover}
 \alias{pct_SGGroupCover}
@@ -110,6 +111,14 @@ pct_NativeGrowthHabitSubCover(
 )
 
 pct_NativeGrowthHabitCover(
+  lpi_tall,
+  nationalspecieslist,
+  covertype = "absolute",
+  unknowncodes = NULL,
+  unit = "by_plot"
+)
+
+pct_NativeDurationCover(
   lpi_tall,
   nationalspecieslist,
   covertype = "absolute",
