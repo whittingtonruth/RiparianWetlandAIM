@@ -35,16 +35,16 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
     dplyr::right_join(header%>%
                         dplyr::select(PlotID, EvaluationID, WetlandIndicatorRegion)%>%
                         sf::st_drop_geometry(),
-                     .,
-                     by = c("PlotID", "EvaluationID"))%>%
+                      .,
+                      by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., nationalspecieslist, by = c("RiparianWoodySpecies" = "Symbol"))%>%
-    dplyr::mutate(RipStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                        WetlandIndicatorRegion=="Alaska" ~ AK_WetStatus,
-                                        WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                        WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                                        TRUE ~ "REGIONMISSING"),
+    dplyr::mutate(RipStatus = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                               WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                               WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                               WetlandIndicatorRegion=="Alaska" ~ AK_WetStatus,
+                                               WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                               WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                               TRUE ~ "REGIONMISSING"),
                   UnknownCodeKey = ifelse(!TaxonLevel%in%c("Species", "Trinomial"), UnknownCodeKey, NA))%>%
     dplyr::select(-TaxonLevel)
 
@@ -54,11 +54,11 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
     dominantspecies <- annualuse_tall%>%
       dplyr::filter(StubbleHeightDominantSpecies != "N")%>%
       dplyr::group_by(!!!level, StubbleHeightDominantSpecies)%>%
-      dplyr::summarize(Count = n(), .groups = "drop_last")%>%
+      dplyr::summarize(Count = dplyr::n(), .groups = "drop_last")%>%
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
       dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
-      pivot_wider(., id_cols = c(!!!level), values_from = StubbleHeightDominantSpecies, names_prefix = "AU_DominantGraminoid", names_from= rank)
+      tidyr::pivot_wider(., id_cols = c(!!!level), values_from = StubbleHeightDominantSpecies, names_prefix = "AU_DominantGraminoid", names_from= rank)
 
     #Next calculate AnnualUse metrics
     annualusemetrics <- annualuse_tall%>%
@@ -73,7 +73,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
     dominantripwood <- riparianwoody%>%
       dplyr::filter(RipStatus %in% c("OBL", "FACW", "FAC"))%>%
       dplyr::group_by(!!!level, RiparianWoodySpecies)%>%
-      dplyr::summarize(Count = n(), .groups = "drop_last")%>%
+      dplyr::summarize(Count = dplyr::n(), .groups = "drop_last")%>%
       dplyr::mutate(rank = rank(-Count, ties.method = "random"))%>%
       dplyr::arrange(EvaluationID, desc(Count))%>%
       dplyr::filter(rank<=2)%>%
@@ -114,7 +114,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
         dplyr::summarize(AU_StubbleHgt_Avg = round(mean(StubbleHeight, na.rm = T), digits = 2),
                          AU_Grazed_Pct = round(sum(ifelse(Grazed == "Yes", 1, 0), na.rm = T)/
                                                  sum(ifelse(Grazed %in% c("Yes", "No"), 1, 0))*100, digits = 2),
-                         AU_StubbleHgt_Cnt = n())%>%
+                         AU_StubbleHgt_Cnt = dplyr::n())%>%
         dplyr::rename(Species = StubbleHeightDominantSpecies,
                       UnknownCodeKey = UnknownCodeStubbleKey)
 
@@ -177,7 +177,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::group_by(PlotID, EvaluationID, LineKey)%>%
     dplyr::count()%>%
     dplyr::bind_rows(., quadcalc)%>%
-    dplyr::group_by(across(level_colnames[!level_colnames%in%c("RiparianWoodySpecies", "UnknownCodeKey")]))%>%
+    dplyr::group_by(dplyr::across(level_colnames[!level_colnames%in%c("RiparianWoodySpecies", "UnknownCodeKey")]))%>%
     dplyr::summarize(nquads = sum(n))
 
   #Join to master list to indicate which are ID'd to Species
@@ -289,7 +289,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::filter(OverhangingOrRooted == "Rooted-in", GrowthHabit == "Rhizomatous or Dwarf Shrub", RipWoodList == "Y")%>%
     dplyr::group_by(!!!level)%>%
     #for each group, count the number of unique points where rhizomatous species were measured.
-    summarize(n = dplyr::n_distinct(!!!level, LineKey, PointNbr))%>%
+    dplyr::summarize(n = dplyr::n_distinct(!!!level, LineKey, PointNbr))%>%
     dplyr::left_join(.,
                      quadcount,
                      by = c(level_colnames[!level_colnames%in%c("RiparianWoodySpecies", "UnknownCodeKey")]))%>%
@@ -335,16 +335,16 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(WS_DominantHgtClass = paste("Height Class ",
                                                  names(which.max(table(HeightClass))),
-                                                 case_when(names(which.max(table(HeightClass)))==0~" (0.0 - 0.2 m)",
-                                                           names(which.max(table(HeightClass)))==1~" (0.2 - 0.5 m)",
-                                                           names(which.max(table(HeightClass)))==2~" (>0.5 - 1.0 m)",
-                                                           names(which.max(table(HeightClass)))==3~" (>1.0 - 2.0 m)",
-                                                           names(which.max(table(HeightClass)))==4~" (>2.0 - 4.0 m)",
-                                                           names(which.max(table(HeightClass)))==5~" (>4.0 - 8.0 m)",
-                                                           names(which.max(table(HeightClass)))==6~" (>8.0 m)",
-                                                           TRUE~""),
+                                                 dplyr::case_when(names(which.max(table(HeightClass)))==0~" (0.0 - 0.2 m)",
+                                                                  names(which.max(table(HeightClass)))==1~" (0.2 - 0.5 m)",
+                                                                  names(which.max(table(HeightClass)))==2~" (>0.5 - 1.0 m)",
+                                                                  names(which.max(table(HeightClass)))==3~" (>1.0 - 2.0 m)",
+                                                                  names(which.max(table(HeightClass)))==4~" (>2.0 - 4.0 m)",
+                                                                  names(which.max(table(HeightClass)))==5~" (>4.0 - 8.0 m)",
+                                                                  names(which.max(table(HeightClass)))==6~" (>8.0 m)",
+                                                                  TRUE~""),
                                                  sep = ""),
-                     WS_WoodyHgtClass_Cnt = n())
+                     WS_WoodyHgtClass_Cnt = dplyr::n())
 
   #Join all the woody structure metrics
   WoodyStructureMetrics <- woodyheightclass_byquad%>%
@@ -356,8 +356,8 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     dplyr::relocate(c(WS_Rhizomatous_Cnt, WS_Seedling_Cnt, WS_Young_Cnt, WS_Mature_Cnt, WS_Dead_Cnt,
                       WS_Rhizomatous_PctQdrts, WS_Seedling_Pct, WS_Young_Pct, WS_Mature_Pct),
                     .after = WS_WoodyHgtClass_Cnt)%>%
-  #Fill in a 0 where no measurements were found. We've already filtered only to the records where woody structure was measured, so na's represent plots with no woody observations.
-  dplyr::mutate(dplyr::across(dplyr::ends_with(c("Cnt","PctQdrts")), ~tidyr::replace_na(., 0)))
+    #Fill in a 0 where no measurements were found. We've already filtered only to the records where woody structure was measured, so na's represent plots with no woody observations.
+    dplyr::mutate(dplyr::across(dplyr::ends_with(c("Cnt","PctQdrts")), ~tidyr::replace_na(., 0)))
 
   return(WoodyStructureMetrics)
 }
@@ -392,7 +392,7 @@ SGConifer_metrics <- function(tree_tall, nationalspecieslist, unit = "by_plot"){
                   !is.na(TreeMaxHeightClass),
                   TreeMaxHeightClass %in%c("HgtClass4", "HgtClass5", "HgtClass6"))%>%
     dplyr::group_by(!!!level, TreeMaxHeightClass)%>%
-    dplyr::summarise(Cnt = n())%>%
+    dplyr::summarise(Cnt = dplyr::n())%>%
     tidyr::pivot_wider(id_cols = all_of(level_colnames),
                        names_from = TreeMaxHeightClass, names_glue = "WS_Max{TreeMaxHeightClass}SGConifer_{.value}", names_sort = T,
                        values_from = c(Cnt))
@@ -424,14 +424,14 @@ hummocks_metrics <- function(hummocks, unit = "by_plot"){
   hummocksmetrics <- hummocks%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(H_Hummock_Cnt = sum(ifelse(HummocksPresentLine=="Yes", 1, 0)),
-              H_Hummock_Pct = round(sum(Width,na.rm = T)/7500*100, digits = 2),
-              H_HummockHgt_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(Height, na.rm = T), digits = 2), NA),
-              H_HummockWidth_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(Width, na.rm = T), digits = 2), NA),
-              H_HummockTroughWidth_Avg = ifelse(H_Hummock_Cnt > 0, round((7500 - sum(Width,na.rm = T))/ H_Hummock_Cnt, digits = 2), NA),
-              H_HummockSlope_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(SlopeClass, na.rm = T), digits = 2), NA),
-              H_HummockVegCover_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(VegCover, na.rm = T), digits = 2), NA))%>%
-    bind_rows(.,
-              nohummockplots)
+                     H_Hummock_Pct = round(sum(Width,na.rm = T)/7500*100, digits = 2),
+                     H_HummockHgt_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(Height, na.rm = T), digits = 2), NA),
+                     H_HummockWidth_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(Width, na.rm = T), digits = 2), NA),
+                     H_HummockTroughWidth_Avg = ifelse(H_Hummock_Cnt > 0, round((7500 - sum(Width,na.rm = T))/ H_Hummock_Cnt, digits = 2), NA),
+                     H_HummockSlope_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(SlopeClass, na.rm = T), digits = 2), NA),
+                     H_HummockVegCover_Avg = ifelse(H_Hummock_Cnt > 0, round(mean(VegCover, na.rm = T), digits = 2), NA))%>%
+    dplyr::bind_rows(.,
+                     nohummockplots)
 
   return(hummocksmetrics)
 }

@@ -56,9 +56,9 @@ height_metrics <- function(height_tall,
   if(!is.null(unknowncodes))
     height_tall <- height_tall%>%
     dplyr::left_join(., unknowncodes%>%dplyr::select(UnknownCodeKey, GrowthHabitUnknown = GrowthHabit), by = c("UnknownCodeKey"))%>%
-    dplyr::mutate(WoodyNonWoody = case_when(WoodyNonWoody == "" & GrowthHabitUnknown %in% c("Forb", "Graminoid")~"NonWoody",
-                                            WoodyNonWoody == "" & GrowthHabitUnknown %in% c("Tree", "Shrub")~"Woody",
-                                            TRUE~WoodyNonWoody))
+    dplyr::mutate(WoodyNonWoody = dplyr::case_when(WoodyNonWoody == "" & GrowthHabitUnknown %in% c("Forb", "Graminoid")~"NonWoody",
+                                                   WoodyNonWoody == "" & GrowthHabitUnknown %in% c("Tree", "Shrub")~"Woody",
+                                                   TRUE~WoodyNonWoody))
 
   #filter out all mismatched plant measurements.
   height_tall <- height_tall%>%
@@ -72,18 +72,18 @@ height_metrics <- function(height_tall,
     height_summary <- height_tall%>%
       dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(Avg = round(mean(Height, na.omit = T), digits = 2),
-                       Cnt = n())
+                       Cnt = dplyr::n())
 
     if(by_species == F){
       height_litter <- height_tall%>%
         dplyr::filter(GrowthHabit_measured == "LitterThatch", !(type %in% c(NA, "")))%>%
         dplyr::group_by(!!!level, type)%>%
         dplyr::summarize(Avg = round(mean(Height, na.omit = T), digits = 2),
-                         Cnt = n())%>%
-        dplyr::mutate(type = case_when(type == "HL" ~"HerbLitter",
-                                       type == "WL" ~"WoodyLitter",
-                                       type == "DL" ~"DecidLitter",
-                                       is.na(type)~type))%>%
+                         Cnt = dplyr::n())%>%
+        dplyr::mutate(type = dplyr::case_when(type == "HL" ~"HerbLitter",
+                                              type == "WL" ~"WoodyLitter",
+                                              type == "DL" ~"DecidLitter",
+                                              is.na(type)~type))%>%
         dplyr::rename(GrowthHabit_measured = type)
 
       height_summary <- rbind(height_summary, height_litter)%>%
@@ -94,8 +94,8 @@ height_metrics <- function(height_tall,
         dplyr::mutate(GrowthHabit_measured = paste("Hgt_", GrowthHabit_measured, sep = ""))
     } else{
       height_summary <- height_summary%>%
-        rename(Hgt_Species_Avg = Avg,
-               Hgt_Species_Cnt = Cnt)
+        dplyr::rename(Hgt_Species_Avg = Avg,
+                      Hgt_Species_Cnt = Cnt)
     }
   }
 
@@ -104,18 +104,18 @@ height_metrics <- function(height_tall,
     height_summary <- height_tall%>%
       dplyr::group_by(!!!level, !!!category)%>%
       dplyr::summarize(MaxHgt = max(Height, na.omit = T),
-                       Cnt = n())
+                       Cnt = dplyr::n())
 
     if(by_species == F){
       height_litter <- height_tall%>%
         dplyr::filter(GrowthHabit_measured == "LitterThatch", !(type %in% c(NA, "")))%>%
         dplyr::group_by(!!!level, type)%>%
         dplyr::summarize(MaxHgt = max(Height, na.omit = T),
-                         Cnt = n())%>%
-        dplyr::mutate(type = case_when(type == "HL" ~"HerbLitter",
-                                       type == "WL" ~"WoodyLitter",
-                                       type == "DL" ~"DecidLitter",
-                                       is.na(type)~type))%>%
+                         Cnt = dplyr::n())%>%
+        dplyr::mutate(type = dplyr::case_when(type == "HL" ~"HerbLitter",
+                                              type == "WL" ~"WoodyLitter",
+                                              type == "DL" ~"DecidLitter",
+                                              is.na(type)~type))%>%
         dplyr::rename(GrowthHabit_measured = type)
 
       height_summary <- rbind(height_summary, height_litter)%>%

@@ -131,8 +131,8 @@ Community_Native <- function(SpeciesList, nationalspecieslist, listtype = "speci
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
-                                             expr(Pct),
-                                             expr(Cnt))})
+                                             rlang::expr(Pct),
+                                             rlang::expr(Cnt))})
 
   return(totals)
 }
@@ -243,13 +243,13 @@ Community_HydroNoFAC <- function(header, SpeciesList, nationalspecieslist, listt
     dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
                     !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
                   Duration != "Nonvascular")%>%
-    dplyr::mutate(Hydro = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                    WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                    WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                    WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
-                                    WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                    WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                                    TRUE ~ "REGIONMISSING"))%>%
+    dplyr::mutate(Hydro = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                           WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                           WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                           WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                           WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                           WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                           TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "HydroNoFAC", Hydro))%>%
     dplyr::filter(.,Hydro !=""|is.na(Hydro))%>%
     dplyr::select(EvaluationID,
@@ -263,8 +263,8 @@ Community_HydroNoFAC <- function(header, SpeciesList, nationalspecieslist, listt
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
-                                             expr(Pct),
-                                             expr(Cnt))})
+                                             rlang::expr(Pct),
+                                             rlang::expr(Cnt))})
 
   return(totals)
 }
@@ -327,13 +327,13 @@ Community_HydroWithFAC <- function(header, SpeciesList, nationalspecieslist, lis
     dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
                     !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
                   Duration != "Nonvascular")%>%
-    dplyr::mutate(HydroWithFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                       WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                       WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                       WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
-                                       WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                       WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                                       TRUE ~ "REGIONMISSING"))%>%
+    dplyr::mutate(HydroWithFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                                  WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                                  WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                                  WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                                  WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                                  WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                                  TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(HydroWithFAC = ifelse(grepl("FAC$|FACW|OBL", HydroWithFAC), "HydroWithFAC", HydroWithFAC))%>%
     dplyr::filter(.,HydroWithFAC !=""|is.na(HydroWithFAC))%>%
     dplyr::select(EvaluationID,
@@ -347,8 +347,8 @@ Community_HydroWithFAC <- function(header, SpeciesList, nationalspecieslist, lis
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
-                                             expr(Pct),
-                                             expr(Cnt))})
+                                             rlang::expr(Pct),
+                                             rlang::expr(Cnt))})
 
   return(totals)
 }
@@ -394,13 +394,13 @@ Community_SGGroup <- function(SpeciesList, nationalspecieslist, listtype = "spec
   totals <- Community_Composition(SpeciesList, method = method, tall = T, SG_Group)%>%
     dplyr::filter(!grepl("^_", metric))%>%
     dplyr::mutate(metric = paste0(fieldname, "_SG",
-                                 stringr::str_replace_all(
-                                   stringr::str_to_title(metric),c(" "="", "cnt" = "Cnt", "pct" = "Pct"))))%>%
+                                  stringr::str_replace_all(
+                                    stringr::str_to_title(metric),c(" "="", "cnt" = "Cnt", "pct" = "Pct"))))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric,
                        values_from = {ifelse(method == "percent",
-                                             expr(Pct),
-                                             expr(Cnt))})%>%
+                                             rlang::expr(Pct),
+                                             rlang::expr(Cnt))})%>%
     dplyr::left_join(.,
                      spplist%>%dplyr::select(EvaluationID, Spp_PreferredForb),
                      by = "EvaluationID")
@@ -439,9 +439,9 @@ Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, unknownco
                   Duration != "Nonvascular")%>%
     #if unknowncodes is provided, fill in the growthhabit for unknowns.
     {if(!is.null(unknowncodes)) dplyr::left_join(.,
-                                                unknowncodes%>%
-                                                  dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitUnknown = GrowthHabit),
-                                                by = "UnknownCodeKey")%>%
+                                                 unknowncodes%>%
+                                                   dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitUnknown = GrowthHabit),
+                                                 by = "UnknownCodeKey")%>%
         dplyr::mutate(., GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabitUnknown, GrowthHabitSub))
       else .}%>%
     dplyr::filter(GrowthHabitSub != "" & !is.na(GrowthHabitSub))
@@ -451,8 +451,8 @@ Community_GrowthHabitSub <- function(SpeciesList, nationalspecieslist, unknownco
                                  stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
-                                                                  expr(Pct),
-                                                                  expr(Cnt))})
+                                                                  rlang::expr(Pct),
+                                                                  rlang::expr(Cnt))})
 
   return(totals)
 }
@@ -499,8 +499,8 @@ Community_Duration <- function(SpeciesList, nationalspecieslist, unknowncodes = 
                                  stringr::str_replace(stringr::str_to_title(stringr::str_replace(metric, "_", " ")), " ", "_"), sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
-                                                                  expr(Pct),
-                                                                  expr(Cnt))})
+                                                                  rlang::expr(Pct),
+                                                                  rlang::expr(Cnt))})
 
   return(totals)
 }
@@ -545,8 +545,8 @@ Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, unk
                                                            GrowthHabit==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
       else .}%>%
     dplyr::filter(StabilityRatingName != "" & !is.na(StabilityRatingName), !GrowthHabit %in% c("", NA, "Nonvascular"))%>%
-    dplyr::mutate(GrowthHabit = case_when(GrowthHabit == "Woody"~"Woody",
-                                          GrowthHabit == "NonWoody"~"Herbaceous"))
+    dplyr::mutate(GrowthHabit = dplyr::case_when(GrowthHabit == "Woody"~"Woody",
+                                                 GrowthHabit == "NonWoody"~"Herbaceous"))
 
   totals <- Community_Composition(SpeciesList, method = method, tall = T, GrowthHabit, StabilityRatingName)%>%
     dplyr::mutate(metric = paste(fieldname,
@@ -557,8 +557,8 @@ Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, unk
                                  sep = "_"))%>%
     dplyr::group_by(EvaluationID)%>%
     tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
-                                                                  expr(Pct),
-                                                                  expr(Cnt))})
+                                                                  rlang::expr(Pct),
+                                                                  rlang::expr(Cnt))})
 
   return(totals)
 }

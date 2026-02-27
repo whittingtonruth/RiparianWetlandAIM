@@ -24,8 +24,8 @@ gather_lpi_lentic <- function(dsn, source = "SDE", lr = FALSE){
 
 
     lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
-                                             layer = "LPI",
-                                             stringsAsFactors = F)) %>%
+                                               layer = "LPI",
+                                               stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
     message("Gathering LPI data from GDB into LPI tall table. ")
@@ -44,13 +44,17 @@ gather_lpi_lentic <- function(dsn, source = "SDE", lr = FALSE){
     message("Gathering LPI data from a live ArcGIS Online feature service into LPI tall table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
-                                               layer = "F_LPIDetail",
+                                               layer = alllay[stringr::str_which(alllay, "LPIDetail")],
                                                stringsAsFactors = F))
 
 
     lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
-                                               layer = "F_LPI",
+                                               layer = alllay[stringr::str_which(alllay, "LPI")],
                                                stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
@@ -144,15 +148,19 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
     message("Downloading and gathering Species Inventory from ArcGIS Online live feature service.")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     species_inventory_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_SpecRichDetail",
+      layer = alllay[stringr::str_which(alllay, "SpecRichDetail")],
       stringsAsFactors = FALSE
     ))
 
     species_inventory_header <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_SpeciesInventory",
+      layer = alllay[stringr::str_which(alllay, "SpeciesInventory")],
       stringsAsFactors = FALSE
     ))
 
@@ -202,7 +210,7 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NU
     )%>%
       sf::st_drop_geometry())
 
-  # Make the species detail table tall
+    # Make the species detail table tall
     UnknownPlants_tall <- UnknownPlants_detail %>%
       dplyr::filter(IdentificationStatus == "Lower Level Final") %>%
       dplyr::select(
@@ -254,8 +262,8 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NU
         "parentglobalid"
       )%>%
       dplyr::right_join(x = UnknownPlants_header%>%dplyr::select("globalid","PlotID":"VisitDate"),
-                 y = .,
-                 by = c("globalid" = "parentglobalid"))%>%
+                        y = .,
+                        by = c("globalid" = "parentglobalid"))%>%
       dplyr::select(-globalid)
 
     UnknownPlants_tall <- UnknownPlants_tall%>%
@@ -289,14 +297,18 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NU
 
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     UnknownPlants_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_UnknownCodes",
+      layer = alllay[stringr::str_which(alllay, "UnknownCodes")],
       stringsAsFactors = FALSE
     ))
     UnknownPlants_header <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_UnknownPlants",
+      layer = alllay[stringr::str_which(alllay, "UnknownPlants")],
       stringsAsFactors = FALSE
     ))
 
@@ -357,13 +369,17 @@ gather_height_lentic <- function(dsn, source = "SDE", lr = FALSE){
     message("Gathering LPI data from ArcGIS Online live feature service into LPI Heights table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     lpi_detail <- suppressWarnings(sf::st_read(dsn = dsn,
-                                               layer = "F_LPIDetail",
+                                               layer = alllay[stringr::str_which(alllay, "LPIDetail")],
                                                stringsAsFactors = F))
 
 
     lpi_header <- suppressWarnings(sf::st_read(dsn = dsn,
-                                               layer = "F_LPI",
+                                               layer = alllay[stringr::str_which(alllay, "LPI")],
                                                stringsAsFactors = F)) %>%
       sf::st_drop_geometry()
 
@@ -477,15 +493,19 @@ gather_annualuse <- function(dsn, source = "SDE"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into annual use tall table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     annualuse_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_AnnualUsePointsRepeat",
+      layer = alllay[stringr::str_which(alllay, "AnnualUsePointsRepeat")],
       stringsAsFactors = FALSE
     ))
 
     annualuse_header <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_WoodyStructureAnnualUse",
+      layer = alllay[stringr::str_which(alllay, "WoodyStructureAnnualUse")],
       stringsAsFactors = FALSE
     ))
 
@@ -498,10 +518,10 @@ gather_annualuse <- function(dsn, source = "SDE"){
 
   # We only want to carry a subset of the annualuse_header fields forward
   annualuse_header <- dplyr::select(annualuse_header,
-                              PlotID,
-                              EvaluationID, AdminState, SpeciesState,
-                              LineKey:AnnualUseCollected,
-                              interval)
+                                    PlotID,
+                                    EvaluationID, AdminState, SpeciesState,
+                                    LineKey:AnnualUseCollected,
+                                    interval)
 
   annualuse_tall <- annualuse_detail %>%
     dplyr::select(
@@ -571,19 +591,23 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into Woody tall table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     woody_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_WoodyStructureAnnualUse",
+                  layer = alllay[stringr::str_which(alllay, "WoodyStructureAnnualUse")],
                   stringsAsFactors = F))
 
     points_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_AnnualUsePointsRepeat",
+                  layer = alllay[stringr::str_which(alllay, "AnnualUsePointsRepeat")],
                   stringsAsFactors = F))
 
     woody_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_WoodyStructureRepeat",
+      layer = alllay[stringr::str_which(alllay, "WoodyStructureRepeat")],
       stringsAsFactors = F
     ))
 
@@ -619,7 +643,7 @@ gather_woodyspecies <- function(dsn, source = "SDE"){
                   WoodySpeciesPresent)%>%
     dplyr::left_join(., woody_detail,
                      by = c("EvaluationID", "LineKey" = "RecKey")
-  )%>%
+    )%>%
     dplyr::filter(WoodyStructureCollected == "Yes")
 
   return(woody_tall)
@@ -675,19 +699,23 @@ gather_tree <- function(dsn, source = "SDE"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into tree table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     woody_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_WoodyStructureAnnualUse",
+                  layer = alllay[stringr::str_which(alllay, "WoodyStructureAnnualUse")],
                   stringsAsFactors = F))
 
     points_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_AnnualUsePointsRepeat",
+                  layer = alllay[stringr::str_which(alllay, "AnnualUsePointsRepeat")],
                   stringsAsFactors = F))
 
     tree_detail <- suppressWarnings(sf::st_read(
       dsn = dsn,
-      layer = "F_TreeRepeat",
+      layer = alllay[stringr::str_which(alllay, "TreeRepeat")],
       stringsAsFactors = F
     ))%>%
       dplyr::mutate(PointNbr = as.numeric(PointNbr))
@@ -763,16 +791,20 @@ gather_hummocks <- function(dsn, source = "SDE"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into a hummock tall table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     hummocks_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_Hummocks",
+                  layer = alllay[stringr::str_which(alllay, "Hummocks")],
                   stringsAsFactors = F)%>%
-      dplyr::select(EvaluationID:LineKey,
-                    HummocksPresentLine))
+        dplyr::select(EvaluationID:LineKey,
+                      HummocksPresentLine))
 
     hummocks_detail <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_HummockDetail",
+                  layer = alllay[stringr::str_which(alllay, "HummockDetail")],
                   stringsAsFactors = F))
 
     message("Gathering tables from the SDE into woody structure tall table. ")
@@ -809,7 +841,7 @@ gather_gap <- function(dsn, source = "SDE"){
                     RecKey:Gap)
 
     message("File Geodatabase data type is being downloaded and gathered into a gap tall table. ")
-    }
+  }
   else if(source == "AGOL"){
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
@@ -823,16 +855,20 @@ gather_gap <- function(dsn, source = "SDE"){
                     RecKey:Gap)
 
     message("ArcGIS Online live feature service data type is being downloaded and gathered into a gap tall table. ")
-    }
+  }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     gap_header <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_Gap",
+                  layer = alllay[stringr::str_which(alllay, "Gap")],
                   stringsAsFactors = F, quiet = T))
 
     gap_detail <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_GapDetail",
+                  layer = alllay[stringr::str_which(alllay, "GapDetail")],
                   stringsAsFactors = F, quiet = T))
 
     message("Gathering tables from the SDE into gap tall table. ")
@@ -877,9 +913,13 @@ gather_soilstab <- function(dsn, source = "SDE"){
     message("ArcGIS Online live feature service data type is being downloaded and gathered into a soil stability table. ")
   }
   else if(source == "SDE"){
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
     soilstab <- suppressWarnings(
       sf::st_read(dsn = dsn,
-                  layer = "F_SoilStability",
+                  layer = alllay[stringr::str_which(alllay, "SoilStability")],
                   stringsAsFactors = F, quiet = T))
 
     message("Gathering tables from the SDE into soil stability tall table. ")
@@ -1017,27 +1057,31 @@ gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, national
       message("Hydrology, Soils, Disturbances, and Water Quality data is being downloaded and formatted from AGOL. ")
     }
     else if(source == "SDE"){
+      fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+      rs <- arcgisbinding::arc.open(dsn)@children$Table
+      alllay <- c(fc, rs)
+
       hydrology <- suppressWarnings(
         sf::st_read(dsn = dsn,
-                    layer = "F_Hydrology",
+                    layer = alllay[stringr::str_which(alllay, "Hydrology")],
                     stringsAsFactors = F))
 
       soils <- suppressWarnings(
         sf::st_read(dsn = dsn,
-                    layer = "F_Soils",
+                    layer = alllay[stringr::str_which(alllay, "Soils")],
                     stringsAsFactors = F)%>%
           sf::st_drop_geometry())
 
       if(any(grepl("Disturbance", alltables))){
         disturbances <- suppressWarnings(
           sf::st_read(dsn = dsn,
-                      layer = "F_DisturbancesDetail",
+                      layer = alllay[stringr::str_which(alllay, "DisturbancesDetail")],
                       stringsAsFactors = F))
       } else {missingtables <- c(missingtables, "Disturbances")}
 
       waterqualdet <- suppressWarnings(
         sf::st_read(dsn = dsn,
-                    layer = "F_WaterQualityDetail",
+                    layer = alllay[stringr::str_which(alllay, "WaterQualityDetail")],
                     stringsAsFactors = F))
 
       message("Hydrology, Soils, Disturbances, and Water Quality data is being formatted from the SDE. ")
@@ -1060,4 +1104,4 @@ gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, national
 
   return(tableList)
 
-  }
+}

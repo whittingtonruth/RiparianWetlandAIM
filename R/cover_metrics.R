@@ -104,10 +104,10 @@ pct_TotalAbsoluteCover <- function(lpi_tall, unit = "by_plot"){
   }
 
   TotalAbsoluteCover <- pct_cover_lentic(lpi_tall,
-                                          tall = TRUE,
-                                          hit = "any",
-                                          unit = unit,
-                                          code)%>%
+                                         tall = TRUE,
+                                         hit = "any",
+                                         unit = unit,
+                                         code)%>%
     dplyr::filter(!stringr::str_extract(metric, "(?<=AH_)\\w+(?=Cover)") %in% nonplantcodes$code)%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(TotalAbsoluteCover = round(sum(percent), digits = 2))
@@ -142,13 +142,13 @@ pct_NativeCover <- function(lpi_tall, nationalspecieslist, covertype = "absolute
     {if(covertype == "relative") dplyr::filter(., NativeStatus !=""|is.na(NativeStatus)) else .}
 
   NativeCover <- pct_cover_lentic(lpispeciesjoin,
-                                         tall = TRUE,
-                                         hit = switch(covertype,
-                                                      "relative" = "all",
-                                                      "absolute" = "any",
-                                                      "firsthit" = "first"),
-                                         unit = unit,
-                                         NativeStatus)%>%
+                                  tall = TRUE,
+                                  hit = switch(covertype,
+                                               "relative" = "all",
+                                               "absolute" = "any",
+                                               "firsthit" = "first"),
+                                  unit = unit,
+                                  NativeStatus)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("Native|Nonnative", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -195,13 +195,13 @@ pct_NoxiousCover <- function(header, lpi_tall, statespecieslist, covertype = "ab
     {if(covertype == "relative") dplyr::filter(., TaxonLevel %in% c("Species", "Trinomial")) else .}
 
   NoxiousCover <- pct_cover_lentic(lpispeciesjoin,
-                                      tall = TRUE,
-                                      hit = switch(covertype,
-                                                   "relative" = "all",
-                                                   "absolute" = "any",
-                                                   "firsthit" = "first"),
-                                      unit = unit,
-                                      StateNoxious)%>%
+                                   tall = TRUE,
+                                   hit = switch(covertype,
+                                                "relative" = "all",
+                                                "absolute" = "any",
+                                                "firsthit" = "first"),
+                                   unit = unit,
+                                   StateNoxious)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("Noxious", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -247,23 +247,23 @@ pct_HydroNoFACCover <- function(header, lpi_tall, nationalspecieslist, covertype
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., nationalspecieslist, by = c("code" = "Symbol"))%>%
     dplyr::mutate(Hydro = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                             WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                             WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                             WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
-                             WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                             WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                             TRUE ~ "REGIONMISSING"))%>%
+                                           WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                           WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                           WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                           WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                           WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                           TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(Hydro = ifelse(grepl("FACW|OBL", Hydro), "HydroNoFAC", ifelse(grepl("FACU|UPL|NR", Hydro), "Upland", Hydro)))%>%
     {if(covertype == "relative") dplyr::filter(.,Hydro !=""|is.na(Hydro)) else .}
 
   HydroNoFACCover <- pct_cover_lentic(lpispeciesjoin,
-                                                 tall = TRUE,
-                                                 hit = switch(covertype,
-                                                              "relative" = "all",
-                                                              "absolute" = "any",
-                                                              "firsthit" = "first"),
-                                                 unit = unit,
-                                                 Hydro)%>%
+                                      tall = TRUE,
+                                      hit = switch(covertype,
+                                                   "relative" = "all",
+                                                   "absolute" = "any",
+                                                   "firsthit" = "first"),
+                                      unit = unit,
+                                      Hydro)%>%
     dplyr::mutate(metric = stringr::str_replace(metric, "Hydronofac", "HydroNoFAC"),
                   percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("HydroNoFAC|Upland", metric))%>%
@@ -311,23 +311,23 @@ pct_HydroWithFACCover <- function(header, lpi_tall, nationalspecieslist, coverty
   lpispeciesjoin <- dplyr::left_join(header, lpi_tall, by = "EvaluationID")%>%
     dplyr::left_join(., nationalspecieslist, by = c("code" = "Symbol"))%>%
     dplyr::mutate(HydroWithFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
-                                WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                                TRUE ~ "REGIONMISSING"))%>%
+                                                  WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                                  WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                                  WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                                  WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                                  WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                                  TRUE ~ "REGIONMISSING"))%>%
     dplyr::mutate(HydroWithFAC = ifelse(grepl("FAC$|FACW|OBL", HydroWithFAC), "HydroWithFAC", HydroWithFAC))%>%
     {if(covertype == "relative") dplyr::filter(.,HydroWithFAC !=""|is.na(HydroWithFAC)) else .}
 
   HydroFACCover <- pct_cover_lentic(lpispeciesjoin,
-                                              tall = TRUE,
-                                              hit = switch(covertype,
-                                                           "relative" = "all",
-                                                           "absolute" = "any",
-                                                           "firsthit" = "first"),
-                                              unit = unit,
-                                              HydroWithFAC)%>%
+                                    tall = TRUE,
+                                    hit = switch(covertype,
+                                                 "relative" = "all",
+                                                 "absolute" = "any",
+                                                 "firsthit" = "first"),
+                                    unit = unit,
+                                    HydroWithFAC)%>%
     dplyr::mutate(metric = stringr::str_replace(metric, "Hydrowithfac", "HydroWithFAC"),
                   percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("HydroWithFAC", metric))%>%
@@ -357,16 +357,16 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
     )
 
   #join lpi_tall to species list. Remove plant hits with no GrowthHabit specified for relative cover.
-    #These plant hits would be included in the denominator of the calculation if left in.
+  #These plant hits would be included in the denominator of the calculation if left in.
   lpispeciesjoin <- dplyr::left_join(lpi_tall, nationalspecieslist, by = c("code" = "Symbol"))
 
   #If a unknown code list is also specified, we can use this list to fill in missing growth habits.
   if(!is.null(unknowncodes)){
-      lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
-                                         dplyr::rename(unknowncodes, DurationUnknown = Duration),
-                                         by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
-        #Change GrowthHabitSub if empty to match the GrowthHabitSub (field GrowthHabit) from UnknownPlant Form.
-        dplyr::mutate(GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit, GrowthHabitSub))}
+    lpispeciesjoin <- dplyr::left_join(lpispeciesjoin,
+                                       dplyr::rename(unknowncodes, DurationUnknown = Duration),
+                                       by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
+      #Change GrowthHabitSub if empty to match the GrowthHabitSub (field GrowthHabit) from UnknownPlant Form.
+      dplyr::mutate(GrowthHabitSub = ifelse(GrowthHabitSub=="", GrowthHabit, GrowthHabitSub))}
 
   #Then filter out any blank values where GrowthHabitSub == "". This is only necessary for relative cover calculations
   lpispeciesjoin <- lpispeciesjoin%>%
@@ -376,13 +376,13 @@ pct_GrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, covertype = "
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
   GrowthHabitCover <- pct_cover_lentic(lpispeciesjoin,
-                                    tall = TRUE,
-                                    hit = switch(covertype,
-                                                 "relative" = "all",
-                                                 "absolute" = "any",
-                                                 "firsthit" = "first"),
-                                    unit = unit,
-                                    GrowthHabitSub)%>%
+                                       tall = TRUE,
+                                       hit = switch(covertype,
+                                                    "relative" = "all",
+                                                    "absolute" = "any",
+                                                    "firsthit" = "first"),
+                                       unit = unit,
+                                       GrowthHabitSub)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
 
@@ -476,7 +476,7 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
                                        dplyr::rename(unknowncodes, DurationUnknown = Duration),
                                        by = c("PlotID", "EvaluationID", "UnknownCodeKey"))%>%
       dplyr::mutate(Duration = ifelse(Duration=="", DurationUnknown, Duration))
-    }
+  }
 
   #Then filter out any blank values where Duration == "". This is only necessary for relative cover calculations. For Absolute
   #cover, I can't remove empty values, because it'll throw off the number of pindrops.
@@ -487,13 +487,13 @@ pct_DurationCover <- function(lpi_tall, nationalspecieslist, covertype = "absolu
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
   DurationCover <- pct_cover_lentic(lpispeciesjoin,
-                                       tall = TRUE,
-                                       hit = switch(covertype,
-                                                    "relative" = "all",
-                                                    "absolute" = "any",
-                                                    "firsthit" = "first"),
-                                       unit = unit,
-                                       Duration)%>%
+                                    tall = TRUE,
+                                    hit = switch(covertype,
+                                                 "relative" = "all",
+                                                 "absolute" = "any",
+                                                 "firsthit" = "first"),
+                                    unit = unit,
+                                    Duration)%>%
     dplyr::mutate(percent = round(percent, digits = 2))%>%
     dplyr::filter(grepl("Annual|Perennial", metric))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -658,14 +658,14 @@ pct_NativeGrowthHabitSubCover <- function(lpi_tall, nationalspecieslist, coverty
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
   NativeGrowthCover <- pct_cover_lentic(lpispeciesjoin,
-                                          tall = TRUE,
-                                          hit = switch(covertype,
-                                                       "relative" = "all",
-                                                       "absolute" = "any",
-                                                       "firsthit" = "first"),
-                                          unit = unit,
-                                          NativeStatus,
-                                          GrowthHabitSub)%>%
+                                        tall = TRUE,
+                                        hit = switch(covertype,
+                                                     "relative" = "all",
+                                                     "absolute" = "any",
+                                                     "firsthit" = "first"),
+                                        unit = unit,
+                                        NativeStatus,
+                                        GrowthHabitSub)%>%
     dplyr::mutate(metric = stringr::str_replace_all(metric, "\\.", ""),
                   percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -873,13 +873,13 @@ pct_StabilityClassCover <- function(header, lpi_tall, nationalspecieslist, cover
   #Run pct_cover_lentic, then rename metrics to title case.
   #pivot to show in wide format by EvaluationID
   StabilityCover <- pct_cover_lentic(lpispeciesjoin,
-                                          tall = TRUE,
-                                          hit = switch(covertype,
-                                                        "relative" = "all",
-                                                        "absolute" = "any",
-                                                        "firsthit" = "first"),
-                                          unit = unit,
-                                          StabilityRatingName)%>%
+                                     tall = TRUE,
+                                     hit = switch(covertype,
+                                                  "relative" = "all",
+                                                  "absolute" = "any",
+                                                  "firsthit" = "first"),
+                                     unit = unit,
+                                     StabilityRatingName)%>%
     dplyr::mutate(metric = stringr::str_replace(metric, " ", ""),
                   percent = round(percent, digits = 2))%>%
     tidyr::pivot_wider(names_from = metric, values_from = percent)
@@ -915,13 +915,13 @@ pct_SGGroupCover <- function(lpi_tall, nationalspecieslist, covertype = "absolut
   #Remove AbsoluteCover from the data frame to take out nulls.
   #pivot to show in wide format by EvaluationID
   SGGroupCover <- pct_cover_lentic(lpispeciesjoin,
-                                    tall = TRUE,
-                                    hit = switch(covertype,
-                                                 "relative" = "all",
-                                                 "absolute" = "any",
-                                                 "firsthit" = "first"),
-                                    unit = unit,
-                                    SG_Group)%>%
+                                   tall = TRUE,
+                                   hit = switch(covertype,
+                                                "relative" = "all",
+                                                "absolute" = "any",
+                                                "firsthit" = "first"),
+                                   unit = unit,
+                                   SG_Group)%>%
     dplyr::mutate(percent = round(percent, digits = 2),
                   metric = stringr::str_replace_all(metric, c("_" = "_SG", " " = "")))%>%
     dplyr::filter(grepl("PreferredForb|Conifer|InvasiveAnnualGrass", metric))%>%
@@ -966,13 +966,13 @@ pct_NonPlantGroundCover <- function(lpi_tall, hit = "any", nationalspecieslist, 
 
   #cover calculation for non-plant cover
   NonPlantCover <- pct_cover_lentic(lpi_tall,
-                                         tall = TRUE,
-                                         hit = switch(hit,
-                                                      "any" = "any",
-                                                      "first" = "first",
-                                                      "basal" = "basal"),
-                                         unit = unit,
-                                         covercategory)%>%
+                                    tall = TRUE,
+                                    hit = switch(hit,
+                                                 "any" = "any",
+                                                 "first" = "first",
+                                                 "basal" = "basal"),
+                                    unit = unit,
+                                    covercategory)%>%
     dplyr::mutate(metric = stringr::str_replace_all(metric, c("Litterthatch" = "LitterThatch",
                                                               "Organicmaterial" = "OrganicMaterial",
                                                               "Saltcrust" = "SaltCrust")))%>%
@@ -1144,7 +1144,7 @@ pct_AbsoluteSpeciesCover <- function(lpi_tall, nationalspecieslist, unit = "by_p
   #join two cover lists together
   #needs to be done in two steps to keep plants with different unknown codes but the
   #same family/genus codes as other plants.
-  Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%group_by(EvaluationID)%>%
+  Cover_Species <- rbind(UnknownCodeCover, CodeCover)%>%dplyr::group_by(EvaluationID)%>%
     #dplyr::mutate(PlotID = stringr::str_sub(EvaluationID, start = 6))%>%
     dplyr::select(!!!level,
                   Code,

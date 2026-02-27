@@ -34,7 +34,11 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
     message("ArcGIS Online live feature service data type is being downloaded and gathered into header table used to select sites for analysis. ")
   }
   if(source == "SDE"){
-    plotchar <- sf::st_read(dsn = dsn, layer = "F_PlotCharacterization",
+    fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
+    rs <- arcgisbinding::arc.open(dsn)@children$Table
+    alllay <- c(fc, rs)
+
+    plotchar <- sf::st_read(dsn = dsn, layer = alllay[stringr::str_which(alllay, "PlotCharacterization")],
                             stringsAsFactors = FALSE)
 
     message("The SDE PlotChar table is being gathered into header table used to select sites for analysis. ")
@@ -46,15 +50,15 @@ header_build_lentic <- function(dsn, source = "SDE", annualuse_tall, ...) {
   plotchar <- plotchar%>%
     {if(!"SpeciesState" %in% names(.)) dplyr::mutate(., SpeciesState = AdminState) else .}%>%
     dplyr::mutate(FieldEvalDate = as.Date(stringr::str_extract(plotchar$EvaluationID, "(?<=_)[:digit:]{4}-[:digit:]{2}-[:digit:]{2}"))+
-             lubridate::hours(12),
-           #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
-           StateCode = SpeciesState)%>%
+                    lubridate::hours(12),
+                  #VisitType = ifelse(AdminState == "AK", "AK Full Sample Visit", "Full Sample Visit"),
+                  StateCode = SpeciesState)%>%
     {if("PlotLayout"%in%names(.)) dplyr::mutate(.,PlotArea_m2 = dplyr::case_when(PlotLayout == "Spoke"~2827,
-                                          #Use actual plot length when smaller than the max.
-                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear") & MaxPlotLengthCalc>ActualPlotLength~AvgWidthArea*ActualPlotLength,
-                                          #Use max when actual is larger
-                                          PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*MaxPlotLengthCalc,
-                                          PlotLayout == "Mixed Layout"~NA))
+                                                                                 #Use actual plot length when smaller than the max.
+                                                                                 PlotLayout %in% c("Transverse", "Diagonal", "Linear") & MaxPlotLengthCalc>ActualPlotLength~AvgWidthArea*ActualPlotLength,
+                                                                                 #Use max when actual is larger
+                                                                                 PlotLayout %in% c("Transverse", "Diagonal", "Linear")~AvgWidthArea*MaxPlotLengthCalc,
+                                                                                 PlotLayout == "Mixed Layout"~NA))
       else .}
 
   header<- plotchar%>%

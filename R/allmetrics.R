@@ -135,27 +135,27 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
                     dplyr::any_of(c("AH_PreferredForbCover" = "AH_SGPreferredForbCover", "AH_SGInvasiveAnnualGrassCover")))
   } else (message("SG_Group is missing from species list. Sagegrouse metrics will not be calculated. "))
 
-  NonPlantCover <- left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", nationalspecieslist, unit = unit)%>%
-                               dplyr::select(!!!level,
-                                             dplyr::any_of(c("AH_TotalLitterThatchCover" = "AH_LitterThatchCover",
-                                                             "AH_MossCover",
-                                                             "AH_AlgaeCover",
-                                                             "AH_LichenCover",
-                                                             "AH_RockCover",
-                                                             "AH_WaterCover",
-                                                             "AH_SaltCrustCover"))),
-                             pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = unit)%>%
-                               dplyr::select(!!!level,
-                                             dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
-                                                             "FH_MossCover",
-                                                             "FH_AlgaeCover",
-                                                             "FH_LichenCover",
-                                                             "FH_RockCover",
-                                                             "FH_WaterCover",
-                                                             "FH_SaltCrustCover",
-                                                             "BareSoilCover" = "FH_SoilCover",
-                                                             "BareOrganicMaterialCover" = "FH_OrganicMaterialCover"))),
-                             by = level_colnames
+  NonPlantCover <- dplyr::left_join(pct_NonPlantGroundCover(lpi_tall, hit = "any", nationalspecieslist, unit = unit)%>%
+                                      dplyr::select(!!!level,
+                                                    dplyr::any_of(c("AH_TotalLitterThatchCover" = "AH_LitterThatchCover",
+                                                                    "AH_MossCover",
+                                                                    "AH_AlgaeCover",
+                                                                    "AH_LichenCover",
+                                                                    "AH_RockCover",
+                                                                    "AH_WaterCover",
+                                                                    "AH_SaltCrustCover"))),
+                                    pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = unit)%>%
+                                      dplyr::select(!!!level,
+                                                    dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
+                                                                    "FH_MossCover",
+                                                                    "FH_AlgaeCover",
+                                                                    "FH_LichenCover",
+                                                                    "FH_RockCover",
+                                                                    "FH_WaterCover",
+                                                                    "FH_SaltCrustCover",
+                                                                    "BareSoilCover" = "FH_SoilCover",
+                                                                    "BareOrganicMaterialCover" = "FH_OrganicMaterialCover"))),
+                                    by = level_colnames
   )
 
   LPI_AbsoluteCover_Metrics <- Foliar %>% dplyr::left_join(header%>%dplyr::select(PlotID,
@@ -163,8 +163,8 @@ CombineAbsoluteCoverMetrics <- function(header, lpi_tall, nationalspecieslist, s
                                                                                   SpeciesState,
                                                                                   FieldEvalDate,
                                                                                   any_of(c("SiteName", "AdminState"))),
-                                                            .,
-                                                            by = c("PlotID", "EvaluationID"))%>%
+                                                           .,
+                                                           by = c("PlotID", "EvaluationID"))%>%
     dplyr::left_join(., Basal, by = level_colnames)%>%
     dplyr::left_join(., AbsoluteNative, by = level_colnames)%>%
     {if(!is.null(statespecieslist)) dplyr::left_join(., AbsoluteNoxious, by = level_colnames) else .}%>%
@@ -241,16 +241,16 @@ CombineFirstHitMetrics <- function(header,
                   dplyr::any_of(c("FH_NativeWoodyCover", "FH_NonnativeWoodyCover")))
 
   NonPlantCover <- pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = unit)%>%
-                               dplyr::select(!!!level,
-                                             dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
-                                                             "FH_MossCover",
-                                                             "FH_AlgaeCover",
-                                                             "FH_LichenCover",
-                                                             "FH_RockCover",
-                                                             "FH_WaterCover",
-                                                             "FH_SaltCrustCover",
-                                                             "FH_SoilCover",
-                                                             "FH_OrganicMaterialCover")))
+    dplyr::select(!!!level,
+                  dplyr::any_of(c("FH_TotalLitterThatchCover" = "FH_LitterThatchCover",
+                                  "FH_MossCover",
+                                  "FH_AlgaeCover",
+                                  "FH_LichenCover",
+                                  "FH_RockCover",
+                                  "FH_WaterCover",
+                                  "FH_SaltCrustCover",
+                                  "FH_SoilCover",
+                                  "FH_OrganicMaterialCover")))
 
   LPI_FHCover_Metrics <- dplyr::left_join(header%>%dplyr::select(PlotID,
                                                                  EvaluationID,
@@ -363,11 +363,11 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
 
   #create list of all species observed in plots with no species inventory.
   nosppinv_spp <- SpeciesCover%>%
-    select(EvaluationID, PlotID, Species = Code, UnknownCodeKey)%>%
+    dplyr::select(EvaluationID, PlotID, Species = Code, UnknownCodeKey)%>%
     dplyr::full_join(., SpeciesHeight%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
                      by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
     {if(!is.null(SpeciesAnnualUse)) dplyr::full_join(., SpeciesAnnualUse%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
-                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey")) else .}%>%
+                                                     by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey")) else .}%>%
     dplyr::full_join(., SpeciesAgeClass%>%dplyr::select(EvaluationID, PlotID, Species, UnknownCodeKey),
                      by = c("EvaluationID", "PlotID", "Species", "UnknownCodeKey"))%>%
     dplyr::left_join(nosppinv_header, ., by = c("EvaluationID", "PlotID"))
@@ -395,7 +395,7 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
     }%>%
     dplyr::left_join(., nationalspecieslist, by = c("Species" = "Symbol"))%>%
     {if(!is.null(statespecieslist)) dplyr::left_join(., statespecieslist%>%
-                                                       select(Symbol, SpeciesState, StateNoxious, StateCValue), by = c("Species" = "Symbol", "SpeciesState"))
+                                                       dplyr::select(Symbol, SpeciesState, StateNoxious, StateCValue), by = c("Species" = "Symbol", "SpeciesState"))
       else .
     }%>%
     dplyr::mutate(UnknownCodeKey = ifelse(Species.y %in% c(NA, ""), UnknownCodeKey, NA))%>%
@@ -460,13 +460,13 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
                   AK_WetStatus = ifelse(TaxonLevel%in%c("Species", "Trinomial")&Duration != "Nonvascular"&AK_WetStatus=="","NR", AK_WetStatus),
                   MW_WetStatus = ifelse(TaxonLevel%in%c("Species", "Trinomial")&MW_WetStatus=="","NR", MW_WetStatus),
                   NCNE_WetStatus = ifelse(TaxonLevel%in%c("Species", "Trinomial")&NCNE_WetStatus=="", "NR", NCNE_WetStatus))%>%
-    dplyr::mutate(WetlandIndicatorStatus = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                        WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                        WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                        WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
-                                        WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                        WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
-                                        TRUE ~ "REGIONMISSING"))%>%
+    dplyr::mutate(WetlandIndicatorStatus = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                                            WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                                            WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                                            WetlandIndicatorRegion=="Alaska" ~AK_WetStatus,
+                                                            WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                                            WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus,
+                                                            TRUE ~ "REGIONMISSING"))%>%
     dplyr::select(-c(ends_with("_WetStatus"), TaxonLevel))
 
   #Ensure that all species in these other tables are already included in the species list, provide a warning if not. This is particularly problematic if it happens with LPI.
@@ -479,8 +479,8 @@ allmetrics_byspecies <- function(header, spp_inventory_tall, lpi_tall, height_ta
   if(!is.null(SpeciesAnnualUse)){
     if(nrow(dplyr::anti_join(SpeciesAnnualUse, SpeciesList, by = c("PlotID", "EvaluationID", "Species", "UnknownCodeKey")))>0){
       warning("Some plant codes used in annual use metrics are not found in Species Inventory. These species will be excluded.")
-      }
     }
+  }
 
   SpeciesList <- SpeciesList%>%
     dplyr::left_join(., SpeciesCover, by = c("PlotID", "EvaluationID", "Species" = "Code", "ScientificName", "CommonName", "UnknownCodeKey"))%>%
@@ -595,8 +595,8 @@ allmetrics_byplot <- function(header,
   if(!is.null(waterqualdet)){
     waterqualcount <- waterqualdet%>%
       sf::st_drop_geometry()%>%
-      group_by(EvaluationID)%>%
-      dplyr::summarize(WQ_SampleCnt = n())
+      dplyr::group_by(EvaluationID)%>%
+      dplyr::summarize(WQ_SampleCnt = dplyr::n())
 
     allmetrics <- allmetrics%>%
       dplyr::left_join(., waterqualcount, by = c("EvaluationID"))

@@ -30,7 +30,7 @@ coverweightedmean <- function(cover_species,
                                              NA,
                                              AH_SpeciesCover/sum(ifelse(is.na(.x), NA, AH_SpeciesCover), na.rm = T)),
                          .names = "LPI_{.col}_CWM"))%>%
-    dplyr::summarize_at(vars(paste0("LPI_", planttraits, "_CWM")),
+    dplyr::summarize_at(dplyr::vars(paste0("LPI_", planttraits, "_CWM")),
                         #Sum all weighted ratings. If all ratings are NA, should return NA.
                         ~ifelse(all(is.na(.)), NA, round(sum(., na.rm = T), 2)))
 
@@ -46,8 +46,8 @@ cwm_metrics <- function(cover_species,
 
   nationalspecieslist <- nationalspecieslist%>%
     dplyr::select(Symbol, TaxonLevel, GrowthHabit,
-           StabilityRating,
-           dplyr::ends_with("WetStatus"))
+                  StabilityRating,
+                  dplyr::ends_with("WetStatus"))
 
   statespecieslist <- statespecieslist%>%
     dplyr::select(Symbol, SpeciesState, StateCValue)

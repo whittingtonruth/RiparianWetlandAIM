@@ -19,13 +19,13 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
 
   #Convert grouping variables to upper case if not numeric vector. Rename EvaluationID column if needed.
   SpeciesList <- SpeciesList %>%
-    mutate(across(.cols = where(is.character) & c(!!!grouping_variables), .fns = ~toupper(.)))%>%
+    dplyr::mutate(dplyr::across(.cols = where(is.character) & c(!!!grouping_variables), .fns = ~toupper(.)))%>%
     {if("LPIDetailEvaluationID" %in% names(.)) rename(., EvaluationID = LPIDetailEvaluationID) else .}
 
   if(method == "count"){
     totals <- SpeciesList%>%
       dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
-      dplyr::summarize("Cnt" = n())
+      dplyr::summarize("Cnt" = dplyr::n())
   }
 
   if(method == "mean"){
@@ -37,11 +37,11 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
   if(method == "percent"){
     speciescount <- SpeciesList%>%
       dplyr::group_by(EvaluationID)%>%
-      dplyr::summarize(TotalSpecies = n())
+      dplyr::summarize(TotalSpecies = dplyr::n())
 
     totals <- SpeciesList%>%
       dplyr::group_by(EvaluationID, !!!grouping_variables)%>%
-      dplyr::summarize(count = n())%>%
+      dplyr::summarize(count = dplyr::n())%>%
       dplyr::left_join(., speciescount, by = "EvaluationID")%>%
       dplyr::mutate(Pct = round(count / TotalSpecies * 100, digits = 2))%>%
       dplyr::select(-c(count, TotalSpecies))
@@ -56,11 +56,11 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
         pattern = "^[.]|[.]$|\\.\\.|\\.NA|NA\\.|\\.NA\\."))
 
     AllSiteMetrics <- expand.grid(EvaluationID= unique(SpeciesList%>%dplyr::pull(.,EvaluationID)),
-                metric = unique(totals$metric), stringsAsFactors = F)
+                                  metric = unique(totals$metric), stringsAsFactors = F)
 
     totals <- AllSiteMetrics %>%
       dplyr::left_join(., totals, by = c("EvaluationID", "metric"))%>%
-      dplyr::mutate(across(.cols = where(is.numeric), .fns = ~replace(., is.na(.), 0)))%>%
+      dplyr::mutate(dplyr::across(.cols = where(is.numeric), .fns = ~replace(., is.na(.), 0)))%>%
       dplyr::mutate(metric =
                       {ifelse(rep(method == "percent", nrow(.)),
                               paste(metric, "Pct", sep = "_"),
@@ -70,7 +70,7 @@ Community_Composition <- function(SpeciesList, method = "percent", tall = F, ...
     if(!tall){totals <- totals%>%
       tidyr::pivot_wider(names_from = metric, values_from = -c(EvaluationID, metric))
     }
-    }
+  }
 
   return(totals)
-  }
+}
