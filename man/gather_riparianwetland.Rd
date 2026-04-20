@@ -39,7 +39,7 @@ gather_all_riparianwetland(
   dsn,
   source = "SDE",
   lr = FALSE,
-  nationallist = NULL,
+  nationalspecieslist = NULL,
   covariates = TRUE
 )
 }

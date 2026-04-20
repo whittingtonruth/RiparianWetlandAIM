@@ -238,8 +238,8 @@ gather_unknowns_lentic <- function(dsn, source = "SDE", nationalspecieslist = NU
     }
 
     familygenuslist <- nationalspecieslist%>%
-      filter(TaxonLevel%in%c("Family", "Genus"))%>%
-      select(Symbol, ScientificName, TaxonLevel)
+      dplyr::filter(TaxonLevel%in%c("Family", "Genus"))%>%
+      dplyr::select(Symbol, ScientificName, TaxonLevel)
 
     fc <- arcgisbinding::arc.open(dsn)@children$FeatureClass
     rs <- arcgisbinding::arc.open(dsn)@children$Table
@@ -951,7 +951,7 @@ gather_soilstab <- function(dsn, source = "SDE"){
 
 #' @export gather_all_riparianwetland
 #' @rdname gather_riparianwetland
-gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, nationallist = NULL, covariates = TRUE){
+gather_all_riparianwetland <- function(dsn, source = "SDE", lr = FALSE, nationalspecieslist = NULL, covariates = TRUE){
 
   #Create list variable in which all tables will be stored.
   tableList <- list()
