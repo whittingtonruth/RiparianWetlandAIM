@@ -83,7 +83,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
     woodymetrics <- riparianwoody%>%
       dplyr::filter(RipStatus %in% c("OBL", "FACW", "FAC"))%>%
       dplyr::rowwise()%>%
-      dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
+      dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "", "Previously Encountered")), 1, 0)))%>%
       dplyr::group_by(!!!level)%>%
       dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
                        AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
@@ -120,7 +120,7 @@ use_metrics <- function(header, annualuse_tall, woody_tall, nationalspecieslist,
 
       woodymetrics <- riparianwoody%>%
         dplyr::rowwise()%>%
-        dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "")), 1, 0)))%>%
+        dplyr::mutate(TotalUseClass = sum(ifelse(!(UseClass %in% c(NA, "", "Previously Encountered")), 1, 0)))%>%
         dplyr::group_by(!!!level, RiparianWoodySpecies, UnknownCodeKey)%>%
         dplyr::summarize(AU_WoodyNotAvailable_Pct = round(sum(ifelse(UseClass == "NA", 1, 0))/sum(TotalUseClass)*100, digits = 2),
                          AU_WoodyUseClass_Avg = round(mean(suppressWarnings(as.numeric(UseClass)), na.rm = T), digits = 2),
