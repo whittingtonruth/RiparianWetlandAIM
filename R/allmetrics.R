@@ -548,7 +548,7 @@ allmetrics_byplot <- function(header,
     sf::st_drop_geometry()
 
   unknowncover <- pct_UnknownCover(lpi_tall, nationalspecieslist, covertype = "relative", unit = "by_plot")%>%
-    dplyr::rename("LPI_RelativeUnknownCover" = "RelativeUnknownCover")
+    {if("RelativeUnknownCover" %in% names(.)) dplyr::rename("LPI_RelativeUnknownCover" = "RelativeUnknownCover") else .}
 
   abscover <- pct_AbsoluteSpeciesCover(lpi_tall, nationalspecieslist, unit = "by_plot")
   cwmmetrics <- cwm_metrics(abscover, header, nationalspecieslist, statespecieslist)
