@@ -139,7 +139,7 @@ gather_species_inventory_lentic <- function(dsn, source = "SDE") {
 
     species_inventory_header <- arc.data2sf(arc.select(arc.open(paste(dsn, fc[stringr::str_which(fc, "SpeciesInventory")], sep = "/"))))%>%
       sf::st_drop_geometry()%>%
-      dplyr::filter(Calibration %in% c("Production"))
+      {if("Calibration" %in% names(.)) dplyr::filter(Calibration %in% c("Production")) else .}
 
     species_inventory_detail <- arc.select(arc.open(paste(dsn, rs[stringr::str_which(rs, "SpecRichDetail")], sep = "/")))%>%
       dplyr::rename("EvaluationID" = "SpecRichDetailEvaluationID")%>%
