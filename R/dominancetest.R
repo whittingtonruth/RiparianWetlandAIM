@@ -23,7 +23,8 @@ dominance_test <- function(header, lpi_tall, nationalspecieslist, bystrata = F){
 
     #Join to masterlist for indicator staus and growth habit
     dplyr::left_join(.,
-                     nationalspecieslist%>%select(Symbol, ends_with("WetStatus"), GrowthHabitSub, GrowthHabit, TaxonLevel),
+                     nationalspecieslist%>%
+                       dplyr::select(Symbol, ends_with("WetStatus"), GrowthHabitSub, GrowthHabit, TaxonLevel),
                      by = c("Code" = "Symbol"))%>%
     {if("sf" %in% class(header))sf::st_drop_geometry(.) else .}
 
@@ -36,12 +37,12 @@ dominance_test <- function(header, lpi_tall, nationalspecieslist, bystrata = F){
   #Continue to filter out unknowns. Not fair to use in Dominance test. Then define wetland indicator status and strata
   AbsoluteSpeciesCover <- AbsoluteSpeciesCover%>%
     dplyr::filter(TaxonLevel%in%c("Species", "Trinomial")&GrowthHabit!="Nonvascular")%>%
-    dplyr::mutate(HydroFAC = case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
-                                       WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
-                                       WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
-                                       WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
-                                       WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
-                                       WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus),
+    dplyr::mutate(HydroFAC = dplyr::case_when(WetlandIndicatorRegion=="Arid West" ~AW_WetStatus,
+                                              WetlandIndicatorRegion=="Western Mountains, Valleys, and Coast" ~WMVC_WetStatus,
+                                              WetlandIndicatorRegion=="Great Plains" ~GP_WetStatus,
+                                              WetlandIndicatorRegion=="Alaska"~AK_WetStatus,
+                                              WetlandIndicatorRegion=="Midwest"~MW_WetStatus,
+                                              WetlandIndicatorRegion=="Northcentral and Northeast"~NCNE_WetStatus),
                   Strata = ifelse(GrowthHabitSub %in% c("Graminoid", "Forb"), "Herbaceous", GrowthHabitSub))%>%
     dplyr::select(-c(ends_with("WetStatus"), GrowthHabitSub))
 
@@ -54,20 +55,20 @@ dominance_test <- function(header, lpi_tall, nationalspecieslist, bystrata = F){
 
   Totals <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
-    summarise(TotalCover = sum(AH_SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
+    dplyr::summarise(TotalCover = sum(AH_SpeciesCover), TwentyPercent = 0.2 * TotalCover, FiftyPercent = 0.5 * TotalCover)
 
   Dominants <- AbsoluteSpeciesCover%>%
     dplyr::group_by(!!!level)%>%
     dplyr::arrange(!!!level, desc(AH_SpeciesCover))%>%
-    dplyr::left_join(Totals, by =  names(select(., !!!level)))%>%
+    dplyr::left_join(Totals, by =  names(dplyr::select(., !!!level)))%>%
     dplyr::mutate(PreviousCumulativeCover = cumsum(AH_SpeciesCover)-AH_SpeciesCover,
                   Dominant = ifelse(PreviousCumulativeCover < FiftyPercent, "50", ifelse(AH_SpeciesCover > TwentyPercent, "20", "N")),
                   HydroDominant = ifelse(HydroFAC %in% c("FAC", "FACW","OBL"), Dominant, "N"),
-                  WeightedPrevalence = case_when(HydroFAC == "UPL" ~ AH_SpeciesCover * 5,
-                                         HydroFAC == "FACU" ~ AH_SpeciesCover * 4,
-                                         HydroFAC == "FAC" ~ AH_SpeciesCover * 3,
-                                         HydroFAC == "FACW" ~ AH_SpeciesCover * 2,
-                                         HydroFAC == "OBL" ~ AH_SpeciesCover * 1))
+                  WeightedPrevalence = dplyr::case_when(HydroFAC == "UPL" ~ AH_SpeciesCover * 5,
+                                                        HydroFAC == "FACU" ~ AH_SpeciesCover * 4,
+                                                        HydroFAC == "FAC" ~ AH_SpeciesCover * 3,
+                                                        HydroFAC == "FACW" ~ AH_SpeciesCover * 2,
+                                                        HydroFAC == "OBL" ~ AH_SpeciesCover * 1))
 
   PlotDominanceTest <- Dominants%>%
     dplyr::group_by(EvaluationID)%>%

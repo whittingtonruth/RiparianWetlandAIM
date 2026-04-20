@@ -27,7 +27,7 @@ classificationcheck <- function(header,
   #Pull relevant PlotChar fields
   PlotChar <- PlotChar%>%
     sf::st_drop_geometry()%>%
-    select(PlotID, EvaluationID, AdminState, AvgWidthArea, CowardinConfidence, HGMClassConfidence, WetlandTypeConfidence, WetlandTypeOther, ClassificationComments)
+    dplyr::select(PlotID, EvaluationID, AdminState, AvgWidthArea, CowardinConfidence, HGMClassConfidence, WetlandTypeConfidence, WetlandTypeOther, ClassificationComments)
 
   #calculate the dominance test. maintain only the result of that test.
   dominance <- dominance_test(header%>%sf::st_drop_geometry(), lpi_tall, nationalspecieslist, bystrata = F)
@@ -35,7 +35,8 @@ classificationcheck <- function(header,
   Foliar <- pct_FoliarCover(lpi_tall, unit = "by_plot")
 
   BareSoilCover <- pct_NonPlantGroundCover(lpi_tall, hit = "first", nationalspecieslist, unit = "by_plot")%>%
-    dplyr::mutate(BareSoilCoverAll = rowSums(dplyr::select(., dplyr::any_of(c("FH_SoilCover","FH_OrganicMaterialCover")))))%>%
+    dplyr::mutate(BareSoilCoverAll = rowSums(dplyr::select(., dplyr::any_of(c("FH_SoilCover","FH_OrganicMaterialCover")))),
+                  FH_SaltCrustCover = ifelse("FH_SaltCrustCover" %in% names(.), FH_SaltCrustCover, 0))%>%
     dplyr::select(PlotID, EvaluationID, BareSoilCoverAll, FH_SaltCrustCover)
 
   UnkCover <- pct_UnknownCover(lpi_tall = lpi_tall, nationalspecieslist = nationalspecieslist, covertype = "relative", unit = "by_plot")
@@ -93,17 +94,25 @@ classificationcheck <- function(header,
 
   #join all the data together into one table
   classinddata <- header%>%
-    dplyr::left_join(., dominance, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., Foliar, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., BareSoilCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., UnkCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., FuncGroupCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., GrowthHabitSubCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., GrowthHabitCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., heightmetrics, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., soilscheck, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., TallWoodyCover, by = join_by(PlotID, EvaluationID))%>%
-    dplyr::left_join(., PlotChar, by = join_by(PlotID, EvaluationID, AdminState))
+    dplyr::left_join(., dominance, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., Foliar, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., BareSoilCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., UnkCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., FuncGroupCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., GrowthHabitSubCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., GrowthHabitCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., heightmetrics, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., soilscheck, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., TallWoodyCover, by = dplyr::join_by(PlotID, EvaluationID))%>%
+    dplyr::left_join(., PlotChar, by = dplyr::join_by(PlotID, EvaluationID, AdminState))
+
+  #Check for any required fields. Calculate to 0 across the dataset if missing. This only comes up in smaller datasets where no plots have a given indicator on plot and the indicator therefore ends up empty instead of 0.
+  requiredfields <- c("BareSoilCoverAll", "FH_SaltCrustCover", "AH_PlayaSpeciesCover", "AH_TreeCover", "AH_WoodyCover", "AH_MarshSpeciesCover", "AH_GraminoidCover", "AH_MarshSpeciesCover")
+  fieldtoadd <- requiredfields[!requiredfields%in%names(classinddata)]
+
+  for( field in fieldtoadd){
+    classinddata[field] <- 0
+  }
 
   #Calculate an anticipated wetland type
   classificationcheck <- classinddata %>%
