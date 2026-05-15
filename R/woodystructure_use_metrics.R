@@ -299,7 +299,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
   #Height Class counts
   #Counts by individual height classes and all height classes
   woodyheightclass_byquad <- woody_tall%>%
-    dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
+    dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging", ""), HeightClass != "", RiparianWoodySpecies!="N")%>%
     dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
     dplyr::distinct(!!!level, LineKey, PointNbr, HeightClass)%>%
     dplyr::group_by(!!!level)%>%
@@ -330,7 +330,7 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
 
   #Pull the dominant height class and total count of measurements.
   allwoodyheight <- woody_tall%>%
-    dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging"), HeightClass != "")%>%
+    dplyr::filter(OverhangingOrRooted %in% c("Rooted-in", "Overhanging", ""), HeightClass != "", RiparianWoodySpecies!="N")%>%
     dplyr::mutate(HeightClass = as.numeric(stringr::str_extract(HeightClass, "[:digit:]")))%>%
     dplyr::group_by(!!!level)%>%
     dplyr::summarize(WS_DominantHgtClass = paste("Height Class ",
