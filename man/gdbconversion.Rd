@@ -4,14 +4,14 @@
 \alias{gdbconversion}
 \title{Convert FGDB into separate .csv files}
 \usage{
-gdbconversion(dsn, RawDataFolder, source = "SDE")
+gdbconversion(dsn, RawDataFolder, filetype = "csv")
 }
 \arguments{
 \item{dsn}{location of the File Geodatabase}
 
-\item{RawDataFolder}{location where all csvs will be stored.}
+\item{RawDataFolder}{location where all files will be stored. If exporting to csv, this should be a preexisting folder where all csvs will be placed. If exporting to geopackage, the location must end in '.gpkg' and the file will be created by the script.}
 
-\item{source}{String. The source from which data is being drawn from. Can be "SDE", "GDB", or "AGOL". Defaults to "SDE".}
+\item{filetype}{String. Export format. Can be \code{csv} or \code{gpkg}. Defaults to \code{csv}.}
 }
 \description{
 Function converts all separate tables found in a FGDB into separate csv files to be more accessible to others. Some schema changes are accomplished to ensure output is interpretable outside of a relational geodatabase format.
