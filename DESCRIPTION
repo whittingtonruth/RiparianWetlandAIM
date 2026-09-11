@@ -13,8 +13,8 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports: 
     tidyverse
 Depends: 
     R (>= 2.10)
+Config/roxygen2/version: 8.1.0

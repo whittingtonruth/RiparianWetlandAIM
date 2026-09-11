@@ -161,6 +161,12 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
 
   # Calculate the number of quadrats for all lines with no woody species present.
   # Distinct columns are the same here independent of the level of reporting
+  # If line length is missing, it will be assumed to be 2500, but a message will come out.
+
+  if(any(is.na(woody_tall$LineLengthCM))){
+    message("Some Woody Structure transects don't have a line length specified. A default of 2500 cm will be used. ")
+  }
+
   quadcalc <-
     woody_tall%>%
     dplyr::filter(WoodySpeciesPresent=="No")%>%
