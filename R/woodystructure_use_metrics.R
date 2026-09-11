@@ -171,7 +171,8 @@ ageclass_metrics <- function(header, woody_tall, tree_tall=NULL, nationalspecies
     woody_tall%>%
     dplyr::filter(WoodySpeciesPresent=="No")%>%
     dplyr::distinct(PlotID, EvaluationID, LineKey, LineLengthCM, interval)%>%
-    dplyr::mutate(n = round(LineLengthCM/interval, digits = 0))
+    dplyr::mutate(LineLengthCM = ifelse(is.na(LineLengthCM), 2500, LineLengthCM),
+                  n = round(LineLengthCM/interval, digits = 0))
 
   # Calculate the number of quadrats for all lines with woody species present.
   # This will use the points in Annual Use Points Repeat to count by line.
