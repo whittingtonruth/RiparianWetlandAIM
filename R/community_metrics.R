@@ -505,6 +505,66 @@ Community_Duration <- function(SpeciesList, nationalspecieslist, unknowncodes = 
   return(totals)
 }
 
+#'@export Community_NativeGrowthHabit
+#'@rdname Community_Metrics
+Community_NativeGrowthHabit <- function(SpeciesList, nationalspecieslist, unknowncodes = NULL, listtype = "speciesinventory", method = "percent"){
+
+  if(!(method %in% c("percent", "count"))){
+    stop("Method must be 'percent' or 'count'.")
+  }
+
+  if(!(listtype %in% c("speciesinventory", "lpi"))){
+    stop("listtype must be 'speciesinventory' or 'lpi'.")
+  }
+
+  fieldname <- ifelse(listtype == "speciesinventory", "SppInv", "LPI")
+
+  nationalspecieslist$NativeStatus[nationalspecieslist$NativeStatus=="cryptogenic"] <- "nonnative"
+
+  #If using LPI, change the code column to Species, then remove all nonplant codes.
+  if(listtype == "lpi"){
+    SpeciesList <- SpeciesList %>%
+      dplyr::rename(Species = code)%>%
+      dplyr::filter(!(Species %in% nonplantcodes$code) & layer != "SoilSurface")
+  }
+
+  #Join the SpeciesList and master species list together.
+  SpeciesList <- SpeciesList%>%
+    dplyr::left_join(., nationalspecieslist, by = c("Species" = "Symbol"))%>%
+    dplyr::group_by(EvaluationID)%>%
+    #Filter out duplicated entries. Complicated with unknowns which may duplicate a lower level taxonomic code.
+    dplyr::filter(!(duplicated(UnknownCodeKey) & !TaxonLevel %in% c("Species", "Trinomial")) &
+                    !(duplicated(Species) & TaxonLevel %in% c("Species", "Trinomial")),
+                  Duration != "Nonvascular")%>%
+    #if unknowncodes is provided, fill in the growthhabit for unknowns.
+    {if(!is.null(unknowncodes)) dplyr::left_join(.,
+                                                 unknowncodes%>%
+                                                   dplyr::select(UnknownCodeKey, DurationUnknown = Duration, GrowthHabitSubUnknown = GrowthHabit),
+                                                 by = "UnknownCodeKey")%>%
+        dplyr::mutate(., GrowthHabitSub = dplyr::case_when(GrowthHabit!=""&!is.na(GrowthHabit)~GrowthHabit,
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Tree", "Shrub")~"Woody",
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Graminoid", "Forb")~"NonWoody",
+                                                           GrowthHabit==""&GrowthHabitSubUnknown%in%c("Liverwort", "Moss", "Lichen")~"Nonvascular"))
+      else .}%>%
+    dplyr::filter(NativeStatus != "" & !is.na(NativeStatus), !GrowthHabit %in% c("", NA, "Nonvascular"))%>%
+    dplyr::mutate(GrowthHabit = dplyr::case_when(GrowthHabit == "Woody"~"Woody",
+                                                 GrowthHabit == "NonWoody"~"Herbaceous"))
+
+  totals <- Community_Composition(SpeciesList, method = method, tall = T, NativeStatus, GrowthHabit)%>%
+    dplyr::mutate(metric = paste(fieldname,
+                                 stringr::str_replace_all(
+                                   stringr::str_to_title(
+                                     stringr::str_replace(metric, "\\.", " ")),
+                                   c(" " = "", "_cnt" = "_Cnt", "_pct" = "_Pct")),
+                                 sep = "_"))%>%
+    dplyr::group_by(EvaluationID)%>%
+    tidyr::pivot_wider(names_from = metric, values_from = {ifelse(method == "percent",
+                                                                  rlang::expr(Pct),
+                                                                  rlang::expr(Cnt))})
+
+  return(totals)
+}
+
 #'@export Community_StabilityGrowthHabit
 #'@rdname Community_Metrics
 Community_StabilityGrowthHabit <- function(SpeciesList, nationalspecieslist, unknowncodes = NULL, listtype = "speciesinventory", method = "percent"){

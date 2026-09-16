@@ -10,6 +10,7 @@
 \alias{Community_SGGroup}
 \alias{Community_GrowthHabitSub}
 \alias{Community_Duration}
+\alias{Community_NativeGrowthHabit}
 \alias{Community_StabilityGrowthHabit}
 \title{Summarize community composition for specified grouping variables.}
 \usage{
@@ -72,6 +73,14 @@ Community_GrowthHabitSub(
 )
 
 Community_Duration(
+  SpeciesList,
+  nationalspecieslist,
+  unknowncodes = NULL,
+  listtype = "speciesinventory",
+  method = "percent"
+)
+
+Community_NativeGrowthHabit(
   SpeciesList,
   nationalspecieslist,
   unknowncodes = NULL,
